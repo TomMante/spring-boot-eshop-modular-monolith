@@ -37,6 +37,7 @@
 		<sonar.coverage.jacoco.xmlReportPaths>sonar/target/site/jacoco-aggregate/jacoco.xml
 		</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.java.source>${java.version}</sonar.java.source>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
