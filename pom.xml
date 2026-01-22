@@ -32,6 +32,7 @@
 		<spring-boot.version>4.0.1</spring-boot.version>
 		<aggregate.report.dir>sonar/target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>
 		<sonar.organization>tommante</sonar.organization>
+		<sonar.projectKey>TomMante_SpringBoot-EshopModularMonolith</sonar.projectKey>
 		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 		<sonar.coverage.jacoco.xmlReportPaths>sonar/target/site/jacoco-aggregate/jacoco.xml
 		</sonar.coverage.jacoco.xmlReportPaths>

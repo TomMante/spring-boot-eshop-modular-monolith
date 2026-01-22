@@ -5,9 +5,6 @@ on:
   push:
     branches: [ "main" ]
 
-env:
-  APP_NAME: eshop-modular-monolith
-
 jobs:
   continuous-integration:
     name: Continuous Integration
@@ -42,4 +39,4 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=TomMante_SpringBoot-EshopModularMonolith
+        run: mvn -B verify sonar:sonar
