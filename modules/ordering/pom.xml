@@ -16,5 +16,11 @@
         <sonar.coverage.jacoco.xmlReportPaths>${basedir}/../../${aggregate.report.dir}
         </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

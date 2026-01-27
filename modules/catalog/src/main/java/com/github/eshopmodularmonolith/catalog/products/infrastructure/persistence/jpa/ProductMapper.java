@@ -1,0 +1,14 @@
+package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
+
+import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
+
+public final class ProductMapper {
+
+    public static Product toDomain(ProductDB productDB) {
+        return Product.create(productDB.id(), productDB.name(), productDB.categories(), productDB.description(), productDB.imageFile(), productDB.price());
+    }
+
+    public static ProductDB toReadModel(Product product){
+        return new ProductDB(product.id(), product.name(), product.categories(), product.description(), product.imageFile(), product.price());
+    }
+}
