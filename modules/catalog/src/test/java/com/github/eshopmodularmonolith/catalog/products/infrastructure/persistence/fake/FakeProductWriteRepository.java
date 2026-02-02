@@ -5,6 +5,7 @@ import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWrite
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class FakeProductWriteRepository implements ProductWriteRepository {
@@ -16,13 +17,17 @@ public class FakeProductWriteRepository implements ProductWriteRepository {
     }
 
     @Override
-    public Product getProductById(UUID id) {
-        return products.get(id);
+    public Optional<Product> findProductById(UUID id) {
+        return Optional.ofNullable(products.get(id));
     }
 
     @Override
-    public boolean save(Product product) {
+    public void save(Product product) {
         products.put(product.id(), product);
-        return true;
+    }
+
+    @Override
+    public void delete(UUID productId) {
+        products.remove(productId);
     }
 }

@@ -4,6 +4,10 @@ import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 
 public final class ProductMapper {
 
+    private ProductMapper() {
+
+    }
+
     public static Product toDomain(ProductDB productDB) {
         return Product.create(productDB.id(), productDB.name(), productDB.categories(), productDB.description(), productDB.imageFile(), productDB.price());
     }

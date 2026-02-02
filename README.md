@@ -4,7 +4,7 @@
 ## Things To Investigate:
 
 - actuator tests?
-
+- HATEOAS: https://www.youtube.com/watch?v=k5S3qcCFDiQ
 
 
 ## DDD definitions:

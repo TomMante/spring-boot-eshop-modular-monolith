@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.features.createproduct;
 
 import com.github.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductCommand;
-import com.github.eshopmodularmonolith.catalog.products.application.features.createproduct.ProductCreationHandler;
+import com.github.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductHandler;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
 import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductWriteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,12 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProductCreationTests {
 
     private ProductWriteRepository repository;
-    private ProductCreationHandler handler;
+    private CreateProductHandler handler;
 
     @BeforeEach
     void setUp() {
         repository = new FakeProductWriteRepository();
-        handler = new ProductCreationHandler(repository);
+        handler = new CreateProductHandler(repository);
     }
 
     @Test
@@ -38,10 +38,12 @@ class ProductCreationTests {
                 BigDecimal.valueOf(750)
         );
 
-        var result = handler.handle(createProduct);
-        assertThat(result).isTrue();
+        handler.handle(createProduct);
 
-        var product = repository.getProductById(createProduct.id());
+        var productOpt = repository.findProductById(createProduct.id());
+        assertThat(productOpt).isPresent();
+
+        var product = productOpt.get();
 
         assertThat(product.id()).isEqualTo(createProduct.id());
         assertThat(product.name()).isEqualTo(createProduct.name());

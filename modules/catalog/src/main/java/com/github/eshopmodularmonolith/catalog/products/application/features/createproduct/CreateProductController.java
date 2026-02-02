@@ -9,15 +9,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CreateProductController {
 
-    private final ProductCreationHandler handler;
+    private final CreateProductHandler handler;
 
-    public CreateProductController(ProductCreationHandler handler) {
+    public CreateProductController(CreateProductHandler handler) {
         this.handler = handler;
     }
 
     @PostMapping("/product")
     @ResponseStatus(code = HttpStatus.CREATED)
-    public boolean createProduct(@RequestBody CreateProductRequest request){
+    public void createProduct(@RequestBody CreateProductRequest request){
         var cmd = new CreateProductCommand(
                 request.id(),
                 request.name(),
@@ -26,7 +26,7 @@ public class CreateProductController {
                 request.imageFile(),
                 request.price()
         );
-        return handler.handle(cmd);
+        handler.handle(cmd);
     }
 
 }

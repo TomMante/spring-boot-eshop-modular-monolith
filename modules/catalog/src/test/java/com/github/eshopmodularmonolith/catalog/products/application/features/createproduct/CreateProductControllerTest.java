@@ -2,7 +2,6 @@ package com.github.eshopmodularmonolith.catalog.products.application.features.cr
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -18,8 +17,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,7 +31,7 @@ class CreateProductControllerTest {
     static class Config {
 
         @Bean
-        public CreateProductController createProductController(ProductCreationHandler handler) {
+        public CreateProductController createProductController(CreateProductHandler handler) {
             return new CreateProductController(handler);
         }
     }
@@ -43,11 +42,11 @@ class CreateProductControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private ProductCreationHandler handler;
+    private CreateProductHandler handler;
 
     @Test
     @DisplayName("Given endpoint is available, when create product endpoint is called, then controller forwards to handler")
-    void givenEnpointIsAvailable_whenCreateProductEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
+    void givenEndpointIsAvailable_whenCreateProductEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var request = new CreateProductRequest(
                 UUID.randomUUID(),
                 "Google Pixel",
@@ -65,13 +64,13 @@ class CreateProductControllerTest {
                 request.imageFile(),
                 request.price()
         );
-        when(handler.handle(cmd)).thenReturn(true);
 
         mockMvc.perform(post("/product")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("true"));
+                .andExpect(status().isCreated());
+
+        verify(handler, times(1)).handle(cmd);
     }
 
 }

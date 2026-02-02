@@ -2,12 +2,11 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.exceptions.ProductNotFound;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
-import static com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductMapper.toDomain;
 import static com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductMapper.toReadModel;
 
 @Repository
@@ -21,13 +20,17 @@ public class JpaProductWriteRepository implements ProductWriteRepository {
     }
 
     @Override
-    public Product getProductById(UUID id) {
-        return toDomain(repository.findById(id).orElseThrow(() -> new ProductNotFound(id)));
+    public Optional<Product> findProductById(UUID id) {
+        return repository.findById(id).map(ProductMapper::toDomain);
     }
 
     @Override
-    public boolean save(Product product) {
+    public void save(Product product) {
         repository.save(toReadModel(product));
-        return true;
+    }
+
+    @Override
+    public void delete(UUID productId) {
+        repository.deleteById(productId);
     }
 }

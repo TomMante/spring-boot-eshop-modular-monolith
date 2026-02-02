@@ -1,8 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
 
-import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.exceptions.ProductNotFound;
+import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @Testcontainers
 @DataJpaTest
@@ -55,16 +49,22 @@ class JpaProductWriteRepositoryTest {
     @Test
     @DisplayName("Given existing database, when saving product, product is saved")
     void givenExistingDatabase_whenSavingProduct_thenProductIsSaved() {
-        var product = Product.create(UUID.randomUUID(),
-                "Google Pixel",
-                List.of("Phone"),
-                "Google pixel phone",
-                "pixel.png",
-                BigDecimal.valueOf(750));
-        assertThatExceptionOfType(ProductNotFound.class).isThrownBy(() -> repository.getProductById(product.id()));
+        var product = ProductMother.product();
+        assertThat(repository.findProductById(product.id())).isEmpty();
         repository.save(product);
-        var result = repository.getProductById(product.id());
-        assertThat(result).usingRecursiveComparison()
+        var result = repository.findProductById(product.id());
+        assertThat(result).isPresent().get().usingRecursiveComparison()
                 .isEqualTo(product);
+    }
+
+    @Test
+    @DisplayName("Given existing product in database, when delete product is called, then product is removed forom database")
+    void givenExistingProductInDatabases_whenDeleteProductIsCalled_thenProductIsRemovedFromDatabase(){
+        var product = ProductMother.product();
+        assertThat(repository.findProductById(product.id())).isEmpty();
+        repository.save(product);
+        assertThat(repository.findProductById(product.id())).isPresent();
+        repository.delete(product.id());
+        assertThat(repository.findProductById(product.id())).isEmpty();
     }
 }

@@ -2,10 +2,12 @@ package com.github.eshopmodularmonolith.catalog.products.domain.port;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ProductWriteRepository {
 
-    Product getProductById(UUID id);
-    boolean save(Product product);
+    Optional<Product> findProductById(UUID id);
+    void save(Product product);
+    void delete(UUID productId);
 }
