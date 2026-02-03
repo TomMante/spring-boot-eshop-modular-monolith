@@ -27,7 +27,7 @@ class CreateProductHandlerTest {
 
     @Test
     @DisplayName("Given create product command, when handler is called, then product is created")
-    void givenCreateProductCommand_whenHandlerIsCalled_thenProductIsCreated_() {
+    void givenCreateProductCommand_whenHandlerIsCalled_thenProductIsCreated() {
         var cmd = new CreateProductCommand(
                 UUID.randomUUID(),
                 "Google Pixel",

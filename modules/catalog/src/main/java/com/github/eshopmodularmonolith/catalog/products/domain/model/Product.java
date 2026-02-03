@@ -1,6 +1,8 @@
 package com.github.eshopmodularmonolith.catalog.products.domain.model;
 
 import com.github.eshopmodularmonolith.shared.ddd.AggregateRoot;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
@@ -11,12 +13,12 @@ import java.util.UUID;
 public class Product implements AggregateRoot<UUID> {
 
     @EqualsAndHashCode.Include
-    private UUID id;
-    private String name;
-    private List<String> categories;
-    private String description;
-    private String imageFile;
-    private BigDecimal price;
+    private final UUID id;
+    private final String name;
+    private final List<String> categories;
+    private final String description;
+    private final String imageFile;
+    private final BigDecimal price;
 
 
     private Product(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
@@ -26,10 +28,6 @@ public class Product implements AggregateRoot<UUID> {
         this.description = description;
         this.imageFile = imageFile;
         this.price = price;
-    }
-
-    public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
-        return new Product(id, name, categories, description, imageFile, price);
     }
 
     @Override
@@ -56,4 +54,14 @@ public class Product implements AggregateRoot<UUID> {
     public BigDecimal price() {
         return price;
     }
+
+
+    public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
+        return new Product(id, name, categories, description, imageFile, price);
+    }
+
+    public Product update(String name, List<String> categories, String description, String imageFile, BigDecimal price){
+        return new Product(this.id, name, categories, description, imageFile, price);
+    }
+
 }

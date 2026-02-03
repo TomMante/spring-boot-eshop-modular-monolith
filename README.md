@@ -1,5 +1,8 @@
 ## TODO:
-- **AuditableEntityInterceptor**: In C# project, a SaveChangesInterceptor is taking care of saving Auditable entity information. This delegates to the "db" infrastructure. I think it makes sense for this to be part of the infrastructure, but it should be abstracted from the DB. I don't want to have to re-implement this should I need to change db. Also, what if I have multiple databases? => Should find a way to add an  "auditing abstraction layer". 
+- **AuditableEntityInterceptor**: In C# project, a SaveChangesInterceptor is taking care of saving Auditable entity information. This delegates to the "db" infrastructure. I think it makes sense for this to be part of the infrastructure, but it should be abstracted from the DB. I don't want to have to re-implement this should I need to change db. Also, what if I have multiple databases? => Should find a way to add an  "auditing abstraction layer". => done with AuditMetadata
+- Add various level of validation:
+  - Serialization validation (controller)
+  - business validation (handler/domain)
 
 ## Things To Investigate:
 
