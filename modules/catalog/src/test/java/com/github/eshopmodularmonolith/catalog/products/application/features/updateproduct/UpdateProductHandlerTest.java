@@ -1,7 +1,5 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.updateproduct;
 
-import com.github.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductCommand;
-import com.github.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductHandler;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
@@ -12,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

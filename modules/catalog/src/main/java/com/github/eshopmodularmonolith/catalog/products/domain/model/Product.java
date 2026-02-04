@@ -1,8 +1,6 @@
 package com.github.eshopmodularmonolith.catalog.products.domain.model;
 
-import com.github.eshopmodularmonolith.shared.ddd.AggregateRoot;
-import lombok.AccessLevel;
-import lombok.Builder;
+import com.github.eshopmodularmonolith.shared.domain.AggregateRoot;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;

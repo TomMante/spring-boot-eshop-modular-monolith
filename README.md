@@ -3,6 +3,7 @@
 - Add various level of validation:
   - Serialization validation (controller)
   - business validation (handler/domain)
+- Add Security with keycloak
 
 ## Things To Investigate:
 

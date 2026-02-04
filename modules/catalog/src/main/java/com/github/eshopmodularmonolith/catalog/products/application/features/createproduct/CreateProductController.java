@@ -1,9 +1,9 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -16,8 +16,7 @@ public class CreateProductController {
     }
 
     @PostMapping("/product")
-    @ResponseStatus(code = HttpStatus.CREATED)
-    public void createProduct(@RequestBody CreateProductRequest request){
+    public ResponseEntity<Void> createProduct(@RequestBody CreateProductRequest request){
         var cmd = new CreateProductCommand(
                 request.id(),
                 request.name(),
@@ -27,6 +26,7 @@ public class CreateProductController {
                 request.price()
         );
         handler.handle(cmd);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
 }

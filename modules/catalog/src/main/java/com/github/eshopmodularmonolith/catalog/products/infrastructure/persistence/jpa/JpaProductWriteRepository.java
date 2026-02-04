@@ -13,9 +13,9 @@ import static com.github.eshopmodularmonolith.catalog.products.infrastructure.pe
 public class JpaProductWriteRepository implements ProductWriteRepository {
 
 
-    private final SpringJpaProductWriteRepository repository;
+    private final SpringJpaProductRepository repository;
 
-    public JpaProductWriteRepository(SpringJpaProductWriteRepository repository) {
+    public JpaProductWriteRepository(SpringJpaProductRepository repository) {
         this.repository = repository;
     }
 

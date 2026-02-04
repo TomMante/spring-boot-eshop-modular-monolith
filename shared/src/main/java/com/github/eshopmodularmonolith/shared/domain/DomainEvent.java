@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.shared.ddd;
+package com.github.eshopmodularmonolith.shared.domain;
 
 import java.time.Instant;
 import java.util.UUID;

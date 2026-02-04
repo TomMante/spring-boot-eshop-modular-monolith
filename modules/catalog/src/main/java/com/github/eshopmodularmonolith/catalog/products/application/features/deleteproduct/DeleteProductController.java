@@ -1,9 +1,9 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.deleteproduct;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -18,8 +18,8 @@ public class DeleteProductController {
     }
 
     @DeleteMapping("/product/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable("id") UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") UUID id) {
         handler.handle(new DeleteProductCommand(id));
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
