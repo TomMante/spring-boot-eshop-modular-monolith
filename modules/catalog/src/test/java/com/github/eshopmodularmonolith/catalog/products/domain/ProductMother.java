@@ -15,6 +15,9 @@ public class ProductMother {
     public static Product product() {
         return builder().build();
     }
+    public static Product productWithName(String name) {
+        return builder().withName(name).build();
+    }
 
     public static ProductBuilder builder() {
         return new ProductBuilder();
@@ -27,6 +30,12 @@ public class ProductMother {
         private String description = "Galaxy description";
         private String imageFile = "galaxy.png";
         private BigDecimal price = BigDecimal.valueOf(550);
+
+
+        public ProductBuilder withName(String name) {
+            this.name = name;
+            return this;
+        }
 
         public Product build() {
             return Product.create(id, name, categories, description, imageFile, price);

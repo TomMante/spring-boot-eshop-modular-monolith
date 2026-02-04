@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
+import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,22 +55,22 @@ class JpaProductQueryRepositoryTest {
     @Test
     @DisplayName("Given existing database, when saving product, product is saved")
     void givenDatabaseWithProducts_whenPaginatedProductsAreRequested_thenPaginatedProductRequest() {
-        var product1 = ProductMother.product();
+        var product1 = ProductMother.productWithName("product1");
         writeRepository.save(product1);
-        var product2 = ProductMother.product();
+        var product2 = ProductMother.productWithName("product2");
         writeRepository.save(product2);
-        var product3 = ProductMother.product();
+        var product3 = ProductMother.productWithName("product3");
         writeRepository.save(product3);
 
-        var page1 = queryRepository.paginatedProducts(new PageRequest(0, 2));
-        assertThat(page1.items()).containsAnyElementsOf(List.of(product1, product2));
+        var page1 = queryRepository.paginatedProducts(new PageRequest(0, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
+        assertThat(page1.items()).containsExactlyInAnyOrderElementsOf(List.of(product1, product2));
         assertThat(page1.pageIndex()).isZero();
         assertThat(page1.pageSize()).isEqualTo(2);
         assertThat(page1.totalItems()).isEqualTo(3);
         assertThat(page1.totalPages()).isEqualTo(2);
 
-        var page2 = queryRepository.paginatedProducts(new PageRequest(1, 2));
-        assertThat(page2.items()).containsAnyElementsOf(List.of(product3));
+        var page2 = queryRepository.paginatedProducts(new PageRequest(1, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
+        assertThat(page2.items()).containsExactlyInAnyOrderElementsOf(List.of(product3));
         assertThat(page2.pageIndex()).isOne();
         assertThat(page2.pageSize()).isEqualTo(2);
         assertThat(page2.totalItems()).isEqualTo(3);

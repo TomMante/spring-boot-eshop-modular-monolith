@@ -2,7 +2,10 @@ package com.github.eshopmodularmonolith.catalog.products.application.features.ge
 
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductQueryRepository;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
+import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class GetProductsHandler {
@@ -14,7 +17,7 @@ public class GetProductsHandler {
     }
 
     public GetProductsResult handle(GetProductsQuery query){
-        var result = repository.paginatedProducts(new PageRequest(query.pageIndex(), query.pageSize()));
+        var result = repository.paginatedProducts(new PageRequest(query.pageIndex(), query.pageSize(), List.of(new SortOrder("name", SortOrder.Direction.ASC))));
         return new GetProductsResult(result.items(), result.pageIndex(), result.pageSize(), result.totalItems(), result.totalPages());
     }
 }

@@ -1,4 +1,6 @@
 package com.github.eshopmodularmonolith.shared.domain.pagination;
 
-public record PageRequest(int pageIndex, int pageSize) {
+import java.util.List;
+
+public record PageRequest(int pageIndex, int pageSize, List<SortOrder> sortOrders) {
 }
