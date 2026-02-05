@@ -15,7 +15,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,7 +47,6 @@ class CreateProductControllerTest {
     @DisplayName("Given endpoint is available, when create product endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenCreateProductEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var request = new CreateProductRequest(
-                UUID.randomUUID(),
                 "Google Pixel",
                 List.of("Phone"),
                 "Google pixel phone",
@@ -57,7 +55,6 @@ class CreateProductControllerTest {
         );
 
         var cmd = new CreateProductCommand(
-                request.id(),
                 request.name(),
                 request.categories(),
                 request.description(),

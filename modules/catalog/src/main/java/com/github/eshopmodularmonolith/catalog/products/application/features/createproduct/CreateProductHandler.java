@@ -4,6 +4,8 @@ import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class CreateProductHandler {
 
@@ -14,8 +16,9 @@ public class CreateProductHandler {
         this.repository = repository;
     }
 
-    public void handle(CreateProductCommand cmd) {
-        var product = Product.create(cmd.id(), cmd.name(), cmd.categories(), cmd.description(), cmd.imageFile(), cmd.price());
+    public UUID handle(CreateProductCommand cmd) {
+        var product = Product.create(UUID.randomUUID(), cmd.name(), cmd.categories(), cmd.description(), cmd.imageFile(), cmd.price());
         repository.save(product);
+        return product.id();
     }
 }

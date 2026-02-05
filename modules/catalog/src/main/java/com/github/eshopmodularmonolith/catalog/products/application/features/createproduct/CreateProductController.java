@@ -18,7 +18,6 @@ public class CreateProductController {
     @PostMapping("/product")
     public ResponseEntity<Void> createProduct(@RequestBody CreateProductRequest request){
         var cmd = new CreateProductCommand(
-                request.id(),
                 request.name(),
                 request.categories(),
                 request.description(),

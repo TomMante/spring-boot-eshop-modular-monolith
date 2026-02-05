@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,9 +26,7 @@ class CreateProductHandlerTest {
     @Test
     @DisplayName("Given product information, when CreateProductCommand is sent, product is created.")
     void givenProductInformation_whenCreateCommandIsSent_thenProductIsCreated() {
-        var providedId = UUID.randomUUID();
         var createProduct = new CreateProductCommand(
-                providedId,
                 "Google Pixel",
                 List.of("Phone"),
                 "Google pixel phone",
@@ -37,14 +34,14 @@ class CreateProductHandlerTest {
                 BigDecimal.valueOf(750)
         );
 
-        handler.handle(createProduct);
+        var productId = handler.handle(createProduct);
 
-        var productOpt = repository.findProductById(createProduct.id());
+        var productOpt = repository.findProductById(productId);
         assertThat(productOpt).isPresent();
 
         var product = productOpt.get();
 
-        assertThat(product.id()).isEqualTo(createProduct.id());
+        assertThat(product.id()).isEqualTo(productId);
         assertThat(product.name()).isEqualTo(createProduct.name());
         assertThat(product.categories()).isEqualTo(createProduct.categories());
         assertThat(product.description()).isEqualTo(createProduct.description());
