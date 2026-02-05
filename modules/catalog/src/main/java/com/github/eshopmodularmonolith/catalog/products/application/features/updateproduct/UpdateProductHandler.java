@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.updateproduct;
 
+import com.github.eshopmodularmonolith.catalog.products.domain.exceptions.ProductNotFound;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.exceptions.ProductNotFound;
 import org.springframework.stereotype.Component;
 
 @Component

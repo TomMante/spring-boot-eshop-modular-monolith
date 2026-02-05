@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.catalog.products.infrastructure.exceptions;
+package com.github.eshopmodularmonolith.catalog.products.domain.exceptions;
 
 import java.util.UUID;
 

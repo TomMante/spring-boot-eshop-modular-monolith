@@ -1,9 +1,10 @@
 ## TODO:
 - **AuditableEntityInterceptor**: In C# project, a SaveChangesInterceptor is taking care of saving Auditable entity information. This delegates to the "db" infrastructure. I think it makes sense for this to be part of the infrastructure, but it should be abstracted from the DB. I don't want to have to re-implement this should I need to change db. Also, what if I have multiple databases? => Should find a way to add an  "auditing abstraction layer". => done with AuditMetadata
 - Add various level of validation:
-  - Serialization validation (controller)
-  - business validation (handler/domain)
+  - Serialization validation (controller) (introduced, missing spots)
+  - business validation (handler/domain) (introduced, missing spots)
 - Add Security with keycloak
+- move away from given when then for all tests. Could make sense to use cucumber to do some integration tests, there it would make sense to have give when then
 
 ## Things To Investigate:
 

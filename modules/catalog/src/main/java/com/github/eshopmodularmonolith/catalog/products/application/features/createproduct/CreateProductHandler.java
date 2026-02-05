@@ -17,6 +17,7 @@ public class CreateProductHandler {
     }
 
     public UUID handle(CreateProductCommand cmd) {
+        if(repository.existsByName(cmd.name())) throw new ProductAlreadyExistsException("Product with name {" + cmd.name() + "} already exists.");
         var product = Product.create(UUID.randomUUID(), cmd.name(), cmd.categories(), cmd.description(), cmd.imageFile(), cmd.price());
         repository.save(product);
         return product.id();

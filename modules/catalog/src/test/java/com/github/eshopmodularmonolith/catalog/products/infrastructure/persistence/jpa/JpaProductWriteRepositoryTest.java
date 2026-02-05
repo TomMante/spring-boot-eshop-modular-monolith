@@ -58,7 +58,7 @@ class JpaProductWriteRepositoryTest {
     }
 
     @Test
-    @DisplayName("Given existing product in database, when delete product is called, then product is removed forom database")
+    @DisplayName("Given existing product in database, when delete product is called, then product is removed from database")
     void givenExistingProductInDatabases_whenDeleteProductIsCalled_thenProductIsRemovedFromDatabase(){
         var product = ProductMother.product();
         assertThat(repository.findProductById(product.id())).isEmpty();
@@ -66,5 +66,14 @@ class JpaProductWriteRepositoryTest {
         assertThat(repository.findProductById(product.id())).isPresent();
         repository.delete(product.id());
         assertThat(repository.findProductById(product.id())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Given existing products, when existingByName is called, then repository returns if product with provided name exists.")
+    void givenExistingProducts_whenExistsByNameIsCalled_thenRepositoryReturnsIfProductWithProvidedNameExists() {
+        var product = ProductMother.product();
+        assertThat(repository.existsByName(product.name())).isFalse();
+        repository.save(product);
+        assertThat(repository.existsByName(product.name())).isTrue();
     }
 }

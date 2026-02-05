@@ -14,4 +14,6 @@ public interface SpringJpaProductRepository extends JpaRepository<ProductDB, UUI
     Optional<ProductDB> findById(UUID uuid);
 
     Page<ProductDB> findAll(Pageable pageable);
+
+    boolean existsByName(String name);
 }

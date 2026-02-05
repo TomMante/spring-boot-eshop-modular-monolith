@@ -8,6 +8,7 @@ import java.util.UUID;
 public interface ProductWriteRepository {
 
     Optional<Product> findProductById(UUID id);
+    boolean existsByName(String name);
     void save(Product product);
     void delete(UUID productId);
 }

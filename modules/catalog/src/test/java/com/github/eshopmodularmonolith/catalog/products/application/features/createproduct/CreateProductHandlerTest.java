@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class CreateProductHandlerTest {
 
@@ -47,5 +48,23 @@ class CreateProductHandlerTest {
         assertThat(product.description()).isEqualTo(createProduct.description());
         assertThat(product.imageFile()).isEqualTo(createProduct.imageFile());
         assertThat(product.price()).isEqualTo(createProduct.price());
+    }
+
+    @Test
+    @DisplayName("Given product information, when CreateProductCommand is sent, product is created.")
+    void whenProductWithSameNameExists_thenExceptionIsThrown() {
+        var createProduct = new CreateProductCommand(
+                "Google Pixel",
+                List.of("Phone"),
+                "Google pixel phone",
+                "pixel.png",
+                BigDecimal.valueOf(750)
+        );
+
+        var productId = handler.handle(createProduct);
+        var productOpt = repository.findProductById(productId);
+        assertThat(productOpt).isPresent();
+
+        assertThatExceptionOfType(ProductAlreadyExistsException.class).isThrownBy(() -> handler.handle(createProduct));
     }
 }

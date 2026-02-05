@@ -22,6 +22,11 @@ public class FakeProductWriteRepository implements ProductWriteRepository {
     }
 
     @Override
+    public boolean existsByName(String name) {
+        return products.values().stream().anyMatch(p -> p.name().equals(name));
+    }
+
+    @Override
     public void save(Product product) {
         products.put(product.id(), product);
     }

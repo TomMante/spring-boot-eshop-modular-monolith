@@ -33,4 +33,9 @@ public class JpaProductWriteRepository implements ProductWriteRepository {
     public void delete(UUID productId) {
         repository.deleteById(productId);
     }
+
+    @Override
+    public boolean existsByName(String name) {
+        return repository.existsByName(name);
+    }
 }
