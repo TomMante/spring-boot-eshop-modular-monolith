@@ -7,6 +7,9 @@ import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Repository
 public class JpaProductQueryRepository implements ProductQueryRepository {
 
@@ -22,5 +25,10 @@ public class JpaProductQueryRepository implements ProductQueryRepository {
         var pageable = org.springframework.data.domain.PageRequest.of(pageRequest.pageIndex(), pageRequest.pageSize()).withSort(sorts);
         var pages = repository.findAll(pageable);
         return new PageResult<>(pages.get().map(ProductMapper::toDomain).toList(), pages.getNumber(), pages.getSize(), pages.getTotalElements(), pages.getTotalPages());
+    }
+
+    @Override
+    public Optional<Product> findById(UUID id) {
+        return repository.findById(id).map(ProductMapper::toDomain);
     }
 }

@@ -53,8 +53,8 @@ class JpaProductQueryRepositoryTest {
 
 
     @Test
-    @DisplayName("Given existing database, when saving product, product is saved")
-    void givenDatabaseWithProducts_whenPaginatedProductsAreRequested_thenPaginatedProductRequest() {
+    @DisplayName("Given database with products, when paginated products are requested, then paginated products are returned")
+    void givenDatabaseWithProducts_whenPaginatedProductsAreRequested_thenPaginatedProductAreReturned() {
         var product1 = ProductMother.productWithName("product1");
         writeRepository.save(product1);
         var product2 = ProductMother.productWithName("product2");
@@ -76,5 +76,18 @@ class JpaProductQueryRepositoryTest {
         assertThat(page2.totalItems()).isEqualTo(3);
         assertThat(page2.totalPages()).isEqualTo(2);
 
+    }
+
+    @Test
+    @DisplayName("Given database with products, when find by id is called, then correct product is retrieved")
+    void givenDatabaseWithproducts_whenFindByIdIsCalled_thenCorrectProductIsRetrieved(){
+        var product1 = ProductMother.productWithName("product1");
+        writeRepository.save(product1);
+        var product2 = ProductMother.productWithName("product2");
+        writeRepository.save(product2);
+
+        var foundProduct = queryRepository.findById(product1.id());
+
+        assertThat(foundProduct).isPresent().get().usingRecursiveComparison().isEqualTo(product1);
     }
 }

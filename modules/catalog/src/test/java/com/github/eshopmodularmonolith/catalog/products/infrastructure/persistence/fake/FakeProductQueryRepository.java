@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class FakeProductQueryRepository implements ProductQueryRepository {
@@ -44,5 +45,10 @@ public class FakeProductQueryRepository implements ProductQueryRepository {
         int totalPages = (int) Math.ceil((double) allProducts.size() / pageSize);
 
         return new PageResult<>(pageItems, pageIndex, pageSize, allProducts.size(), totalPages);
+    }
+
+    @Override
+    public Optional<Product> findById(UUID id) {
+        return Optional.ofNullable(products.get(id));
     }
 }

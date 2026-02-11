@@ -29,4 +29,9 @@ public class ApiErrors {
         return ResponseEntity.status(409)
                 .body(new ApiError(code, message, null));
     }
+
+    public static ResponseEntity<ApiError> notFound(String code, String message){
+        return ResponseEntity.status(404)
+                .body(new ApiError(code, message, null));
+    }
 }

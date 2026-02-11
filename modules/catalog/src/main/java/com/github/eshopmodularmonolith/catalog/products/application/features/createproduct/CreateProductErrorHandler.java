@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "com.github.eshopmodularmonolith.catalog.products")
+@RestControllerAdvice(basePackages = "com.github.eshopmodularmonolith.catalog.products.application.features.createproduct")
 public class CreateProductErrorHandler {
 
     @ExceptionHandler(ProductAlreadyExistsException.class)
