@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.starter;
+package com.github.eshopmodularmonolith;
 
 
 import org.slf4j.Logger;

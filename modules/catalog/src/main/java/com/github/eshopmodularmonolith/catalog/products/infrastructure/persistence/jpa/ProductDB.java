@@ -6,22 +6,25 @@ import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "products")
 public class ProductDB {
 
     @Id
     private UUID id;
     @Embedded
-    private AuditMetadata auditMetadata;
+    private AuditMetadata auditMetadata = new AuditMetadata();
     @Column(nullable = false)
     private String name;
     @ElementCollection

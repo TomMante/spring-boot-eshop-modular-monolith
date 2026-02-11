@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.starter;
+package com.github.eshopmodularmonolith;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
