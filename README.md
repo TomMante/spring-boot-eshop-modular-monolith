@@ -1,44 +1,26 @@
-## TODO:
-- **AuditableEntityInterceptor**: In C# project, a SaveChangesInterceptor is taking care of saving Auditable entity information. This delegates to the "db" infrastructure. I think it makes sense for this to be part of the infrastructure, but it should be abstracted from the DB. I don't want to have to re-implement this should I need to change db. Also, what if I have multiple databases? => Should find a way to add an  "auditing abstraction layer". => done with AuditMetadata
-- Add various level of validation:
-  - Serialization validation (controller) (introduced, missing spots)
-  - business validation (handler/domain) (introduced, missing spots)
-- Add Security with keycloak
-- move away from given when then for all tests. Could make sense to use cucumber to do some integration tests, there it would make sense to have give when then
+# Project Objective
 
-## Things To Investigate:
+This project serves as a study/blueprint for a spring boot modular monolith. The core idea stems from a course I took on .Net: https://learning.oreilly.com/course/net-8-backend/9781837028757/
+where it showed how to implement a modular monolith using DDD, CQRS and VSA.
 
-- actuator tests?
-- HATEOAS: https://www.youtube.com/watch?v=k5S3qcCFDiQ
+I took that base and ported it over to spring boot/java world and added my 2 cents. The main concepts I added are:
+1. Used TDD, trying to borrow from the BDD world, using the given when then convention. (Which doesn't always seem to port well to unit tests).
+2. Tried to make more abstraction so that the domain is completely split from the infrastructure using ports. This should allow for a simpler switch to a different database model, for example switching to mongoDB, should that be beneficial
+3. Used 2 different repositories for write and read, this is also, to allow more flexibility. Coming from an eventsourcing project, I saw the flexibility of having different databases for write and read. With CQRS the query side directly interacts with the read model.
+4. Leveraged Spring Auditables to add Auditing to objects.
 
 
-## DDD definitions:
-
-- An **Aggregate** is a conceptual consistency boundary that models a business concept.
-It groups entities and value objects that must remain consistent together.
-- An **Aggregate Root** is a specific Entity chosen as the sole external entry point to the aggregate.
-It has a global identity and authorizes all state changes of the aggregate.
-- **Entities** may exist inside the aggregate and represent concepts with identity and lifecycle, but they have no external authority.
-- **Value Objects** represent immutable values without identity and are replaced, not modified.
-- **Domain:** The subject matter, rules, policies, and constraints of the business problem the software exists to solve.
-- **Domain model**: A conceptual model that captures important business concepts, rules, and relationships — expressed in code.
-  - Insight: The domain model is not a data model and not a technical model.
-    It is a business meaning model.
-- **Domain event**: Something meaningful that has happened in the domain and matters to the business.
-- **Subdomains** are business divisions
-- **Bounded Contexts** are software boundaries where a model applies.
-  - Insight: domain model only makes sense within a bounded context.
-
-
-### Quotes:
- - Domain Events belong to the domain model, Event dispatching belongs to infrastructure
-
-
-### Domain other definition:
-The domain is the part of the business problem that the software models, including its rules, language, and constraints. The domain model is a representation of that business knowledge in code. Domain events represent business‑meaningful facts that have occurred within that domain.
-
-
-### Rule of thumbs:
-- Ask yourself: If the business rule changes tomorrow, would this code need to change:
-  - Yes => domain
-  - No => application or infrastructure
+## Extending the project
+Some of the next steps will be:
+1. Leverage Spring AI to add some examples on how spring ai can be used.
+2. Add Cucumber/Serenity tests (api only)
+3. Add contract testing 
+4. Make one module work with MongoDB instead of JPA 
+5. Make one of the modules become a separate microservice and use RabbitMQ to communicate.
+6. Add dockerfile for deployment on k8s
+7. Add some k8s deployment files to demonstrate how it can be deployed.
+8. use of kustomize to show samples of deployment
+9. Try out Kafka as a communication layer
+10. AxonFramework / KurrentDb 
+11. Add performance testing to test application at scale.
+12. Rag.
