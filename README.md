@@ -30,6 +30,10 @@ It has a global identity and authorizes all state changes of the aggregate.
   - Insight: domain model only makes sense within a bounded context.
 
 
+### Quotes:
+ - Domain Events belong to the domain model, Event dispatching belongs to infrastructure
+
+
 ### Domain other definition:
 The domain is the part of the business problem that the software models, including its rules, language, and constraints. The domain model is a representation of that business knowledge in code. Domain events represent business‑meaningful facts that have occurred within that domain.
 

@@ -2,7 +2,10 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
+import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -14,9 +17,14 @@ public class JpaProductWriteRepository implements ProductWriteRepository {
 
 
     private final SpringJpaProductRepository repository;
+    private final DomainEventPublisher localPublisher;
+    private final OutboxEventStore outbox;
 
-    public JpaProductWriteRepository(SpringJpaProductRepository repository) {
+    public JpaProductWriteRepository(SpringJpaProductRepository repository, DomainEventPublisher localPublisher,
+                                     OutboxEventStore outbox) {
         this.repository = repository;
+        this.localPublisher = localPublisher;
+        this.outbox = outbox;
     }
 
     @Override
@@ -24,9 +32,17 @@ public class JpaProductWriteRepository implements ProductWriteRepository {
         return repository.findById(id).map(ProductMapper::toDomain);
     }
 
+    @Transactional
     @Override
     public void save(Product product) {
         repository.save(toReadModel(product));
+        var events = product.clearDomainEvents();
+
+
+        // local in process dispatch
+        localPublisher.publish(events);
+        // persistent global dispatch
+        events.forEach(outbox::save);
     }
 
     @Override

@@ -2,8 +2,11 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.CatalogDatabaseTest;
+import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -24,15 +28,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers
-@DataJpaTest
 @ContextConfiguration(classes = JpaProductQueryRepositoryTest.Config.class)
 @Import(value = {JpaProductQueryRepository.class, JpaProductWriteRepository.class})
-@TestPropertySource(
-        properties = {
-                "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
-class JpaProductQueryRepositoryTest {
+class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
 
     @Configuration
     @EnableAutoConfiguration
@@ -42,14 +40,14 @@ class JpaProductQueryRepositoryTest {
 
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
-
     @Autowired
     private JpaProductQueryRepository queryRepository;
     @Autowired
     private JpaProductWriteRepository writeRepository;
+    @MockitoBean
+    private DomainEventPublisher domainEventPublisher;
+    @MockitoBean
+    private OutboxEventStore outboxEventStore;
 
 
     @Test
@@ -80,7 +78,7 @@ class JpaProductQueryRepositoryTest {
 
     @Test
     @DisplayName("Given database with products, when find by id is called, then correct product is retrieved")
-    void givenDatabaseWithproducts_whenFindByIdIsCalled_thenCorrectProductIsRetrieved(){
+    void givenDatabaseWithProducts_whenFindByIdIsCalled_thenCorrectProductIsRetrieved(){
         var product1 = ProductMother.productWithName("product1");
         writeRepository.save(product1);
         var product2 = ProductMother.productWithName("product2");

@@ -23,7 +23,8 @@
 		<module>modules/catalog</module>
 		<module>modules/ordering</module>
 		<module>sonar</module>
-	</modules>
+        <module>outbox-jpa</module>
+    </modules>
 	<properties>
 		<java.version>25</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -130,6 +131,18 @@
 							<goal>report-aggregate</goal>
 						</goals>
 						<phase>verify</phase>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.4.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>test-jar</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

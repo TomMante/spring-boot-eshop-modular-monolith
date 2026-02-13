@@ -2,6 +2,10 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
+import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.CatalogDatabaseTest;
+import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,21 +18,23 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
-@Testcontainers
-@DataJpaTest
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 @ContextConfiguration(classes = JpaProductWriteRepositoryTest.Config.class)
 @Import(JpaProductWriteRepository.class)
-@TestPropertySource(
-        properties = {
-                "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
-class JpaProductWriteRepositoryTest {
+class JpaProductWriteRepositoryTest extends CatalogDatabaseTest {
 
     @Configuration
     @EnableAutoConfiguration
@@ -38,9 +44,10 @@ class JpaProductWriteRepositoryTest {
 
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+    @MockitoBean
+    private DomainEventPublisher domainEventPublisher;
+    @MockitoBean
+    private OutboxEventStore outboxEventStore;
 
     @Autowired
     private JpaProductWriteRepository repository;
@@ -75,5 +82,16 @@ class JpaProductWriteRepositoryTest {
         assertThat(repository.existsByName(product.name())).isFalse();
         repository.save(product);
         assertThat(repository.existsByName(product.name())).isTrue();
+    }
+
+    @Test
+    @DisplayName("Given product with attached domain event, when saving, then domain events are dispatched")
+    void givenProductWithAttachedDomainEvent_whenSaving_thenDomainEventsAreDispatched(){
+        var product = Product.create(UUID.randomUUID(), "Galaxy", List.of("phone", "communication"), "nice one", "galaxy.png", BigDecimal.valueOf(560));
+        var events = new ArrayList<>(product.domainEvents());
+        repository.save(product);
+
+        verify(domainEventPublisher, times(1)).publish(events);
+        verify(outboxEventStore, times(1)).save(events.getFirst());
     }
 }

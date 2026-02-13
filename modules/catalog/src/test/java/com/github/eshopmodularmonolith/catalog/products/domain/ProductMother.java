@@ -38,7 +38,7 @@ public class ProductMother {
         }
 
         public Product build() {
-            return Product.create(id, name, categories, description, imageFile, price);
+            return Product.reconstitute(id, name, categories, description, imageFile, price);
         }
     }
 }

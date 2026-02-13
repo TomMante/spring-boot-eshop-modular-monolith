@@ -1,5 +1,6 @@
 package com.github.eshopmodularmonolith.catalog.products.domain.model;
 
+import com.github.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import com.github.eshopmodularmonolith.shared.domain.AggregateRoot;
 import lombok.EqualsAndHashCode;
 
@@ -7,8 +8,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Product implements AggregateRoot<UUID> {
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+public class Product extends AggregateRoot<UUID> {
 
     @EqualsAndHashCode.Include
     private final UUID id;
@@ -55,6 +56,12 @@ public class Product implements AggregateRoot<UUID> {
 
 
     public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
+        var product = new Product(id, name, categories, description, imageFile, price);
+        product.addDomainEvent(new ProductCreated(product.id));
+        return product;
+    }
+
+    public static Product reconstitute(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
         return new Product(id, name, categories, description, imageFile, price);
     }
 

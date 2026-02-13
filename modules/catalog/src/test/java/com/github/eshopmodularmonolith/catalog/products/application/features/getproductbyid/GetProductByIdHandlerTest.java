@@ -33,7 +33,7 @@ class GetProductByIdHandlerTest {
         var query = new GetProductByIdQuery(product.id());
         var result = handler.handle(query);
 
-        var expected = Product.create(product.id(), product.name(), product.categories(), product.description(), product.imageFile(), product.price());
+        var expected = Product.reconstitute(product.id(), product.name(), product.categories(), product.description(), product.imageFile(), product.price());
         assertThat(result).extracting(GetProductByIdResult::product).usingRecursiveComparison().isEqualTo(expected);
     }
 
