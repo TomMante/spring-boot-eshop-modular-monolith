@@ -7,6 +7,7 @@ import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import java.util.Optional;
 import java.util.UUID;
 
+//FIXME this split does not make sense like this. REad model should not be part of the Domain.
 public interface ProductQueryRepository {
 
     PageResult<Product> paginatedProducts(PageRequest pageRequest);

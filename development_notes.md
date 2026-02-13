@@ -42,3 +42,34 @@ The domain is the part of the business problem that the software models, includi
 - Ask yourself: If the business rule changes tomorrow, would this code need to change:
   - Yes => domain
   - No => application or infrastructure
+
+
+### Realign Read/Write split and package organization
+```
+catalog/
+├── application/
+│   └── features/
+│       └── getproducts/
+│           ├── GetProductsQuery.java           # Request (internal)
+│           ├── GetProductsResult.java          # Response (internal)
+│           ├── GetProductsHandler.java         # Handler
+│           ├── GetProductsController.java      # Controller
+│           ├── GetProductsRequest.java         # HTTP/API Request
+│           ├── GetProductsResponse.java        # HTTP/API Response
+│           └── ProductReadModelQuery.java      # PORT (interface)
+│
+├── contract/
+│   ├── ProductDTO.java                         # Shared DTO
+│   └── events/
+│       └── ProductCreatedMessage.java          # Integration event
+│
+├── domain/
+│   ├── Product.java
+│   └── ProductRepository.java
+│
+└── infrastructure/
+    └── persistence/
+        └── readmodel/
+            ├── JpaProductReadModelQuery.java
+            └── ProductReadModelEntity.java
+```
