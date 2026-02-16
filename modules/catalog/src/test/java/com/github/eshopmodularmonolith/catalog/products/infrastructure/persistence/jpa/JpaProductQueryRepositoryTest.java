@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
 
+import com.github.eshopmodularmonolith.catalog.products.contract.ProductMapper;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.CatalogDatabaseTest;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
@@ -11,31 +12,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ContextConfiguration(classes = JpaProductQueryRepositoryTest.Config.class)
-@Import(value = {JpaProductQueryRepository.class, JpaProductWriteRepository.class})
+@Import(value = {JpaProductQueryRepository.class, JpaProductRepository.class})
 class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
 
     @Configuration
     @EnableAutoConfiguration
     @EntityScan(basePackageClasses = {ProductDB.class})
-    @EnableJpaRepositories(basePackageClasses = {JpaProductQueryRepository.class, JpaProductWriteRepository.class})
+    @EnableJpaRepositories(basePackageClasses = {JpaProductQueryRepository.class, JpaProductRepository.class})
     static class Config {
 
     }
@@ -43,7 +38,7 @@ class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
     @Autowired
     private JpaProductQueryRepository queryRepository;
     @Autowired
-    private JpaProductWriteRepository writeRepository;
+    private JpaProductRepository writeRepository;
     @MockitoBean
     private DomainEventPublisher domainEventPublisher;
     @MockitoBean
@@ -60,15 +55,21 @@ class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
         var product3 = ProductMother.productWithName("product3");
         writeRepository.save(product3);
 
+        var expected = List.of(ProductMapper.toProductDTO(product1), ProductMapper.toProductDTO(product2));
+
         var page1 = queryRepository.paginatedProducts(new PageRequest(0, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
-        assertThat(page1.items()).containsExactlyInAnyOrderElementsOf(List.of(product1, product2));
+        assertThat(page1.items().stream().toList())
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyInAnyOrderElementsOf(expected);
         assertThat(page1.pageIndex()).isZero();
         assertThat(page1.pageSize()).isEqualTo(2);
         assertThat(page1.totalItems()).isEqualTo(3);
         assertThat(page1.totalPages()).isEqualTo(2);
 
         var page2 = queryRepository.paginatedProducts(new PageRequest(1, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
-        assertThat(page2.items()).containsExactlyInAnyOrderElementsOf(List.of(product3));
+        assertThat(page2.items())
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyInAnyOrderElementsOf(List.of(ProductMapper.toProductDTO(product3)));
         assertThat(page2.pageIndex()).isOne();
         assertThat(page2.pageSize()).isEqualTo(2);
         assertThat(page2.totalItems()).isEqualTo(3);

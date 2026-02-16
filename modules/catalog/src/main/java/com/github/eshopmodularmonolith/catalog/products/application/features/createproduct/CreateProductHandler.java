@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -10,9 +10,9 @@ import java.util.UUID;
 public class CreateProductHandler {
 
 
-    private ProductWriteRepository repository;
+    private ProductRepository repository;
 
-    public CreateProductHandler(ProductWriteRepository repository) {
+    public CreateProductHandler(ProductRepository repository) {
         this.repository = repository;
     }
 

@@ -26,7 +26,7 @@ public class GetProductsController {
     }
 
     private GetProductsResponse convertToResponse(GetProductsResult result) {
-        var pagedProducts = new PaginatedResults<>(result.products().stream().map(ProductMapper::toProductDTO).toList(), result.pageIndex(), result.pageSize(), result.totalItems(), result.totalPages());
+        var pagedProducts = new PaginatedResults<>(result.products(), result.pageIndex(), result.pageSize(), result.totalItems(), result.totalPages());
         return new GetProductsResponse(pagedProducts);
     }
 }

@@ -1,7 +1,8 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake;
 
+import com.github.eshopmodularmonolith.catalog.products.contract.ProductDTO;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductQueryRepository;
+import com.github.eshopmodularmonolith.catalog.products.application.query.ProductQueryRepository;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 
@@ -15,19 +16,19 @@ import java.util.UUID;
 
 public class FakeProductQueryRepository implements ProductQueryRepository {
 
-    private Map<UUID, Product> products;
+    private Map<UUID, ProductDTO> products;
 
     public FakeProductQueryRepository() {
         this.products = new LinkedHashMap<>();
     }
 
-    public void addProduct(Product product){
+    public void addProduct(ProductDTO product){
         products.put(product.id(), product);
     }
 
     @Override
-    public PageResult<Product> paginatedProducts(PageRequest pageRequest) {
-        List<Product> allProducts = new ArrayList<>(products.values());
+    public PageResult<ProductDTO> paginatedProducts(PageRequest pageRequest) {
+        List<ProductDTO> allProducts = new ArrayList<>(products.values());
 
         int pageIndex = pageRequest.pageIndex();
         int pageSize = pageRequest.pageSize();
@@ -40,7 +41,7 @@ public class FakeProductQueryRepository implements ProductQueryRepository {
 
         int toIndex = Math.min(fromIndex + pageSize, allProducts.size());
 
-        List<Product> pageItems = allProducts.subList(fromIndex, toIndex);
+        List<ProductDTO> pageItems = allProducts.subList(fromIndex, toIndex);
 
         int totalPages = (int) Math.ceil((double) allProducts.size() / pageSize);
 
@@ -48,7 +49,7 @@ public class FakeProductQueryRepository implements ProductQueryRepository {
     }
 
     @Override
-    public Optional<Product> findById(UUID id) {
+    public Optional<ProductDTO> findById(UUID id) {
         return Optional.ofNullable(products.get(id));
     }
 }

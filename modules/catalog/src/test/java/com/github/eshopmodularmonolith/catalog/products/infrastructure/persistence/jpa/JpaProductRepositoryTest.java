@@ -10,18 +10,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -32,14 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@ContextConfiguration(classes = JpaProductWriteRepositoryTest.Config.class)
-@Import(JpaProductWriteRepository.class)
-class JpaProductWriteRepositoryTest extends CatalogDatabaseTest {
+@ContextConfiguration(classes = JpaProductRepositoryTest.Config.class)
+@Import(JpaProductRepository.class)
+class JpaProductRepositoryTest extends CatalogDatabaseTest {
 
     @Configuration
     @EnableAutoConfiguration
     @EntityScan(basePackageClasses = {ProductDB.class})
-    @EnableJpaRepositories(basePackageClasses = JpaProductWriteRepository.class)
+    @EnableJpaRepositories(basePackageClasses = JpaProductRepository.class)
     static class Config {
 
     }
@@ -50,7 +44,7 @@ class JpaProductWriteRepositoryTest extends CatalogDatabaseTest {
     private OutboxEventStore outboxEventStore;
 
     @Autowired
-    private JpaProductWriteRepository repository;
+    private JpaProductRepository repository;
 
 
     @Test

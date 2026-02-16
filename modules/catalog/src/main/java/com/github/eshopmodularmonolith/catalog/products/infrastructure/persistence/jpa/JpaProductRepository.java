@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.springframework.stereotype.Repository;
@@ -13,15 +13,15 @@ import java.util.UUID;
 import static com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductMapper.toReadModel;
 
 @Repository
-public class JpaProductWriteRepository implements ProductWriteRepository {
+public class JpaProductRepository implements ProductRepository {
 
 
     private final SpringJpaProductRepository repository;
     private final DomainEventPublisher localPublisher;
     private final OutboxEventStore outbox;
 
-    public JpaProductWriteRepository(SpringJpaProductRepository repository, DomainEventPublisher localPublisher,
-                                     OutboxEventStore outbox) {
+    public JpaProductRepository(SpringJpaProductRepository repository, DomainEventPublisher localPublisher,
+                                OutboxEventStore outbox) {
         this.repository = repository;
         this.localPublisher = localPublisher;
         this.outbox = outbox;

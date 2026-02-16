@@ -1,5 +1,6 @@
-package com.github.eshopmodularmonolith.catalog.products.domain.port;
+package com.github.eshopmodularmonolith.catalog.products.application.query;
 
+import com.github.eshopmodularmonolith.catalog.products.contract.ProductDTO;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
@@ -7,9 +8,9 @@ import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import java.util.Optional;
 import java.util.UUID;
 
-//FIXME this split does not make sense like this. REad model should not be part of the Domain.
+
 public interface ProductQueryRepository {
 
-    PageResult<Product> paginatedProducts(PageRequest pageRequest);
-    Optional<Product> findById(UUID id);
+    PageResult<ProductDTO> paginatedProducts(PageRequest pageRequest);
+    Optional<ProductDTO> findById(UUID id);
 }

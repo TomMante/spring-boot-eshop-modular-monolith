@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproductbyid;
 
 
+import com.github.eshopmodularmonolith.catalog.products.domain.ProductDTOMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.exceptions.ProductNotFound;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
@@ -28,7 +29,7 @@ class GetProductByIdHandlerTest {
     @Test
     @DisplayName("Given GetProductsByIdQuery, when handler is called, then GetProductsByIdResult is returned")
     void givenGetProductsByIdQuery_whenHandlerIsCalled_thenGetProductByIdResultIsReturned() {
-        var product = ProductMother.product();
+        var product = ProductDTOMother.product();
         repository.addProduct(product);
         var query = new GetProductByIdQuery(product.id());
         var result = handler.handle(query);

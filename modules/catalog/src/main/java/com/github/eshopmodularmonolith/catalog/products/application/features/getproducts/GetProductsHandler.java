@@ -1,6 +1,6 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproducts;
 
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductQueryRepository;
+import com.github.eshopmodularmonolith.catalog.products.application.query.ProductQueryRepository;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import org.springframework.stereotype.Component;

@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproducts;
 
 
+import com.github.eshopmodularmonolith.catalog.products.domain.ProductDTOMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +26,11 @@ class GetProductsHandlerTest {
     @Test
     @DisplayName("Given get products query, when handler is called, then get products result is return")
     void givenGetProductsQuery_whenHandlerIsCalled_thenGetProductsResultIsReturned() {
-        var product1 = ProductMother.product();
+        var product1 = ProductDTOMother.product();
         repository.addProduct(product1);
-        var product2 = ProductMother.product();
+        var product2 = ProductDTOMother.product();
         repository.addProduct(product2);
-        var product3 = ProductMother.product();
+        var product3 = ProductDTOMother.product();
         repository.addProduct(product3);
 
         var page1 = handler.handle(new GetProductsQuery(0, 2));

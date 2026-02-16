@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproducts;
 
 
+import com.github.eshopmodularmonolith.catalog.products.domain.ProductDTOMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,7 @@ class GetProductsControllerTest {
     @Test
     @DisplayName("Given endpoint is available, when create product endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenCreateProductEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
-        var product = ProductMother.product();
+        var product = ProductDTOMother.product();
         var query = new GetProductsQuery(0, 10);
         var result = new GetProductsResult(List.of(product), 0, 10, 1, 1);
 

@@ -2,8 +2,8 @@ package com.github.eshopmodularmonolith.catalog.products.application.features.de
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,12 +12,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DeleteProductHandlerTest {
 
-    private ProductWriteRepository repository;
+    private ProductRepository repository;
     private DeleteProductHandler handler;
 
     @BeforeEach
     void setUp() {
-        repository = new FakeProductWriteRepository();
+        repository = new FakeProductRepository();
         handler = new DeleteProductHandler(repository);
     }
 

@@ -19,7 +19,7 @@ public class GetProductByIdController {
 
     @GetMapping("/product/{id}")
     public ResponseEntity<GetProductByIdResponse> getProductById(@PathVariable("id") UUID id) {
-        var productDTO = ProductMapper.toProductDTO(handler.handle(new GetProductByIdQuery(id)).product());
+        var productDTO = handler.handle(new GetProductByIdQuery(id)).product();
         var response = new GetProductByIdResponse(productDTO);
         return ResponseEntity.ok(response);
     }

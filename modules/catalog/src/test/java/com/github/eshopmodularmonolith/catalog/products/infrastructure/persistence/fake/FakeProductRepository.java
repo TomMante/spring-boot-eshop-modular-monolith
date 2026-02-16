@@ -1,18 +1,18 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class FakeProductWriteRepository implements ProductWriteRepository {
+public class FakeProductRepository implements ProductRepository {
 
     private Map<UUID, Product> products;
 
-    public FakeProductWriteRepository() {
+    public FakeProductRepository() {
         this.products = new HashMap<>();
     }
 

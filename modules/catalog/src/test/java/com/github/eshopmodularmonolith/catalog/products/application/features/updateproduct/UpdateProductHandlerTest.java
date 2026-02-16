@@ -2,8 +2,8 @@ package com.github.eshopmodularmonolith.catalog.products.application.features.up
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UpdateProductHandlerTest {
 
-    private ProductWriteRepository repository;
+    private ProductRepository repository;
     private UpdateProductHandler handler;
 
     @BeforeEach
     void setUp() {
-        repository = new FakeProductWriteRepository();
+        repository = new FakeProductRepository();
         handler = new UpdateProductHandler(repository);
     }
 

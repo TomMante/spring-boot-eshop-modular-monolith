@@ -1,5 +1,6 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproductbyid;
 
+import com.github.eshopmodularmonolith.catalog.products.domain.ProductDTOMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.exceptions.ProductNotFound;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +47,7 @@ class GetProductByIdControllerTest {
     @Test
     @DisplayName("Given endpoint is available, when get product by id endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenGetProductByIdEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
-        var product = ProductMother.product();
+        var product = ProductDTOMother.product();
         var query = new GetProductByIdQuery(product.id());
         var result = new GetProductByIdResult(product);
 
@@ -66,7 +67,7 @@ class GetProductByIdControllerTest {
     @Test
     @DisplayName("When product with provided id does not exist, then not found error is returned")
     void whenProductWithProvidedIdDoesNotExist_thenNotFoundErrorIsReturned() throws Exception {
-        var product = ProductMother.product();
+        var product = ProductDTOMother.product();
         var query = new GetProductByIdQuery(product.id());
         when(handler.handle(query)).thenThrow(new ProductNotFound(product.id()));
 
@@ -74,6 +75,6 @@ class GetProductByIdControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("product.not-found"))
-                .andExpect(jsonPath("$.message").value("Product with id [" + product.id().toString() + "] not found." ));
+                .andExpect(jsonPath("$.message").value("Product with id [" + product.id() + "] not found." ));
     }
 }

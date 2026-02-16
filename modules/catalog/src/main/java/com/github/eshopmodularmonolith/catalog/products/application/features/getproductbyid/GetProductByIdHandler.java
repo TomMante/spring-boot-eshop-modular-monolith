@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.getproductbyid;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.exceptions.ProductNotFound;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductQueryRepository;
+import com.github.eshopmodularmonolith.catalog.products.application.query.ProductQueryRepository;
 import org.springframework.stereotype.Component;
 
 @Component

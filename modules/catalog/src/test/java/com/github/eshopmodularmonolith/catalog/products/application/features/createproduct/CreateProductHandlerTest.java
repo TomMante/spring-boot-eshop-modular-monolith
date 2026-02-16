@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class CreateProductHandlerTest {
 
 
-    private ProductWriteRepository repository;
+    private ProductRepository repository;
     private CreateProductHandler handler;
 
     @BeforeEach
     void setUp() {
-        repository = new FakeProductWriteRepository();
+        repository = new FakeProductRepository();
         handler = new CreateProductHandler(repository);
     }
 

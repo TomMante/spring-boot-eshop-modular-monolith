@@ -1,15 +1,15 @@
 package com.github.eshopmodularmonolith.catalog.products.application.features.updateproduct;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.exceptions.ProductNotFound;
-import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductWriteRepository;
+import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UpdateProductHandler {
 
-    private ProductWriteRepository repository;
+    private ProductRepository repository;
 
-    public UpdateProductHandler(ProductWriteRepository repository) {
+    public UpdateProductHandler(ProductRepository repository) {
         this.repository = repository;
     }
 

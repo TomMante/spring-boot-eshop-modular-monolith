@@ -5,7 +5,7 @@ import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ProductWriteRepository {
+public interface ProductRepository {
 
     Optional<Product> findProductById(UUID id);
     boolean existsByName(String name);
