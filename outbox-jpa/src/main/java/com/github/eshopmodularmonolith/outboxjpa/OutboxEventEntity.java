@@ -18,7 +18,6 @@ public class OutboxEventEntity {
     private Instant occurredOn;
     @Column(nullable = false)
     private String eventType;
-    @Column(nullable = false)
     private Instant processedOn;
     @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
