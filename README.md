@@ -12,15 +12,15 @@ I took that base and ported it over to spring boot/java world and added my 2 cen
 
 ## Extending the project
 Some of the next steps will be:
-1. Leverage Spring AI to add some examples on how spring ai can be used.
-2. Add Cucumber/Serenity tests (api only)
-3. Add contract testing 
-4. Make one module work with MongoDB instead of JPA 
-5. Make one of the modules become a separate microservice and use RabbitMQ to communicate.
-6. Add dockerfile for deployment on k8s
-7. Add some k8s deployment files to demonstrate how it can be deployed.
-8. use of kustomize to show samples of deployment
-9. Try out Kafka as a communication layer
-10. AxonFramework / KurrentDb 
-11. Add performance testing to test application at scale.
-12. Rag.
+- [ ] Leverage Spring AI to add some examples on how spring ai can be used.
+- [ ] Add Cucumber/Serenity tests (api only)
+- [ ] Add contract testing 
+- [ ] Make one module work with MongoDB instead of JPA 
+- [ ] Make one of the modules become a separate microservice and use RabbitMQ to communicate.
+- [x] Add dockerfile
+- [ ] Add some k8s deployment files to demonstrate how it can be deployed.
+- [ ] use of kustomize to show samples of deployment
+- [ ] Try out Kafka as a communication layer
+- [ ] AxonFramework / KurrentDb 
+- [ ] Add performance testing to test application at scale.
+- [ ] Rag.
