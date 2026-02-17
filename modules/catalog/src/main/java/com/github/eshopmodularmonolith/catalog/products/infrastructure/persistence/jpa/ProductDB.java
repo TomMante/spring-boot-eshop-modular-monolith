@@ -1,6 +1,6 @@
 package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
-import com.github.eshopmodularmonolith.shared.infrastructure.AuditMetadata;
+import com.github.eshopmodularmonolith.shared.infrastructure.JpaAuditMetadata;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -24,11 +24,12 @@ public class ProductDB {
     @Id
     private UUID id;
     @Embedded
-    private AuditMetadata auditMetadata = new AuditMetadata();
+    private JpaAuditMetadata jpaAuditMetadata = new JpaAuditMetadata();
     @Column(nullable = false)
     private String name;
     @ElementCollection
     @CollectionTable(name = "product_categories", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(nullable = false)
     private List<String> categories;
     private String description;
     private String imageFile;

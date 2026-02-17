@@ -1,5 +1,6 @@
 package com.github.eshopmodularmonolith.shared.infrastructure;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -10,9 +11,10 @@ import java.time.Instant;
 
 // This class must stay "mutable", and requires no args constructor for spring persistence.
 @Embeddable
-public class AuditMetadata {
+public class JpaAuditMetadata {
 
     @CreatedDate
+    @Column(nullable = false)
     private Instant createdAt;
     @CreatedBy
     private String createdBy;
@@ -21,7 +23,7 @@ public class AuditMetadata {
     @LastModifiedBy
     private String lastModifiedBy;
 
-    public AuditMetadata() {
+    public JpaAuditMetadata() {
     }
 
     public Instant createdAt() {

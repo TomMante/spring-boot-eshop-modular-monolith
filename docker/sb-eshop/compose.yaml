@@ -10,3 +10,9 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres-init:/docker-entrypoint-initdb.d
+  sb-eshop:
+    image: sb-eshop:test
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://eshopdb:5432/EShopDb
+      - SPRING_DATASOURCE_PASSWORD=postgres

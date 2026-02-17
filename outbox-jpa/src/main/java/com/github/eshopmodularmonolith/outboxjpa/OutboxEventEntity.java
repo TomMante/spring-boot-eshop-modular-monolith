@@ -14,10 +14,13 @@ public class OutboxEventEntity {
 
     @Id
     private UUID eventId;
+    @Column(nullable = false)
     private Instant occurredOn;
+    @Column(nullable = false)
     private String eventType;
+    @Column(nullable = false)
     private Instant processedOn;
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
 
     public OutboxEventEntity() {
