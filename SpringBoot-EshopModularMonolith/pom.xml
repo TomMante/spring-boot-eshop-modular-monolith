@@ -6,7 +6,7 @@
 	<artifactId>eshopmodularmonolith</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>eshopmodularmonolith</name>
+	<name>SpringBoot-EshopModularMonolith</name>
 	<description>Spring Boot Adaptation of EshopModularMonolith course</description>
 	<url/>
 	<licenses>

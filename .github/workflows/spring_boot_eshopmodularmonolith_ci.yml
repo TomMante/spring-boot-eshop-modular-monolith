@@ -1,9 +1,11 @@
-name: Compile and Test
+name: SpringBoot-EshopModularMonolith - Compile and Test
 
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+    paths:
+      - SpringBoot-EshopModularMonolith/*
 
 jobs:
   continuous-integration:
