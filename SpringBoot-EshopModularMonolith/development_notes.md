@@ -42,3 +42,5 @@ The domain is the part of the business problem that the software models, includi
 - Ask yourself: If the business rule changes tomorrow, would this code need to change:
   - Yes => domain
   - No => application or infrastructure
+
+

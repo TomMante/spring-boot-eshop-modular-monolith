@@ -28,6 +28,9 @@ Some of the next steps will be:
 - [ ] AxonFramework / KurrentDb 
 - [ ] Add performance testing to test application at scale.
 - [ ] Rag.
+- [x] Secure application with keycloak.
+- [ ] Explore keycloak policy enforcer
+- [ ] Consider Roles in Keycloak vs Roles in application
 
 ## Kubernetes deployment files 
 This shows part provides a set of k8s manifests to deploy the various components of the application.

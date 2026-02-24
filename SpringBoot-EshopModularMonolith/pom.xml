@@ -24,7 +24,8 @@
 		<module>modules/ordering</module>
 		<module>sonar</module>
         <module>outbox-jpa</module>
-    </modules>
+		<module>security</module>
+	</modules>
 	<properties>
 		<java.version>25</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
