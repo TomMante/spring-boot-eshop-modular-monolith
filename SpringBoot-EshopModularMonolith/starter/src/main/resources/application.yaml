@@ -16,3 +16,11 @@ spring:
     hibernate:
       ddl-auto: validate
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  mongodb:
+    representation:
+      uuid: java_legacy
+  data:
+    mongodb:
+      representation:
+        big-decimal: decimal128
+

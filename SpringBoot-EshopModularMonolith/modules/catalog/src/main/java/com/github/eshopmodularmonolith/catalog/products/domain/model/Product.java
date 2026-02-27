@@ -55,6 +55,7 @@ public class Product extends AggregateRoot<UUID> {
     }
 
 
+    //FIXME id should probably be created within the create method and not passed
     public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
         var product = new Product(id, name, categories, description, imageFile, price);
         product.addDomainEvent(new ProductCreated(product.id));

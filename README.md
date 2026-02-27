@@ -31,6 +31,7 @@ Some of the next steps will be:
 - [x] Secure application with keycloak.
 - [ ] Explore keycloak policy enforcer
 - [ ] Consider Roles in Keycloak vs Roles in application
+- [ ] Investigate Mongock https://mongock.io/ as an alternative to Flyway for mongo. (data migration instead of schema migration)  
 
 ## Kubernetes deployment files 
 This shows part provides a set of k8s manifests to deploy the various components of the application.

@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.catalog.products;
+package com.github.eshopmodularmonolith.catalog;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import com.github.eshopmodularmonolith.outboxjpa.OutboxJpaModuleConfig;
