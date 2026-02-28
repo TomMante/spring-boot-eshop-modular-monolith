@@ -13,18 +13,27 @@ public class OrderMother {
         return new Builder().build();
     }
 
+    public static Order order(String name){
+        return new Builder().withName(name).build();
+    }
+
 
     public static class Builder {
         private UUID id = UUID.randomUUID();
         private List<Item> items = new ArrayList<>(List.of(ItemMother.item()));
         private UUID customerId = UUID.randomUUID();
-        private String orderName = "First Order";
+        private String name = "First Order";
         private Address shippingAddress = AddressMother.address();
         private Address billingAddress =  AddressMother.address();
         private Payment payment = PaymentMother.payment();
 
+        public Builder withName(String name){
+            this.name = name;
+            return this;
+        }
+
         public Order build() {
-            return Order.reconstitute(id, customerId, orderName, shippingAddress, billingAddress, payment, items);
+            return Order.reconstitute(id, customerId, name, shippingAddress, billingAddress, payment, items);
         }
     }
 }

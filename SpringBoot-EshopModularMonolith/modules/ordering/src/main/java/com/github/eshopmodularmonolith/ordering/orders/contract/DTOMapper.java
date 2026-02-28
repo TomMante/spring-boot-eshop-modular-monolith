@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.ordering.orders.contract;
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.Item;
+import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 
@@ -33,5 +34,9 @@ public class DTOMapper {
 
     public static Item toDomain(ItemDTO item){
         return new Item(item.id(), item.productId(), item.quantity(), item.price());
+    }
+
+    public static OrderDTO toDto(Order order){
+        return new OrderDTO(order.id(), order.items().stream().map(DTOMapper::toDto).toList(), order.customerId(), order.name(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
     }
 }
