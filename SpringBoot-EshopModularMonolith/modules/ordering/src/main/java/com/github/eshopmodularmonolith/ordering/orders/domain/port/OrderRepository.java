@@ -9,4 +9,5 @@ public interface OrderRepository {
 
     Optional<Order> findById(UUID orderId);
     void save(Order order);
+    void delete(UUID orderId);
 }

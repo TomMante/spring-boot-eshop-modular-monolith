@@ -22,8 +22,8 @@ class DeleteProductHandlerTest {
     }
 
     @Test
-    @DisplayName("Given create product command, when handler is called, then product is created")
-    void givenCreateProductCommand_whenHandlerIsCalled_thenProductIsCreated_() {
+    @DisplayName("Given delete product command, when handler is called, then product is created")
+    void givenDeleteProductCommand_whenHandlerIsCalled_thenProductIsCreated_() {
         var existingProduct = ProductMother.product();
         repository.save(existingProduct);
         assertThat(repository.findProductById(existingProduct.id())).isPresent().get().extracting(Product::id).isEqualTo(existingProduct.id());

@@ -42,4 +42,14 @@ class MongoOrderRepositoryTest extends OrderingDatabaseTest {
                 .usingRecursiveComparison().isEqualTo(order);
     }
 
+    @Test
+    @DisplayName("Given existing database, when deleting order, then order is deleted")
+    void givenExistingDatabase_whenDeletingOrder_thenOrderIsDeleted() {
+        var order = OrderMother.order();
+        repository.save(order);
+        assertThat(repository.findById(order.id())).isPresent();
+        repository.delete(order.id());
+        assertThat(repository.findById(order.id())).isEmpty();
+    }
+
 }

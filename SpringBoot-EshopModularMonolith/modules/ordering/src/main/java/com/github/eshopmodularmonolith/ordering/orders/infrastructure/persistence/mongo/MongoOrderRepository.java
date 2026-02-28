@@ -25,4 +25,9 @@ public class MongoOrderRepository implements OrderRepository {
     public void save(Order order) {
         springRepository.save(DBMapper.toDb(order));
     }
+
+    @Override
+    public void delete(UUID orderId) {
+        springRepository.deleteById(orderId);
+    }
 }

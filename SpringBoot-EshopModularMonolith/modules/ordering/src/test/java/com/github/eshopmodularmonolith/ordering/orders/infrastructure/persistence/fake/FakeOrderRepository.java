@@ -25,4 +25,9 @@ public class FakeOrderRepository implements OrderRepository {
     public void save(Order order) {
         repository.put(order.id(), order);
     }
+
+    @Override
+    public void delete(UUID orderId) {
+        repository.remove(orderId);
+    }
 }
