@@ -8,6 +8,7 @@ import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,8 +18,9 @@ public class FakeOrderQueryRepository implements OrderQueryRepository {
 
     private Map<UUID, OrderDTO> orders;
 
+    //TODO instead of LinkedHashMap to better test intent, ordering should be implemented.
     public FakeOrderQueryRepository() {
-        orders = new HashMap<>();
+        orders = new LinkedHashMap<>();
     }
 
     public void addOrder(OrderDTO order){
