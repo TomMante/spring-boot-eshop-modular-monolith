@@ -37,12 +37,12 @@ public class JpaProductQueryRepository implements ProductQueryRepository {
                         """.formatted(orderBy.isEmpty() ? "p.name" : orderBy)
                 , ProductDB.class);
 
-        query.setFirstResult(pageRequest.pageIndex() * pageRequest.pageSize());
+        query.setFirstResult(pageRequest.skip());
         query.setMaxResults(pageRequest.pageSize());
         var items = query.getResultList().stream().map(ProductMapper::toDto).toList();
         var total = countTotal();
 
-        return new PageResult<>(items, pageRequest.pageIndex(), pageRequest.pageSize(), total, (int) Math.ceil((double) total / pageRequest.pageSize()));
+        return PageResult.of(items, pageRequest.pageIndex(), pageRequest.pageSize(), total);
     }
 
     @Override
