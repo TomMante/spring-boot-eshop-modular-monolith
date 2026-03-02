@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence;
+package com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
         "spring.mongodb.representation.uuid=java_legacy",
         "spring.data.mongodb.representation.big-decimal=decimal128"
 })
-public abstract class OrderingDatabaseTest {
+public abstract class BasketDatabaseTest {
 
     @Container
     @ServiceConnection

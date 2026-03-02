@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence;
+package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;

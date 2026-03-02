@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = CreateOrderController.class)
 @ContextConfiguration(classes = CreateOrderControllerTest.Config.class)
-@Import(value = {ValidationExceptionHandler.class, CreateOrderErrorHandler.class})
+@Import(value = {ValidationExceptionHandler.class})
 class CreateOrderControllerTest {
     @Configuration
     @EnableAutoConfiguration

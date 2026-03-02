@@ -23,7 +23,7 @@ public class Order extends AggregateRoot<UUID> {
     }
 
 
-    public Order(UUID id, List<Item> items, UUID customerId, String name, Address shippingAddress,
+    private Order(UUID id, List<Item> items, UUID customerId, String name, Address shippingAddress,
                  Address billingAddress, Payment payment) {
         this.id = id;
         this.items = items;

@@ -3,7 +3,6 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.CatalogDatabaseTest;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.DisplayName;

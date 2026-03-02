@@ -1,7 +1,6 @@
-package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo;
+package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model;
 
 import com.github.eshopmodularmonolith.ordering.orders.contract.AddressDTO;
-import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.contract.ItemDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.OrderDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.PaymentDTO;

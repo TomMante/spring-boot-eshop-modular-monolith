@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo;
+package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;

@@ -2,6 +2,8 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import com.github.eshopmodularmonolith.ordering.orders.application.query.OrderQueryRepository;
 import com.github.eshopmodularmonolith.ordering.orders.contract.OrderDTO;
+import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.DBMapper;
+import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;

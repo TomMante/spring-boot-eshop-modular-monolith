@@ -4,7 +4,7 @@ import com.github.eshopmodularmonolith.ordering.orders.application.query.OrderQu
 import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
-import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.OrderingDatabaseTest;
+import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import org.assertj.core.api.Assertions;

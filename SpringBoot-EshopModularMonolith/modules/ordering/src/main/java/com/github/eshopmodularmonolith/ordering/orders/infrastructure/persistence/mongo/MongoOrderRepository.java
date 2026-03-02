@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
+import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.DBMapper;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

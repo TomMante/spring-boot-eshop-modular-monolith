@@ -3,7 +3,6 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 
 import com.github.eshopmodularmonolith.catalog.products.contract.ProductMapper;
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.CatalogDatabaseTest;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;

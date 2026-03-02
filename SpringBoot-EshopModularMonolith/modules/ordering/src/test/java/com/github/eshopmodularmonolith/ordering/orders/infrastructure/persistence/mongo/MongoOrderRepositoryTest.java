@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo;
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
-import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.OrderingDatabaseTest;
+import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
