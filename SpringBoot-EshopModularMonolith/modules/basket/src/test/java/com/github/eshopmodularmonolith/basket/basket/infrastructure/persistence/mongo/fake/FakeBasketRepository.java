@@ -25,4 +25,9 @@ public class FakeBasketRepository implements BasketRepository {
     public Optional<ShoppingCart> findById(UUID id) {
         return Optional.ofNullable(carts.get(id));
     }
+
+    @Override
+    public void delete(UUID id) {
+        carts.remove(id);
+    }
 }

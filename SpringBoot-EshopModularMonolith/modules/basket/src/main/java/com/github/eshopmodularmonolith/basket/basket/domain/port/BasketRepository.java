@@ -9,4 +9,5 @@ public interface BasketRepository {
 
     void save(ShoppingCart cart);
     Optional<ShoppingCart> findById(UUID id);
+    void delete(UUID id);
 }

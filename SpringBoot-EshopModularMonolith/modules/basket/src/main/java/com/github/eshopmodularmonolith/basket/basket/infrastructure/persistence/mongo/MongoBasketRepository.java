@@ -13,19 +13,24 @@ import java.util.UUID;
 @Repository
 public class MongoBasketRepository implements BasketRepository {
 
-    private MongoTemplate mongoTemplate;
+    private SpringMongoBasketRepository repository;
 
-    public MongoBasketRepository(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    public MongoBasketRepository(SpringMongoBasketRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public void save(ShoppingCart cart) {
-        mongoTemplate.save(DBMapper.toDb(cart));
+        repository.save(DBMapper.toDb(cart));
     }
 
     @Override
     public Optional<ShoppingCart> findById(UUID id) {
-        return Optional.ofNullable(mongoTemplate.findById(id, ShoppingCartDB.class)).map(DBMapper::toDomain);
+        return repository.findById(id).map(DBMapper::toDomain);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        repository.deleteById(id);
     }
 }

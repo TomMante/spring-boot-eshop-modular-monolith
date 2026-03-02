@@ -43,4 +43,14 @@ class MongoBasketRepositoryTest extends BasketDatabaseTest{
                 .usingRecursiveComparison().isEqualTo(cart);
     }
 
+    @Test
+    @DisplayName("Given existing basket in Database, when delete is called, then basket is deleted")
+    void givenExistingBasketInDb_whenDeleteIsCalled_thenBasketIsDeleted(){
+        var cart = ShoppingCartMother.cart();
+        repository.save(cart);
+        assertThat(repository.findById(cart.id())).isPresent();
+        repository.delete(cart.id());
+        assertThat(repository.findById(cart.id())).isEmpty();
+    }
+
 }
