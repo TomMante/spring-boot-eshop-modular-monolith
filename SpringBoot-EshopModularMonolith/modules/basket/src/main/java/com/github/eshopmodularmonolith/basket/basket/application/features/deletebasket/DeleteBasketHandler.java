@@ -13,6 +13,6 @@ public class DeleteBasketHandler {
     }
 
     public void handle(DeleteBasketCommand cmd){
-        repository.delete(cmd.id());
+        repository.delete(cmd.userName());
     }
 }

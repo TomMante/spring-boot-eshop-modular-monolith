@@ -3,17 +3,14 @@ package com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.DBMapper;
-import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.ShoppingCartDB;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public class MongoBasketRepository implements BasketRepository {
 
-    private SpringMongoBasketRepository repository;
+    private final SpringMongoBasketRepository repository;
 
     public MongoBasketRepository(SpringMongoBasketRepository repository) {
         this.repository = repository;
@@ -25,12 +22,12 @@ public class MongoBasketRepository implements BasketRepository {
     }
 
     @Override
-    public Optional<ShoppingCart> findById(UUID id) {
-        return repository.findById(id).map(DBMapper::toDomain);
+    public Optional<ShoppingCart> findByUserName(String userName) {
+        return repository.findById(userName).map(DBMapper::toDomain);
     }
 
     @Override
-    public void delete(UUID id) {
-        repository.deleteById(id);
+    public void delete(String userName) {
+        repository.deleteById(userName);
     }
 }

@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 public class DeleteBasketController {
 
@@ -17,9 +15,9 @@ public class DeleteBasketController {
         this.handler = handler;
     }
 
-    @DeleteMapping("/basket/{id}")
-    public ResponseEntity<Void> deleteBasket(@PathVariable("id") UUID id){
-        handler.handle(new DeleteBasketCommand(id));
+    @DeleteMapping("/basket/{userName}")
+    public ResponseEntity<Void> deleteBasket(@PathVariable("userName") String userName){
+        handler.handle(new DeleteBasketCommand(userName));
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

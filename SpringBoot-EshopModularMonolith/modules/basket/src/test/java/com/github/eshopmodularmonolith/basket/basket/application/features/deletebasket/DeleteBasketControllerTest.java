@@ -5,16 +5,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.UUID;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = DeleteBasketController.class)
 @ContextConfiguration(classes = DeleteBasketControllerTest.Config.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(value = {ValidationExceptionHandler.class})
 class DeleteBasketControllerTest {
 
@@ -47,11 +48,12 @@ class DeleteBasketControllerTest {
 
     @Test
     @DisplayName("Given endpoint is available, when delete basket endpoint is called, then controller forwards to handler")
+    @WithMockUser(username = "test_user")
     void givenEndpointIsAvailable_whenDeleteBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
-        var orderId = UUID.randomUUID();
-        var cmd = new DeleteBasketCommand(orderId);
+        var userName = "JohnDoe";
+        var cmd = new DeleteBasketCommand(userName);
 
-        mockMvc.perform(delete("/basket/{id}", orderId.toString()))
+        mockMvc.perform(delete("/basket/{userName}", userName))
                 .andExpect(status().isNoContent());
 
         verify(handler, times(1)).handle(cmd);

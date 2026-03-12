@@ -8,11 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 class CreateBasketHandlerTest {
 
@@ -32,7 +29,7 @@ class CreateBasketHandlerTest {
         var createBasket = new CreateBasketCommand(
                 "John");
         var basketID = handler.handle(createBasket);
-        var basketOpt = repository.findById(basketID);
+        var basketOpt = repository.findByUserName(basketID);
         assertThat(basketOpt).isPresent();
         var basket = basketOpt.get();
         assertThat(basket).extracting(ShoppingCart::id).isEqualTo(basketID);

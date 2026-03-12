@@ -25,6 +25,8 @@
 		<module>sonar</module>
         <module>outbox-jpa</module>
 		<module>security</module>
+        <module>modules/catalog/catalog-contract</module>
+		<module>modules/catalog/catalog-core</module>
 	</modules>
 	<properties>
 		<java.version>25</java.version>

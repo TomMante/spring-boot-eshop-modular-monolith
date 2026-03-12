@@ -17,7 +17,7 @@ public class ShoppingCartMother {
 
 
         public ShoppingCart build() {
-            return ShoppingCart.reconstitute(id, userName, items);
+            return ShoppingCart.reconstitute(userName, items);
         }
     }
 }

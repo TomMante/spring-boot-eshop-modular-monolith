@@ -7,18 +7,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = CreateBasketController.class)
 @ContextConfiguration(classes = CreateBasketControllerTest.Config.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(value = {ValidationExceptionHandler.class})
 class CreateBasketControllerTest {
     @Configuration
@@ -50,6 +50,7 @@ class CreateBasketControllerTest {
 
     @Test
     @DisplayName("Given endpoint is available, when create basket endpoint is called, then controller forwards to handler")
+    @WithMockUser(username = "test_user")
     void givenEndpointIsAvailable_whenCreateBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var cart = ShoppingCartMother.cart();
 
@@ -71,6 +72,7 @@ class CreateBasketControllerTest {
 
     @Test
     @DisplayName("When the userName is missing, then validation error returned")
+    @WithMockUser(username = "test_user")
     void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception{
         var request = new CreateBasketRequest(
                 null

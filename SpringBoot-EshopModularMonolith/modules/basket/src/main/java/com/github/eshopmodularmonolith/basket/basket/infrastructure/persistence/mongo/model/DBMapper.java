@@ -7,7 +7,7 @@ public class DBMapper {
 
 
     public static ShoppingCartItemDB toDb(ShoppingCartItem cartItem){
-        return new ShoppingCartItemDB(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.price(), cartItem.productName());
+        return new ShoppingCartItemDB(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.priceWhenAdded(), cartItem.productName());
     }
 
     public static ShoppingCartItem toDomain(ShoppingCartItemDB cartItem){
@@ -15,11 +15,11 @@ public class DBMapper {
     }
 
     public static ShoppingCartDB toDb(ShoppingCart cart){
-        return new ShoppingCartDB(cart.id(), cart.userName(), cart.items().stream().map(DBMapper::toDb).toList());
+        return new ShoppingCartDB(cart.userName(), cart.items().stream().map(DBMapper::toDb).toList());
     }
 
     public static ShoppingCart toDomain(ShoppingCartDB cart){
-        return ShoppingCart.reconstitute(cart.id(), cart.userName(), cart.items().stream().map(DBMapper::toDomain).toList());
+        return ShoppingCart.reconstitute(cart.userName(), cart.items().stream().map(DBMapper::toDomain).toList());
     }
 
 }

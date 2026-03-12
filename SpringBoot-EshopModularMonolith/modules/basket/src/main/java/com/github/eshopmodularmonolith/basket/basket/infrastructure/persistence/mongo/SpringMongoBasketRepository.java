@@ -2,8 +2,8 @@ package com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence
 
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.ShoppingCartDB;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.UUID;
-
-public interface SpringMongoBasketRepository extends MongoRepository<ShoppingCartDB, UUID> {
+@Repository
+public interface SpringMongoBasketRepository extends MongoRepository<ShoppingCartDB, String> {
 }

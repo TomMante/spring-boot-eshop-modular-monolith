@@ -2,8 +2,8 @@ package com.github.eshopmodularmonolith.ordering.orders.application.features.cre
 
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.AddressMother;
-import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.ItemMother;
+import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.PaymentMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderRepository;

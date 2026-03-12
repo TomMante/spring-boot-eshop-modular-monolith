@@ -36,9 +36,9 @@ class MongoBasketRepositoryTest extends BasketDatabaseTest{
     @DisplayName("Given existing database, when saving an empty shopping cart, then the shopping cart is stored")
     void givenExistingDatabase_whenSavingAnEmptyShoppingCart_thenTheCartIsStored(){
         var cart = ShoppingCartMother.cart();
-        assertThat(repository.findById(cart.id())).isEmpty();
+        assertThat(repository.findByUserName(cart.id())).isEmpty();
         repository.save(cart);
-        assertThat(repository.findById(cart.id())).isPresent()
+        assertThat(repository.findByUserName(cart.id())).isPresent()
                 .get()
                 .usingRecursiveComparison().isEqualTo(cart);
     }
@@ -48,9 +48,9 @@ class MongoBasketRepositoryTest extends BasketDatabaseTest{
     void givenExistingBasketInDb_whenDeleteIsCalled_thenBasketIsDeleted(){
         var cart = ShoppingCartMother.cart();
         repository.save(cart);
-        assertThat(repository.findById(cart.id())).isPresent();
+        assertThat(repository.findByUserName(cart.id())).isPresent();
         repository.delete(cart.id());
-        assertThat(repository.findById(cart.id())).isEmpty();
+        assertThat(repository.findByUserName(cart.id())).isEmpty();
     }
 
 }

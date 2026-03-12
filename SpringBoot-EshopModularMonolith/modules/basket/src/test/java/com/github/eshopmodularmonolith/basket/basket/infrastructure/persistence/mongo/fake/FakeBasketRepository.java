@@ -6,11 +6,10 @@ import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepositor
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 public class FakeBasketRepository implements BasketRepository {
 
-    private Map<UUID, ShoppingCart> carts;
+    private Map<String, ShoppingCart> carts;
 
     public FakeBasketRepository() {
         carts = new HashMap<>();
@@ -22,12 +21,12 @@ public class FakeBasketRepository implements BasketRepository {
     }
 
     @Override
-    public Optional<ShoppingCart> findById(UUID id) {
-        return Optional.ofNullable(carts.get(id));
+    public Optional<ShoppingCart> findByUserName(String userName) {
+        return Optional.ofNullable(carts.get(userName));
     }
 
     @Override
-    public void delete(UUID id) {
-        carts.remove(id);
+    public void delete(String userName) {
+        carts.remove(userName);
     }
 }

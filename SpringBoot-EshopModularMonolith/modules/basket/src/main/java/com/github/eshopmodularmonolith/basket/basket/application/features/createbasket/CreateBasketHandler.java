@@ -4,8 +4,6 @@ import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 public class CreateBasketHandler {
 
@@ -15,7 +13,7 @@ public class CreateBasketHandler {
         this.repository = repository;
     }
 
-    public UUID handle(CreateBasketCommand cmd) {
+    public String handle(CreateBasketCommand cmd) {
         var basket = ShoppingCart.create(cmd.userName());
         repository.save(basket);
         return basket.id();

@@ -1,7 +1,5 @@
 package com.github.eshopmodularmonolith.ordering.orders.domain;
 
-import com.github.eshopmodularmonolith.ordering.orders.domain.Item;
-
 import java.math.BigDecimal;
 import java.util.UUID;
 

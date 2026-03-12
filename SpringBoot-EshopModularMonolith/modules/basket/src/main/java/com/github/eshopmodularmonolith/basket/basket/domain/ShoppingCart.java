@@ -2,29 +2,28 @@ package com.github.eshopmodularmonolith.basket.basket.domain;
 
 import com.github.eshopmodularmonolith.shared.domain.AggregateRoot;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ShoppingCart extends AggregateRoot<UUID> {
+public class ShoppingCart extends AggregateRoot<String> {
 
-    private final UUID id;
     private final String userName;
     private final List<ShoppingCartItem> items;
 
-    private ShoppingCart(UUID id, String userName, List<ShoppingCartItem> items) {
-        this.id = id;
+    private ShoppingCart(String userName, List<ShoppingCartItem> items) {
         this.userName = userName;
         this.items = items;
     }
 
-    private ShoppingCart(UUID id, String userName) {
-        this(id, userName, new ArrayList<>());
+    private ShoppingCart(String userName) {
+        this(userName, new ArrayList<>());
     }
 
     @Override
-    public UUID id() {
-        return id;
+    public String id() {
+        return userName;
     }
 
     public String userName() {
@@ -37,10 +36,15 @@ public class ShoppingCart extends AggregateRoot<UUID> {
 
 
     public static ShoppingCart create(String userName){
-        return new ShoppingCart(UUID.randomUUID(), userName);
+        return new ShoppingCart(userName);
     }
 
-    public static ShoppingCart reconstitute(UUID id, String userName, List<ShoppingCartItem> items){
-        return new ShoppingCart(id, userName, items);
+    public static ShoppingCart reconstitute(String userName, List<ShoppingCartItem> items){
+        return new ShoppingCart(userName, items);
+    }
+
+    public void addItem(UUID productId, int quantity, String color, BigDecimal price, String productName){
+        var item = new ShoppingCartItem(UUID.randomUUID(), productId, quantity, color, price, productName);
+        items.add(item);
     }
 }
