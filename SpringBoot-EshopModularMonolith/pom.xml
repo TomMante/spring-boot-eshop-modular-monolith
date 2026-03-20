@@ -27,7 +27,7 @@
 		<module>security</module>
         <module>modules/catalog/catalog-contract</module>
 		<module>modules/catalog/catalog-core</module>
-	</modules>
+    </modules>
 	<properties>
 		<java.version>25</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>

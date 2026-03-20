@@ -7,6 +7,7 @@ import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistenc
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
@@ -20,7 +21,7 @@ public class MongoOrderQueryRepository implements OrderQueryRepository {
 
     private MongoTemplate template;
 
-    public MongoOrderQueryRepository(MongoTemplate template) {
+    public MongoOrderQueryRepository(@Qualifier("orderMongoTemplate") MongoTemplate template) {
         this.template = template;
     }
 

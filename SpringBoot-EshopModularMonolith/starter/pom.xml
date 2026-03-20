@@ -27,12 +27,22 @@
         </dependency>
         <dependency>
             <groupId>com.github</groupId>
-            <artifactId>catalog</artifactId>
+            <artifactId>catalog-contract</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>catalog-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github</groupId>
             <artifactId>ordering</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>basket</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

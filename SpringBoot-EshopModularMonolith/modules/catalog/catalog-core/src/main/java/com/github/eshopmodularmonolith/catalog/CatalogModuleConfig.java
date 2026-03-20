@@ -31,11 +31,9 @@ import java.util.Optional;
         entityManagerFactoryRef = "catalogEmf",
         transactionManagerRef = "catalogTx"
 )
-@EnableJpaAuditing
 @ComponentScan(basePackages = "com.github.eshopmodularmonolith.catalog.products")
 @EnableScheduling
 public class CatalogModuleConfig {
-
 
     private DomainEventRegistry registry;
 
@@ -50,12 +48,6 @@ public class CatalogModuleConfig {
     }
 
     @Bean
-    @ConditionalOnBean
-    public AuditorAware<String> auditorProvider() {
-        return () -> Optional.of("system");
-    }
-
-    @Bean
     LocalContainerEntityManagerFactoryBean catalogEmf(DataSource dataSource, EntityManagerFactoryBuilder builder) {
         return builder.dataSource(dataSource)
                 .packages("com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa", OutboxJpaModuleConfig.BASE_PACKAGE)
@@ -66,7 +58,7 @@ public class CatalogModuleConfig {
     }
 
     @Bean
-    PlatformTransactionManager catalogTx(@Qualifier("catalogEmf")EntityManagerFactory emf) {
+    PlatformTransactionManager catalogTx(@Qualifier("catalogEmf") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }
 

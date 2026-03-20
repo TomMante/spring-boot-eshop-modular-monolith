@@ -7,9 +7,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration;
 import org.springframework.context.event.EventListener;
 
-@SpringBootApplication
+//Exclude all configs as each module will define its own.
+@SpringBootApplication(exclude = {
+        DataMongoAutoConfiguration.class,
+        DataMongoRepositoriesAutoConfiguration.class,
+        DataJpaRepositoriesAutoConfiguration.class
+})
 public class EshopModularMonolithStarter {
 
     private static final Logger log = LoggerFactory.getLogger(EshopModularMonolithStarter.class);
@@ -20,7 +28,7 @@ public class EshopModularMonolithStarter {
         this.name = name;
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(EshopModularMonolithStarter.class, args);
     }
 

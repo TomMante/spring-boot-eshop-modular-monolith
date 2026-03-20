@@ -10,6 +10,10 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres-init:/docker-entrypoint-initdb.d
+  mongodb:
+    image: mongo:8.2.5-noble
+    ports:
+      - 27020:27017
 #  sb-eshop:
 #    image: sb-eshop:test
 #    environment:

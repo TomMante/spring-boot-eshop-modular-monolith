@@ -15,20 +15,14 @@ import java.util.Optional;
 
 @Configuration
 @EnableMongoRepositories(
-        basePackages = {"com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo"}
+        basePackages = {"com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo"},
+        mongoTemplateRef = "basketMongoTemplate"
 )
-@EnableMongoAuditing
 @ComponentScan(basePackages = "com.github.eshopmodularmonolith.basket.basket")
 @EnableScheduling
 public class BasketModuleConfig {
 
-    @Bean
-    @ConditionalOnBean
-    public AuditorAware<String> auditorProvider() {
-        return () -> Optional.of("system");
-    }
-
-    @Bean
+    @Bean("basketMongoTemplate")
     public MongoTemplate mongoTemplate(MongoClient client){
         return new MongoTemplate(client, "eshop-basket-db");
     }

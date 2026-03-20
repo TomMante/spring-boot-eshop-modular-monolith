@@ -15,20 +15,14 @@ import java.util.Optional;
 
 @Configuration
 @EnableMongoRepositories(
-        basePackages = {"com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo"}
+        basePackages = {"com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo"},
+        mongoTemplateRef = "orderMongoTemplate"
 )
-@EnableMongoAuditing
 @ComponentScan(basePackages = "com.github.eshopmodularmonolith.ordering.orders")
 @EnableScheduling
 public class OrderingModuleConfig {
 
-    @Bean
-    @ConditionalOnBean
-    public AuditorAware<String> auditorProvider() {
-        return () -> Optional.of("system");
-    }
-
-    @Bean
+    @Bean("orderMongoTemplate")
     public MongoTemplate mongoTemplate(MongoClient client){
         return new MongoTemplate(client, "eshop-orders-db");
     }
