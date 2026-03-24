@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
@@ -25,6 +26,7 @@ public abstract class OrderingDatabaseTest {
     static MongoDBContainer mongoDb = new MongoDBContainer("mongo:7.0.6");
 
     @Autowired
+    @Qualifier("orderMongoTemplate")
     protected MongoTemplate mongoTemplate;
 
     @BeforeEach

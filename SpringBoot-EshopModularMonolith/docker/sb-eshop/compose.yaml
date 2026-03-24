@@ -5,7 +5,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=EShopDb
-    restart: always
     ports:
       - "5432:5432"
     volumes:
@@ -29,7 +28,6 @@ services:
       - KC_DB_URL=jdbc:postgresql://eshopdb/EShopDb?currentSchema=identity
       - KC_DB_USERNAME=postgres
       - KC_DB_PASSWORD=postgres
-    restart: always
     volumes:
       - ./keycloak-init/eshop-realm.json:/opt/keycloak/data/import/eshop-realm.json
     ports:
