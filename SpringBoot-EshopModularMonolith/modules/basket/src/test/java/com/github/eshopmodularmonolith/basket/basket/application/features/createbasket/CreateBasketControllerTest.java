@@ -1,88 +1,74 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.createbasket;
 
 
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = CreateBasketController.class)
 @ContextConfiguration(classes = CreateBasketControllerTest.Config.class)
-@AutoConfigureMockMvc(addFilters = false)
 @Import(value = {ValidationExceptionHandler.class})
 class CreateBasketControllerTest {
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
         public CreateBasketController createOrderController(CreateBasketHandler handler) {
             return new CreateBasketController(handler);
         }
+
     }
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
-
     @MockitoBean
     private CreateBasketHandler handler;
 
     @Test
     @DisplayName("Given endpoint is available, when create basket endpoint is called, then controller forwards to handler")
-    @WithMockUser(username = "test_user")
     void givenEndpointIsAvailable_whenCreateBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
-        var cart = ShoppingCartMother.cart();
-
-        var request = new CreateBasketRequest(
-            cart.userName()
-        );
-
         var cmd = new CreateBasketCommand(
-                request.userName()
+                "test_user"
         );
 
         mockMvc.perform(post("/basket")
+                        .with(user("test_user"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                )
                 .andExpect(status().isCreated());
 
         verify(handler, times(1)).handle(cmd);
     }
 
     @Test
-    @DisplayName("When the userName is missing, then validation error returned")
-    @WithMockUser(username = "test_user")
+    @DisplayName("When user is not logged, then Unauthorized is thrown")
     void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception{
-        var request = new CreateBasketRequest(
-                null
-        );
 
         mockMvc.perform(post("/basket")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.userName").value("UserName is required."));
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
 }

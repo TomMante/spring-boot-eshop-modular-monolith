@@ -1,5 +1,6 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.deletebasket;
 
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -24,12 +26,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = DeleteBasketController.class)
 @ContextConfiguration(classes = DeleteBasketControllerTest.Config.class)
-@AutoConfigureMockMvc(addFilters = false)
 @Import(value = {ValidationExceptionHandler.class})
 class DeleteBasketControllerTest {
 
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
@@ -48,12 +50,12 @@ class DeleteBasketControllerTest {
 
     @Test
     @DisplayName("Given endpoint is available, when delete basket endpoint is called, then controller forwards to handler")
-    @WithMockUser(username = "test_user")
     void givenEndpointIsAvailable_whenDeleteBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var userName = "JohnDoe";
         var cmd = new DeleteBasketCommand(userName);
 
-        mockMvc.perform(delete("/basket/{userName}", userName))
+        mockMvc.perform(delete("/basket", userName)
+                        .with(user(userName)))
                 .andExpect(status().isNoContent());
 
         verify(handler, times(1)).handle(cmd);

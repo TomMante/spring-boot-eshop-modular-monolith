@@ -1,5 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.deletebasket;
 
+import com.github.eshopmodularmonolith.shared.contract.identity.AuthenticatedUser;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,9 +17,9 @@ public class DeleteBasketController {
         this.handler = handler;
     }
 
-    @DeleteMapping("/basket/{userName}")
-    public ResponseEntity<Void> deleteBasket(@PathVariable("userName") String userName){
-        handler.handle(new DeleteBasketCommand(userName));
+    @DeleteMapping("/basket")
+    public ResponseEntity<Void> deleteBasket(@AuthenticatedUser CurrentUser currentUser){
+        handler.handle(new DeleteBasketCommand(currentUser.username()));
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.additemintobasket;
 
 
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,12 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AddItemIntoBasketController.class)
-@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = AddItemIntoBasketControllerTest.Config.class)
 @Import(value = {ValidationExceptionHandler.class})
 class AddItemIntoBasketControllerTest {
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
@@ -51,7 +53,6 @@ class AddItemIntoBasketControllerTest {
 
     @Test
     @DisplayName("Given endpoint is available, when add item into basket endpoint is called, then controller forwards to handler")
-    @WithMockUser(username = "test_user")
     void givenEndpointIsAvailable_whenAddItemIntoBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var request = new AddItemIntoBasketRequest(
             UUID.randomUUID(),
@@ -67,6 +68,7 @@ class AddItemIntoBasketControllerTest {
         );
 
         mockMvc.perform(post("/basket/items")
+                        .with(user("test_user"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted());
@@ -76,7 +78,6 @@ class AddItemIntoBasketControllerTest {
 
     @Test
     @DisplayName("When the userName is missing, then validation error returned")
-    @WithMockUser(username = "test_user")
     void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception{
         var request = new AddItemIntoBasketRequest(
                 null,
@@ -85,6 +86,7 @@ class AddItemIntoBasketControllerTest {
         );
 
         mockMvc.perform(post("/basket/items")
+                        .with(user("test_user"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
