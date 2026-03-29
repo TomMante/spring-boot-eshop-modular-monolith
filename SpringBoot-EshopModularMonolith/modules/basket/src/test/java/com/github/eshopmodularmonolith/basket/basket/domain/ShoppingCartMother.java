@@ -13,7 +13,7 @@ public class ShoppingCartMother {
     public static class Builder {
         private UUID id = UUID.randomUUID();
         private String userName = "John";
-        private List<ShoppingCartItem> items = new ArrayList<>();
+        private List<Item> items = new ArrayList<>();
 
 
         public ShoppingCart build() {

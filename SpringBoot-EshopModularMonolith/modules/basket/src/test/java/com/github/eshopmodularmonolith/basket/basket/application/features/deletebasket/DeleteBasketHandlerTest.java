@@ -26,9 +26,9 @@ class DeleteBasketHandlerTest {
     void givenDeleteOrderCommand_whenHandlerIsCalled_thenOrderIsDeleted() {
         var existingCart = ShoppingCartMother.cart();
         repository.save(existingCart);
-        assertThat(repository.findByUserName(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
+        assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new DeleteBasketCommand(existingCart.id());
         handler.handle(cmd);
-        assertThat(repository.findByUserName(existingCart.id())).isEmpty();
+        assertThat(repository.findByUsername(existingCart.id())).isEmpty();
     }
 }

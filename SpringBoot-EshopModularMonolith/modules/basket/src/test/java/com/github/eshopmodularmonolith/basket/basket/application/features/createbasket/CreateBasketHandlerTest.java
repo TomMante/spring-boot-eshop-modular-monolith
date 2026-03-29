@@ -29,7 +29,7 @@ class CreateBasketHandlerTest {
         var createBasket = new CreateBasketCommand(
                 "John");
         var basketID = handler.handle(createBasket);
-        var basketOpt = repository.findByUserName(basketID);
+        var basketOpt = repository.findByUsername(basketID);
         assertThat(basketOpt).isPresent();
         var basket = basketOpt.get();
         assertThat(basket).extracting(ShoppingCart::id).isEqualTo(basketID);

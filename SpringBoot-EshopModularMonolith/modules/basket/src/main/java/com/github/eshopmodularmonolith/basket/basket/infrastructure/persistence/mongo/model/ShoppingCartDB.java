@@ -10,7 +10,7 @@ import java.util.List;
 @TypeAlias(value = ShoppingCartDB.TYPE_ALIAS)
 public record ShoppingCartDB(
         @Id String userName,
-        List<ShoppingCartItemDB> items) {
+        List<ItemDB> items) {
 
     public static final String COLLECTION_NAME = "shopping-cart";
     public static final String TYPE_ALIAS = "ShoppingCart";

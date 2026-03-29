@@ -10,9 +10,9 @@ import java.util.UUID;
 public class ShoppingCart extends AggregateRoot<String> {
 
     private final String userName;
-    private final List<ShoppingCartItem> items;
+    private final List<Item> items;
 
-    private ShoppingCart(String userName, List<ShoppingCartItem> items) {
+    private ShoppingCart(String userName, List<Item> items) {
         this.userName = userName;
         this.items = items;
     }
@@ -30,7 +30,7 @@ public class ShoppingCart extends AggregateRoot<String> {
         return userName;
     }
 
-    public List<ShoppingCartItem> items() {
+    public List<Item> items() {
         return items;
     }
 
@@ -39,12 +39,12 @@ public class ShoppingCart extends AggregateRoot<String> {
         return new ShoppingCart(userName);
     }
 
-    public static ShoppingCart reconstitute(String userName, List<ShoppingCartItem> items){
+    public static ShoppingCart reconstitute(String userName, List<Item> items){
         return new ShoppingCart(userName, items);
     }
 
     public void addItem(UUID productId, int quantity, String color, BigDecimal price, String productName){
-        var item = new ShoppingCartItem(UUID.randomUUID(), productId, quantity, color, price, productName);
+        var item = new Item(UUID.randomUUID(), productId, quantity, color, price, productName);
         items.add(item);
     }
 }

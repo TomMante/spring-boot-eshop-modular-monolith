@@ -22,7 +22,7 @@ public class MongoBasketRepository implements BasketRepository {
     }
 
     @Override
-    public Optional<ShoppingCart> findByUserName(String userName) {
+    public Optional<ShoppingCart> findByUsername(String userName) {
         return repository.findById(userName).map(DBMapper::toDomain);
     }
 

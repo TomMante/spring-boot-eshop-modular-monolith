@@ -41,8 +41,6 @@ class CreateBasketControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
     @MockitoBean
     private CreateBasketHandler handler;
 

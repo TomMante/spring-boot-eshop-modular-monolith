@@ -21,7 +21,7 @@ public class FakeBasketRepository implements BasketRepository {
     }
 
     @Override
-    public Optional<ShoppingCart> findByUserName(String userName) {
+    public Optional<ShoppingCart> findByUsername(String userName) {
         return Optional.ofNullable(carts.get(userName));
     }
 

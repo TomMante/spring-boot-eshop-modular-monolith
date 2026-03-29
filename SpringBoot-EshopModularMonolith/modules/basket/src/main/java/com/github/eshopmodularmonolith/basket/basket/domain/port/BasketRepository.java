@@ -7,6 +7,6 @@ import java.util.Optional;
 public interface BasketRepository {
 
     void save(ShoppingCart cart);
-    Optional<ShoppingCart> findByUserName(String userName);
+    Optional<ShoppingCart> findByUsername(String userName);
     void delete(String userName);
 }

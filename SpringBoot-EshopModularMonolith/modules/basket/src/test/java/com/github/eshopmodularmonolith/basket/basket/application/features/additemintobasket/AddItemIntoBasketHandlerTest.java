@@ -1,5 +1,6 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.additemintobasket;
 
+import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
@@ -53,13 +54,13 @@ class AddItemIntoBasketHandlerTest {
     void givenExistingCart_whenAddItemIntoBasketCommandIsSent_thenItemIsAddedIntoBasket() {
         var existingCart = ShoppingCartMother.cart();
         repository.save(existingCart);
-        assertThat(repository.findByUserName(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
+        assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new AddItemIntoBasketCommand(
                 existingCart.userName(), product.id(),
                 3, "Blue"
         );
         handler.handle(cmd);
-        var result = repository.findByUserName(existingCart.id());
+        var result = repository.findByUsername(existingCart.id());
         assertThat(result).isPresent();
         var items = result.get().items();
         assertThat(items).hasSize(1);
@@ -77,7 +78,7 @@ class AddItemIntoBasketHandlerTest {
     void givenNonExistingProduct_whenTryingToAddItemToBasket_thenExceptionIsThrown(){
         var existingCart = ShoppingCartMother.cart();
         repository.save(existingCart);
-        assertThat(repository.findByUserName(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
+        assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new AddItemIntoBasketCommand(
                 existingCart.userName(), UUID.randomUUID(),
                 3, "Blue"
@@ -92,6 +93,6 @@ class AddItemIntoBasketHandlerTest {
                 "test", UUID.randomUUID(),
                 3, "Blue"
         );
-        assertThatExceptionOfType(ShoppingCartNotFound.class).isThrownBy(() -> handler.handle(cmd));
+        assertThatExceptionOfType(BasketNotFound.class).isThrownBy(() -> handler.handle(cmd));
     }
 }
