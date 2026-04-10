@@ -21,7 +21,7 @@ Some of the next steps will be:
 - [ ] Leverage Spring AI to add some examples on how spring ai can be used.
 - [ ] Add Cucumber/Serenity tests (api only)
 - [ ] Add contract testing 
-- [ ] Make one module work with MongoDB instead of JPA 
+- [x] Make one module work with MongoDB instead of JPA 
 - [ ] Make one of the modules become a separate microservice and use RabbitMQ to communicate.
 - [x] Add dockerfile
 - [ ] Try out Kafka as a communication layer
