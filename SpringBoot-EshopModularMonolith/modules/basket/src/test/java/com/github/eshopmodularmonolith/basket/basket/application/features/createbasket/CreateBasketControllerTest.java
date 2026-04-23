@@ -15,7 +15,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
 import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.mockito.Mockito.times;

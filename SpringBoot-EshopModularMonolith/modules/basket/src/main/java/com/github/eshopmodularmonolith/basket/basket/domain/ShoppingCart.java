@@ -47,4 +47,8 @@ public class ShoppingCart extends AggregateRoot<String> {
         var item = new Item(UUID.randomUUID(), productId, quantity, color, price, productName);
         items.add(item);
     }
+
+    public void removeItem(UUID productId){
+        items.removeIf(item -> item.productId().equals(productId));
+    }
 }

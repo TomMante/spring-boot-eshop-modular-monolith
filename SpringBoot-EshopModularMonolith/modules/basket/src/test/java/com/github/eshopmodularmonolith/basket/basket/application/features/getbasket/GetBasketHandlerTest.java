@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.getbasket;
 
-import com.github.eshopmodularmonolith.basket.basket.contract.ShoppingCartDTO;
 import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
+import com.github.eshopmodularmonolith.basket.basket.contract.ShoppingCartDTO;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.fake.FakeBasketQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
