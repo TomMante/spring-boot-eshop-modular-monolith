@@ -2,8 +2,8 @@ package com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence
 
 import com.github.eshopmodularmonolith.basket.basket.contract.ItemDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.ShoppingCartDTO;
-import com.github.eshopmodularmonolith.basket.basket.domain.Item;
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 
 public class DBMapper {
 

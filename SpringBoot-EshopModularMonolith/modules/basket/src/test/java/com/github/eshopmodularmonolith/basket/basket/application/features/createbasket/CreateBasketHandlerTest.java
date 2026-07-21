@@ -1,6 +1,6 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.createbasket;
 
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.fake.FakeBasketRepository;
 import org.junit.jupiter.api.BeforeEach;

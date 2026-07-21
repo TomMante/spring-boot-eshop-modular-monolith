@@ -36,7 +36,7 @@ class AddItemIntoBasketControllerTest {
     static class Config {
 
         @Bean
-        public AddItemIntoBasketController createOrderController(AddItemIntoBasketHandler handler) {
+        public AddItemIntoBasketController addItemIntoBasketController(AddItemIntoBasketHandler handler) {
             return new AddItemIntoBasketController(handler);
         }
     }
@@ -75,8 +75,8 @@ class AddItemIntoBasketControllerTest {
     }
 
     @Test
-    @DisplayName("When the userName is missing, then validation error returned")
-    void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception{
+    @DisplayName("When the product id is missing, then validation error returned")
+    void whenProductIdIsMissing_thenValidationErrorReturned() throws Exception{
         var request = new AddItemIntoBasketRequest(
                 null,
                 0,
@@ -89,6 +89,15 @@ class AddItemIntoBasketControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.productId").value("Product id is required."));
+    }
+
+    @Test
+    @DisplayName("When user is not logged, then Unauthorized is thrown")
+    void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception{
+
+        mockMvc.perform(post("/basket/items")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
 }

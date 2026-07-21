@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+//TODO Missing test for published domain events.
 @ContextConfiguration(classes = JpaProductQueryRepositoryTest.Config.class)
 @Import(value = {JpaProductQueryRepository.class, JpaProductRepository.class})
 class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {

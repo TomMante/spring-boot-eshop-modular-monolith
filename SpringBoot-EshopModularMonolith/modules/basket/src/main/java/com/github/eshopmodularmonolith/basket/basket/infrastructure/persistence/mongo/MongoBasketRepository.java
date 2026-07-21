@@ -1,8 +1,9 @@
 package com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo;
 
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.DBMapper;
+import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -11,9 +12,11 @@ import java.util.Optional;
 public class MongoBasketRepository implements BasketRepository {
 
     private final SpringMongoBasketRepository repository;
+    private final DomainEventPublisher domainEventPublisher;
 
-    public MongoBasketRepository(SpringMongoBasketRepository repository) {
+    public MongoBasketRepository(SpringMongoBasketRepository repository, DomainEventPublisher domainEventPublisher) {
         this.repository = repository;
+        this.domainEventPublisher = domainEventPublisher;
     }
 
     @Override
@@ -29,5 +32,12 @@ public class MongoBasketRepository implements BasketRepository {
     @Override
     public void delete(String userName) {
         repository.deleteById(userName);
+    }
+
+    @Override
+    public void delete(ShoppingCart cart) {
+        var domainEvents = cart.clearDomainEvents();
+        domainEventPublisher.publish(domainEvents);
+        delete(cart.userName());
     }
 }

@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.removeitemfrombasket;
 
 import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.fake.FakeBasketRepository;

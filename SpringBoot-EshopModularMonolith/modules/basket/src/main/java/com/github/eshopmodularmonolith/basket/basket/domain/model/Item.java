@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.basket.basket.domain;
+package com.github.eshopmodularmonolith.basket.basket.domain.model;
 
 import com.github.eshopmodularmonolith.shared.domain.Entity;
 

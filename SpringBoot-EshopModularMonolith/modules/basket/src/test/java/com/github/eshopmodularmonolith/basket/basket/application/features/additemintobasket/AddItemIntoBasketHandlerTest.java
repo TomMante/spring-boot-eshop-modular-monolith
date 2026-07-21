@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.additemintobasket;
 
 import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
-import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCart;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
@@ -50,7 +50,7 @@ class AddItemIntoBasketHandlerTest {
     }
 
     @Test
-    @DisplayName("Give existing cart, when add item into basket command is sent, then item is added into basket")
+    @DisplayName("Given existing cart, when add item into basket command is sent, then item is added into basket")
     void givenExistingCart_whenAddItemIntoBasketCommandIsSent_thenItemIsAddedIntoBasket() {
         var existingCart = ShoppingCartMother.cart();
         repository.save(existingCart);

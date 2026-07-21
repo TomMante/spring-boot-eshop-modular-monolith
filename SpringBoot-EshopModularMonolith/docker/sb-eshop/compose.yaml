@@ -11,8 +11,23 @@ services:
       - ./postgres-init:/docker-entrypoint-initdb.d
   mongodb:
     image: mongo:8.2.5-noble
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     ports:
       - 27020:27017
+    healthcheck:
+      test: mongosh --port 27017 --quiet --eval "try { rs.status().ok } catch(e) { 0 }"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  mongo-init:
+    image: mongo:8.2.5-noble
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      mongosh --host mongodb:27017 --eval
+      'rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]})'
 #  sb-eshop:
 #    image: sb-eshop:test
 #    environment:
