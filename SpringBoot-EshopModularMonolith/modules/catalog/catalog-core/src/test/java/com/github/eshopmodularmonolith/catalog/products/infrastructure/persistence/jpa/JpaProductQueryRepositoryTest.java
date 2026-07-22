@@ -41,9 +41,9 @@ class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
     private JpaProductRepository writeRepository;
     @MockitoBean
     private DomainEventPublisher domainEventPublisher;
-    @MockitoBean
-    private OutboxEventStore outboxEventStore;
 
+    @MockitoBean(name = "catalogOutboxEventStore")
+    private OutboxEventStore outboxEventStore;
 
     @Test
     @DisplayName("Given database with products, when paginated products are requested, then paginated products are returned")

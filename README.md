@@ -8,32 +8,17 @@ This project serves as a study/blueprint for a Spring Boot modular monolith. It 
 The core idea stems from a course I took on .NET: https://learning.oreilly.com/course/net-8-backend/9781837028757/
 where it showed how to implement a modular monolith using DDD, CQRS and VSA.
 
-## Architecture Highlights
+## 📖 Documentation Index
 
-- Modules are isolated as if they were microservices-in-waiting
-- Each module can own its own database rather than sharing a schema (JPA/Postgres for some, MongoDB for others)
-- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
-- Domain is fully decoupled from infrastructure via ports/adapters
+Detailed documentation is located in the `docs/` directory:
+- **[Architecture (DDD, CQRS, Modules)](docs/ARCHITECTURE.md)**
+- **[Development Guidelines & Notes](docs/DEVELOPMENT.md)**
+- **[Testing Considerations & Known Bugs](docs/TESTING_AND_BUGS.md)**
+- **[Setup Instructions](docs/SETUP.md)**
 
-## Architectural Trade-offs
+## Repository Structure
 
-This project deliberately pushes module isolation further than most production systems would need:
-- Each module can own its own database (JPA/Postgres for some, MongoDB for others) rather than sharing a schema
-- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
-
-This buys near-mechanical extraction into microservices later, at the cost of losing cross-module transactions and taking on real distributed-systems problems (e.g. dual writes, eventual consistency) inside what is still a single deployable.
-
-In a real production system, I'd default to a shared-schema modular monolith with enforced module boundaries, and only isolate a module's storage when there's a concrete reason — e.g. a genuinely different data shape (graph/document data that doesn't fit relational), a compliance requirement for data isolation, or clear evidence a module needs independent scaling. Here, I isolated storage across the board on purpose, specifically to explore what that costs.
-
-### Domain event publication
-In this repository we can see how the repositories (JPA/Mongo) are in charge of broadcasting the event. This is not the ideal solution, as it breaks the Single Responsibility Principle
-Better solutions: 
-1. Leverage the @DomainEvents annotation from Spring boot: this would require the outbox logic to be moved to the domain event lister.
-2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
-
-# Repository Structure
-
-## SpringBoot-EshopModularMonolith
+### SpringBoot-EshopModularMonolith
 This contains a Spring Boot 4 application, which is the main adaptation of the .NET course.
 
 ### Changes from original .NET course

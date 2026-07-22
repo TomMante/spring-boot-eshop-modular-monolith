@@ -5,6 +5,7 @@ import com.github.eshopmodularmonolith.catalog.products.domain.model.events.Prod
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.infrastructure.MessageBus;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +15,7 @@ public class OutboxDispatcher {
     private final OutboxEventStore outboxEventStore;
     private final MessageBus messageBus;
 
-    public OutboxDispatcher(OutboxEventStore outboxEventStore, MessageBus messageBus) {
+    public OutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
         this.outboxEventStore = outboxEventStore;
         this.messageBus = messageBus;
     }

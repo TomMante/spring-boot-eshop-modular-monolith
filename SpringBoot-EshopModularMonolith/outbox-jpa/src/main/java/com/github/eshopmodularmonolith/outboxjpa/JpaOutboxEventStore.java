@@ -2,11 +2,9 @@ package com.github.eshopmodularmonolith.outboxjpa;
 
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 public class JpaOutboxEventStore implements OutboxEventStore {
 
     private OutboxEventJpaRepository repository;

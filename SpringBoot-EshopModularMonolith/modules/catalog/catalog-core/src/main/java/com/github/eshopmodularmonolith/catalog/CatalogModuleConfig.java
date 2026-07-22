@@ -1,8 +1,13 @@
 package com.github.eshopmodularmonolith.catalog;
 
 import com.github.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
-import com.github.eshopmodularmonolith.outboxjpa.OutboxJpaModuleConfig;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
+import com.github.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
+import com.github.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
+import com.github.eshopmodularmonolith.outboxjpa.OutboxEventMapper;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventRegistry;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
@@ -23,7 +28,7 @@ import java.util.Map;
 
 @Configuration
 @EnableJpaRepositories(
-        basePackages = {"com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa", OutboxJpaModuleConfig.BASE_PACKAGE},
+        basePackageClasses = {ProductDB.class, OutboxEventJpaRepository.class},
         entityManagerFactoryRef = "catalogEmf",
         transactionManagerRef = "catalogTx"
 )
@@ -46,7 +51,7 @@ public class CatalogModuleConfig {
     @Bean
     LocalContainerEntityManagerFactoryBean catalogEmf(DataSource dataSource, EntityManagerFactoryBuilder builder) {
         return builder.dataSource(dataSource)
-                .packages("com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa", OutboxJpaModuleConfig.BASE_PACKAGE)
+                .packages(ProductDB.class, OutboxEventJpaRepository.class)
                 .properties(Map.of(
                         "hibernate.default_schema", "catalog"
                 ))
@@ -71,5 +76,21 @@ public class CatalogModuleConfig {
     @Bean
     FlywayMigrationInitializer catalogFlywayInitializer(@Qualifier("catalogFlyway") Flyway catalogFlyway) {
         return new FlywayMigrationInitializer(catalogFlyway);
+    }
+
+    @Bean("catalogOutboxEventMapper")
+    OutboxEventMapper catalogOutboxEventMapper(DomainEventRegistry domainEventRegistry, tools.jackson.databind.ObjectMapper mapper) {
+        return new OutboxEventMapper(domainEventRegistry, mapper);
+    }
+
+    @Bean("catalogOutboxEventStore")
+    OutboxEventStore catalogOutboxEventStore(OutboxEventJpaRepository repository,
+                                             @Qualifier("catalogOutboxEventMapper") OutboxEventMapper mapper) {
+        return new JpaOutboxEventStore(repository, mapper);
+    }
+
+    @Bean("catalogOutboxEventSubscriber")
+    OutboxEventSubscriber catalogOutboxEventSubscriber(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore) {
+        return new OutboxEventSubscriber(outboxEventStore);
     }
 }

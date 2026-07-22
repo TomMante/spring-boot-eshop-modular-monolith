@@ -20,9 +20,11 @@ import org.testcontainers.mongodb.MongoDBContainer;
 })
 public abstract class BasketDatabaseTest {
 
+    // withReplicaSet() initializes a single-node replica set, which is required for
+    // multi-document transactions and advertises the mapped host so the driver can reach it.
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:7.0.6");
+    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:7.0.6").withReplicaSet();
 
     @Autowired
     protected MongoTemplate mongoTemplate;

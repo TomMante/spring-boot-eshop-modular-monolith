@@ -4,7 +4,6 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
-import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +38,6 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
 
     @MockitoBean
     private DomainEventPublisher domainEventPublisher;
-    @MockitoBean
-    private OutboxEventStore outboxEventStore;
 
     @Autowired
     private JpaProductRepository repository;
@@ -85,6 +82,5 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
         repository.save(product);
 
         verify(domainEventPublisher, times(1)).publish(events);
-        verify(outboxEventStore, times(1)).save(events.getFirst());
     }
 }

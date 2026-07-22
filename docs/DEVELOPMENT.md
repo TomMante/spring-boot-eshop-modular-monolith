@@ -1,11 +1,6 @@
-## TODO:
-- Add various level of validation:
-  - Serialization validation (controller) (introduced, missing spots)
-  - business validation (handler/domain) (introduced, missing spots)
-- move away from given when then for all tests. Could make sense to use cucumber to do some integration tests, there it would make sense to have give when then
+# Development Notes & Guidelines
 
-
-## Read Model Notes
+## Read Model Strategy
 Currently the read model (query) is simply returning DTOs. This is more of a convenience, as DTOs are for data transfer, not read models.
 Ideally, there should be a read-model which is linked to database views, or dedicated collection/tables.
 
@@ -16,4 +11,11 @@ This can be done with standard databases in 2 ways:
    1. Domain Event Listener syncs the data whenever a relevant event is published. This approach is reactive. Meaning that it reduces the time between data change and view update.
    2. Scheduled Sync: A scheduled sync that happens once every x seconds/minute/hours. This approach is simpler, but not reactive, meaning more time between data change and view update.
 
+## Validation Strategy
+- Add various levels of validation:
+  - Serialization validation (controller) (introduced, missing spots)
+  - Business validation (handler/domain) (introduced, missing spots)
 
+## Testing Strategy
+- Move away from "Given-When-Then" for all tests. It could make sense to use Cucumber to do some integration tests, where it would make sense to have Given-When-Then.
+- See [Testing & Bugs](TESTING_AND_BUGS.md) for current coverage gaps and known issues.

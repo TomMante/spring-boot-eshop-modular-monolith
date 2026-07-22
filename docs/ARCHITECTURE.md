@@ -1,4 +1,28 @@
-AI generated, needs to be reviewed and refined.
+# Architecture
+
+## Architecture Highlights
+
+- Modules are isolated as if they were microservices-in-waiting
+- Each module can own its own database rather than sharing a schema (JPA/Postgres for some, MongoDB for others)
+- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
+- Domain is fully decoupled from infrastructure via ports/adapters
+
+## Architectural Trade-offs
+
+This project deliberately pushes module isolation further than most production systems would need:
+- Each module can own its own database (JPA/Postgres for some, MongoDB for others) rather than sharing a schema
+- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
+
+This buys near-mechanical extraction into microservices later, at the cost of losing cross-module transactions and taking on real distributed-systems problems (e.g. dual writes, eventual consistency) inside what is still a single deployable.
+
+In a real production system, I'd default to a shared-schema modular monolith with enforced module boundaries, and only isolate a module's storage when there's a concrete reason — e.g. a genuinely different data shape (graph/document data that doesn't fit relational), a compliance requirement for data isolation, or clear evidence a module needs independent scaling. Here, I isolated storage across the board on purpose, specifically to explore what that costs.
+
+### Domain event publication
+In this repository we can see how the repositories (JPA/Mongo) are in charge of broadcasting the event. This is not the ideal solution, as it breaks the Single Responsibility Principle.
+Better solutions: 
+1. Leverage the @DomainEvents annotation from Spring boot: this would require the outbox logic to be moved to the domain event lister.
+2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
+3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
 ## 🧩 Shared module structure
 
@@ -135,5 +159,3 @@ This separation enforces:
 | Domain | Business rules | `Product`, `Order`, `Money` |
 | Contract | System boundary | `ProductDto`, `PaginatedResult`, `GetProductsResponse` |
 | Infrastructure | Technical plumbing | `ProductEntity`, `AuditMetadata`, `JpaRepository` |
-
-

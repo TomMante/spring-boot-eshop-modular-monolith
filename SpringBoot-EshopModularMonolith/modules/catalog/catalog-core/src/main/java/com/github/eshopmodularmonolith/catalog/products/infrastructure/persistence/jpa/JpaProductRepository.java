@@ -3,7 +3,6 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
-import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,13 +17,10 @@ public class JpaProductRepository implements ProductRepository {
 
     private final SpringJpaProductRepository repository;
     private final DomainEventPublisher localPublisher;
-    private final OutboxEventStore outbox;
 
-    public JpaProductRepository(SpringJpaProductRepository repository, DomainEventPublisher localPublisher,
-                                OutboxEventStore outbox) {
+    public JpaProductRepository(SpringJpaProductRepository repository, DomainEventPublisher localPublisher) {
         this.repository = repository;
         this.localPublisher = localPublisher;
-        this.outbox = outbox;
     }
 
     @Override
@@ -41,8 +37,6 @@ public class JpaProductRepository implements ProductRepository {
 
         // local in process dispatch
         localPublisher.publish(events);
-        // persistent global dispatch
-        events.forEach(outbox::save);
     }
 
     @Override

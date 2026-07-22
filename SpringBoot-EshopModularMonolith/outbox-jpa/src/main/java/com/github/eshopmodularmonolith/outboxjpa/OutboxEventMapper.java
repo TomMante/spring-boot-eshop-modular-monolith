@@ -3,11 +3,9 @@ package com.github.eshopmodularmonolith.outboxjpa;
 
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventRegistry;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 
-@Component
 public class OutboxEventMapper {
 
     private final DomainEventRegistry domainEventRegistry;

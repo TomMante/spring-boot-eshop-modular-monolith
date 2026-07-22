@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @DataJpaTest
 @ContextConfiguration(classes = JpaOutboxEventStoreTest.Config.class)
-@Import(value = {JpaOutboxEventStore.class})
 @TestPropertySource(
         properties = {
                 "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -55,6 +54,11 @@ class JpaOutboxEventStoreTest {
         @Bean
         OutboxEventMapper outboxEventMapper(DomainEventRegistry domainEventRegistry, ObjectMapper mapper){
             return new OutboxEventMapper(domainEventRegistry, mapper);
+        }
+
+        @Bean
+        JpaOutboxEventStore jpaOutboxEventStore(OutboxEventJpaRepository repository, OutboxEventMapper mapper) {
+            return new JpaOutboxEventStore(repository, mapper);
         }
     }
 
