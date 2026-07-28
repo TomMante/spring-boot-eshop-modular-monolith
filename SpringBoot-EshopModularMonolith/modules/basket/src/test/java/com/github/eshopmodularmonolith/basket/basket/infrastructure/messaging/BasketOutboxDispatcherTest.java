@@ -20,17 +20,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-class OutboxDispatcherTest {
+class BasketOutboxDispatcherTest {
 
     private OutboxEventStore outboxEventStore;
     private MessageBus messageBus;
-    private OutboxDispatcher dispatcher;
+    private BasketOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
         messageBus = Mockito.mock(MessageBus.class);
         outboxEventStore = new FakeOutboxEventStore();
-        dispatcher = new OutboxDispatcher(outboxEventStore, messageBus);
+        dispatcher = new BasketOutboxDispatcher(outboxEventStore, messageBus);
     }
 
     @Test

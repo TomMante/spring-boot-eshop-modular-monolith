@@ -22,13 +22,13 @@ class OutboxDispatcherTest {
 
     private OutboxEventStore outboxEventStore;
     private MessageBus messageBus;
-    private OutboxDispatcher dispatcher;
+    private CatalogOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
         messageBus = Mockito.mock(MessageBus.class);
         outboxEventStore = new FakeOutboxEventStore();
-        dispatcher = new OutboxDispatcher(outboxEventStore, messageBus);
+        dispatcher = new CatalogOutboxDispatcher(outboxEventStore, messageBus);
     }
 
     @Test

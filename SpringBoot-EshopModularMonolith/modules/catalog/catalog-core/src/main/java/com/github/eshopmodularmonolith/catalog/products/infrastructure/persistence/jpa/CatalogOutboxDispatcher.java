@@ -10,12 +10,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class OutboxDispatcher {
+public class CatalogOutboxDispatcher {
 
     private final OutboxEventStore outboxEventStore;
     private final MessageBus messageBus;
 
-    public OutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
+    public CatalogOutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
         this.outboxEventStore = outboxEventStore;
         this.messageBus = messageBus;
     }

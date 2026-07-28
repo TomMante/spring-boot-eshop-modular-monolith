@@ -12,12 +12,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class OutboxDispatcher {
+public class BasketOutboxDispatcher {
 
     private final OutboxEventStore outboxEventStore;
     private final MessageBus messageBus;
 
-    public OutboxDispatcher(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
+    public BasketOutboxDispatcher(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
         this.outboxEventStore = outboxEventStore;
         this.messageBus = messageBus;
     }
@@ -34,7 +34,7 @@ public class OutboxDispatcher {
     }
 
     private BasketCheckoutIntegrationEvent toIntegrationEvent(BasketCheckedOut event) {
-        var items = event.items().stream().map(OutboxDispatcher::toDto).toList();
+        var items = event.items().stream().map(BasketOutboxDispatcher::toDto).toList();
         return new BasketCheckoutIntegrationEvent(event.userName(), items, event.totalPrice());
     }
 
