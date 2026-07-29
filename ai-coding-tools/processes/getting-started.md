@@ -30,3 +30,5 @@ You must execute all Maven commands from within that directory OR use the `-f` f
 - **Domain Isolation:** Core domain aggregates (e.g., in `shared.ddd` or `domain/model`) MUST have their own isolated unit tests. Do not rely on Application/Handler layer tests for domain coverage.
 - **Behavior Over Lines:** Focus on testing business invariants and failure paths (e.g., error handlers, missing entities) rather than just achieving line coverage.
 - **Test Style:** We are moving away from strict `Given-When-Then` for standard unit tests, reserving it mainly for higher-level integration tests (e.g., Cucumber).
+
+# Interacting with Me
