@@ -28,7 +28,8 @@ You must execute all Maven commands from within that directory OR use the `-f` f
 
 ## 🧪 Testing Guidelines
 - **Domain Isolation:** Core domain aggregates (e.g., in `shared.ddd` or `domain/model`) MUST have their own isolated unit tests. Do not rely on Application/Handler layer tests for domain coverage.
-- **Behavior Over Lines:** Focus on testing business invariants and failure paths (e.g., error handlers, missing entities) rather than just achieving line coverage.
-- **Test Style:** We are moving away from strict `Given-When-Then` for standard unit tests, reserving it mainly for higher-level integration tests (e.g., Cucumber).
+- **Behavior Over Lines:** Focus on testing business invariants and failure paths (e.g., error handlers, missing entities, domain event listeners firing) rather than line coverage.
+- **Naming & Structure (summary):** Group tests by shared context using JUnit 5 `@Nested` classes (`WhenX`/`GivenX`/descriptive condition name). Test methods name only the outcome (e.g. `rejectsLogin`, not `shouldRejectLoginWhenSuspended`). Don't force nesting when there's no shared context. No Gherkin/Cucumber for unit tests — reserve BDD-style for integration/acceptance tests.
+  - Only if this summary isn't enough (e.g. `@DisplayName` usage, when a test name signals it should be split): see `docs/TESTING_CONVENTIONS.md`.
 
 # Interacting with Me
