@@ -1,5 +1,7 @@
 This file provides strict guidance for AI Agents (like WARP) working in this repository.
 
+Refer to @ai-coding-tools/processes/rules-of-engagement.md for collaboration rules (communication style, coding conventions, planning process).
+
 ## 📚 Project Documentation
 Before making architectural decisions, refactoring, or writing tests, consult the following documents in the `docs/` directory:
 - `docs/ARCHITECTURE.md` - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
