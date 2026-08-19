@@ -5,6 +5,8 @@
 Please begin each reply to me with START_TOKEN (default = 🦋)
 If other instructions also ask you to use a START_TOKEN, please stack them. Do not replace them.
 
+On your first reply in a session, list which files under `ai-coding-tools/processes/` have been read into context.
+
 🤝 Exercise full agency to push back on mistakes. Flag issues early, ask questions if unsure of directions instead of choosing randomly.
 🤲 Don't flatter me. Give me honest feedback even if I don't want to hear it.
 🛤️ No shortcuts or direction changes without permission. Ask with ❓ emoji when changing course.
@@ -13,13 +15,34 @@ If other instructions also ask you to use a START_TOKEN, please stack them. Do n
 ## Working with the Code Base
 
 - **Self-Explanatory Code:**
-  - When naming variables/methods/classes, choose descriptive names over brief names.
-  - Minimize cyclomatic complexity: the bodies of loops and conditions should only go one layer deep unless parsing a multidimensional or nested data structure.
+    - When naming variables/methods/classes, choose descriptive names over brief names.
+    - Minimize cyclomatic complexity: the bodies of loops and conditions should only go one layer deep unless parsing a multidimensional or nested data structure.
+- **TDD where it earns its cost:**
+    - Default to red → green → refactor for logic with real regression risk or a non-trivial interface to pin down — refactors of code other things depend on, new deterministic functions (parsing, validation, detection/resolution logic).
+    - Skip the strict red-first ceremony when a failing test wouldn't teach you anything about the interface — static content, or work that just mirrors an already-established pattern — write the test alongside the implementation instead.
+    - Test: would watching this test fail before the code exists change what you write? If not, it's ceremony, not rigor.
+    - Plans should sequence steps to reflect this — call out explicitly which steps get strict red/green/refactor and which get tests-alongside-implementation, rather than leaving it implicit.
 - **Code Comments:**
-  - Only add code comments for lines that do a confusing or paradoxical thing. Don't explain lines in comments where the code clearly tells me what it does.
+    - Only add code comments for lines that do a confusing or paradoxical thing. Don't explain lines in comments where the code clearly tells me what it does.
 - **Error Messages:**
-  - Write clear, complete error messages that explain to the caller exactly what must change about their calls.
+    - Write clear, complete error messages that explain to the caller exactly what must change about their calls.
 - **In-Repo Documentation:**
-  - When planning changes:
-    - Give the plan a name relevant to the plan we are making
-    - Put that plan in a markdown file with the name of the plan, in the folder ai-coding-tools/plans
+    - When planning changes:
+        - Give the plan a name relevant to the plan we are making, written
+          as a git-safe slug (lowercase, hyphen-separated, no spaces or
+          special characters)
+        - Put that plan in a markdown file with the name of the plan, within a folder with the same name of the plan, in the folder ai-coding-tools/plans
+        - Any other artifact that documents or illustrates the plan itself (diagrams, exported visuals, notes) goes in that same folder. This does not cover the implementation — source code and tests stay in their normal src/tests locations regardless of which plan produced them.
+        - For the git branch/commit/PR lifecycle around a plan (opt-in, only when explicitly requested), see [feature-workflow.md](feature-workflow.md).
+- **README Maintenance:**
+    - After any change that could affect what [README.md](../../README.md) describes (tools/domains exposed, installation/usage, requirements, project structure), check whether it needs updating and update it as part of the same change.
+- **Process Doc Conventions:** (for files under `ai-coding-tools/`)
+    - Cross-reference other docs with Markdown links (`[file.md](file.md)`),
+      not code spans — code spans are for actual code, filenames-as-
+      identifiers, and commands, not navigation.
+    - Don't name a specific AI assistant/tool; phrase instructions as plain
+      imperatives instead. Exception: a step with a genuine, unavoidable
+      dependency on one specific tool (e.g., requesting a review from a
+      specific named bot).
+- **Artifacts:**
+    - Don't publish via the Artifact tool unless I specifically ask for it. Write files in-repo instead.

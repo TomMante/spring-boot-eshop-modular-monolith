@@ -1,8 +1,8 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
 import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
-import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.adapters.CatalogProductACL;
@@ -57,7 +57,6 @@ class CheckoutBasketHandlerTest {
         var cmd = new CheckoutBasketCommand(existingCart.id());
         handler.handle(cmd);
 
-        var basketCheckedOut = new BasketCheckedOut(existingCart.userName(), existingCart.items(), product.price());
         // Domain event sent
         assertThat(repository.domainEvents())
                 .filteredOn(BasketCheckedOut.class::isInstance)

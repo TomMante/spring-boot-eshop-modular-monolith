@@ -20,14 +20,16 @@
 		<module>shared</module>
 		<module>modules</module>
 		<module>modules/basket</module>
+		<module>modules/basket/basket-core</module>
+		<module>modules/basket/basket-contract</module>
 		<module>modules/catalog</module>
+		<module>modules/catalog/catalog-contract</module>
+		<module>modules/catalog/catalog-core</module>
 		<module>modules/ordering</module>
 		<module>sonar</module>
         <module>outbox-jpa</module>
         <module>outbox-mongo</module>
 		<module>security</module>
-        <module>modules/catalog/catalog-contract</module>
-		<module>modules/catalog/catalog-core</module>
     </modules>
 	<properties>
 		<java.version>25</java.version>

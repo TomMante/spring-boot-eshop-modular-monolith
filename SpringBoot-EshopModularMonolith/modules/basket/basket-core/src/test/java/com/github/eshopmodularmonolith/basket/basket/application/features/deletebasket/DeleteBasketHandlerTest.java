@@ -1,7 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.deletebasket;
 
-import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.fake.FakeBasketRepository;
 import org.junit.jupiter.api.BeforeEach;
