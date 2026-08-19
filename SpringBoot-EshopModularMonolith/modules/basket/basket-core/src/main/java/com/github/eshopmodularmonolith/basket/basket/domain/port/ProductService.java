@@ -2,9 +2,6 @@ package com.github.eshopmodularmonolith.basket.basket.domain.port;
 
 import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.ProductInfo;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 

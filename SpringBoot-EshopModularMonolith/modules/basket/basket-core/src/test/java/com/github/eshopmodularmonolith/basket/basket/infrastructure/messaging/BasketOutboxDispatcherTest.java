@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -28,7 +29,7 @@ class BasketOutboxDispatcherTest {
 
     @BeforeEach
     void setUp() {
-        messageBus = Mockito.mock(MessageBus.class);
+        messageBus = mock(MessageBus.class);
         outboxEventStore = new FakeOutboxEventStore();
         dispatcher = new BasketOutboxDispatcher(outboxEventStore, messageBus);
     }

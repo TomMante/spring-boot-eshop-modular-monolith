@@ -18,7 +18,6 @@ public class ShoppingCartMother {
     }
 
     public static class Builder {
-        private UUID id = UUID.randomUUID();
         private String userName = "John";
         private List<Item> items = new ArrayList<>();
 

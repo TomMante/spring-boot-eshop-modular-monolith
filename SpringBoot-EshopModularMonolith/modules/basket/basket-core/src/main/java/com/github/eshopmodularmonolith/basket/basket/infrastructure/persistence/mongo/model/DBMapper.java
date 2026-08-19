@@ -7,6 +7,8 @@ import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 
 public class DBMapper {
 
+    private DBMapper() {
+    }
 
     public static ItemDB toDb(Item cartItem){
         return new ItemDB(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.priceWhenAdded(), cartItem.productName());
