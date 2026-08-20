@@ -17,5 +17,6 @@ This can be done with standard databases in 2 ways:
   - Business validation (handler/domain) (introduced, missing spots)
 
 ## Testing Strategy
-- Move away from "Given-When-Then" for all tests. It could make sense to use Cucumber to do some integration tests, where it would make sense to have Given-When-Then.
-- See [Testing & Bugs](TESTING_AND_BUGS.md) for current coverage gaps and known issues.
+- Unit tests use Given/When/Then in the method name. See [Testing Conventions](TESTING_CONVENTIONS.md) for the current template and the intended later shift to GWT-as-structure.
+- Cucumber / `.feature` files are reserved for acceptance tests, if the project grows that far.
+- See [Testing & Bugs](TESTING_AND_BUGS.md) for coverage gaps and known issues.
