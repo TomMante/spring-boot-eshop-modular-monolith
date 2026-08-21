@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>basket</artifactId>
+    <packaging>pom</packaging>
 
     <properties>
         <sonar.coverage.jacoco.xmlReportPaths>${basedir}/../../${aggregate.report.dir}
