@@ -20,7 +20,12 @@
     <dependencies>
         <dependency>
             <groupId>com.github</groupId>
-            <artifactId>basket</artifactId>
+            <artifactId>basket-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>basket-contract</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

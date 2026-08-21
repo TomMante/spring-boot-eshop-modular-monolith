@@ -1,71 +1,39 @@
-# Test Naming & Organization Convention
+# Test Naming & Organization
 
-## Structure
-Use JUnit 5 `@Nested` classes to group tests by shared context ("given"). Use short
-method names for the outcome ("then"). Do not encode given/when/then into a single
-flat method name.
+## Current convention
+
+Tests in this repository name methods with Given / When / Then:
 
 ```java
-class AccountServiceTest {
-
-    @Nested
-    class WhenAccountIsSuspended {
-
-        @BeforeEach
-        void setUp() {
-            // shared "given" setup for this context
-        }
-
-        @Test
-        void rejectsLogin() { }
-
-        @Test
-        void sendsSuspensionNotice() { }
-    }
-
-    @Nested
-    class GivenEmptyCart {
-
-        @Test
-        void throwsValidationException() { }
-    }
-
-    // No meaningful shared context? Don't force nesting.
-    @Test
-    void returnsAccountById() { }
-}
+@Test
+@DisplayName("Given a basket with items, when checking out, then the cart is emptied")
+void givenBasketWithItems_whenCheckingOut_thenCartIsEmptied() { }
 ```
 
-## Rules
+The three beats are in the **name** so a single test reads as a scenario.
+`@DisplayName` repeats that sentence in reports. This is a Java naming
+template, not Cucumber — unit tests are not `.feature` files.
 
-1. **Nested class name = the context/condition**, in plain descriptive language.
-    - Prefer `WhenX`, `GivenX`, or just a descriptive condition name — pick whichever
-      reads most naturally. Do not force a rigid grammar template.
-    - Example: `WhenPaymentFails`, `GivenEmptyCart`, `AccountAlreadyExists`.
+`@Nested` is unused for this today. Shared setup, when it exists, lives in
+the test class rather than a Given/When type hierarchy.
 
-2. **Method names describe only the outcome**, not the setup or condition.
-    - Good: `rejectsLogin`, `throwsValidationException`, `returnsConflict`.
-    - Bad: `shouldRejectLoginWhenAccountIsSuspended` (context belongs in the nested
-      class, not repeated per method).
-    - Dropping a leading `should`/`returns` verb is fine as long as the name reads
-      as a clear statement of behavior.
+## Trade-off and intended evolution
 
-3. **Don't force every test into a nested class.** If a test has no meaningful
-   shared context, leave it as a top-level method with a short `shouldX`-style
-   name. Consistency of shape is not the goal — clarity is.
+GWT is a useful way to **think** about a test (fixture → action → outcome).
+Putting all three into every method name has a cost: names get long, the
+outcome is easy to miss, and `@DisplayName` Gherkin drifts from the code.
 
-4. **Shared setup for a context goes in that nested class's `@BeforeEach`**,
-   not repeated across sibling test methods.
+A later pass may keep GWT as structure instead:
 
-5. **If a test name is still hard to keep short, treat that as a signal** the
-   test may be covering more than one behavior — split it rather than
-   compressing the name further.
+| Beat  | Where it would live                            |
+|-------|------------------------------------------------|
+| Given | `@Nested` class, only when a fixture is shared |
+| When  | Test body                                      |
+| Then  | Method name (`rejectsLogin`)                   |
 
-6. **`@DisplayName` is optional**, only add it when the class/method name alone
-   isn't readable enough in test reports. Don't add it as a blanket rule on
-   every class/method — it's not refactor-safe, so keep it minimal.
+Nesting would stay optional. A single test would not be wrapped in Given +
+When types just to complete the grammar. Cucumber would still be reserved
+for acceptance tests, if those appear.
 
-## Do not use
-- Gherkin/Cucumber for unit tests. Reserve BDD-style scenario tests for
-  integration/acceptance tests where non-technical readability is an actual
-  requirement.
+Until that pass, the suite stays on the current name template so naming
+stays consistent.

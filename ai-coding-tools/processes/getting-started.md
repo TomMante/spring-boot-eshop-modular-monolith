@@ -2,9 +2,10 @@ This file provides strict guidance for AI Agents (like WARP) working in this rep
 
 ## 📚 Project Documentation
 Before making architectural decisions, refactoring, or writing tests, consult the following documents in the `docs/` directory:
-- `docs/ARCHITECTURE.md` - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
-- `docs/DEVELOPMENT.md` - Active guidelines, validation, and read-model strategies.
-- `docs/TESTING_AND_BUGS.md` - Current testing gaps and known issues.
+- [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
+- [DEVELOPMENT.md](../../docs/DEVELOPMENT.md) - Active guidelines, validation, and read-model strategies.
+- [TESTING_AND_BUGS.md](../../docs/TESTING_AND_BUGS.md) - Current testing gaps and known issues.
+- [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) - Current test naming (GWT in method names) and intended later evolution.
 
 ## 🛠️ Build & Test Commands
 The main Java application is in the `SpringBoot-EshopModularMonolith` directory.
@@ -29,7 +30,6 @@ You must execute all Maven commands from within that directory OR use the `-f` f
 ## 🧪 Testing Guidelines
 - **Domain Isolation:** Core domain aggregates (e.g., in `shared.ddd` or `domain/model`) MUST have their own isolated unit tests. Do not rely on Application/Handler layer tests for domain coverage.
 - **Behavior Over Lines:** Focus on testing business invariants and failure paths (e.g., error handlers, missing entities, domain event listeners firing) rather than line coverage.
-- **Naming & Structure (summary):** Group tests by shared context using JUnit 5 `@Nested` classes (`WhenX`/`GivenX`/descriptive condition name). Test methods name only the outcome (e.g. `rejectsLogin`, not `shouldRejectLoginWhenSuspended`). Don't force nesting when there's no shared context. No Gherkin/Cucumber for unit tests — reserve BDD-style for integration/acceptance tests.
-  - Only if this summary isn't enough (e.g. `@DisplayName` usage, when a test name signals it should be split): see `docs/TESTING_CONVENTIONS.md`.
+- **Naming & Structure (summary):** Follow the current suite: Given/When/Then in the test method name. Do not mix in outcome-only names, and do not start a rename. The later style (GWT as `@Nested` structure, method = outcome only) is described in [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) and planned in [gwt-test-naming-later-refactor](../plans/gwt-test-naming-later-refactor/gwt-test-naming-later-refactor.md).
 
 # Interacting with Me
