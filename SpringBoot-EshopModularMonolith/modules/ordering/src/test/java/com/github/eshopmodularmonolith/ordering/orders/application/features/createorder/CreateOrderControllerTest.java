@@ -60,7 +60,7 @@ class CreateOrderControllerTest {
         var items = List.of(ItemMother.item());
 
         var request = new CreateOrderRequest(
-                UUID.randomUUID(),
+                "top_customer",
                 "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
@@ -69,7 +69,7 @@ class CreateOrderControllerTest {
         );
 
         var cmd = new CreateOrderCommand(
-                request.customerId(),
+                request.customer(),
                 request.name(),
                 billingAddress,
                 shippingAddress,
@@ -94,7 +94,7 @@ class CreateOrderControllerTest {
         var items = List.of(ItemMother.item());
 
         var request = new CreateOrderRequest(
-                UUID.randomUUID(),
+                "top_customer",
                 null,
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
@@ -116,7 +116,7 @@ class CreateOrderControllerTest {
         var items = List.of(ItemMother.item());
 
         var request = new CreateOrderRequest(
-                UUID.randomUUID(),
+                "top_customer",
                 "First Order",
                 null,
                 null,
@@ -152,7 +152,31 @@ class CreateOrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.customerId").value("Customer Id is required."));
+                .andExpect(jsonPath("$.fieldErrors.customer").value("Customer is required."));
+    }
+
+    @Test
+    @DisplayName("When the customer id is blank, then validation error returned")
+    void whenCustomerIdIsBlank_thenValidationErrorReturned() throws Exception{
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address();
+        var payment = PaymentMother.payment();
+        var items = List.of(ItemMother.item());
+
+        var request = new CreateOrderRequest(
+                "",
+                "First Order",
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(shippingAddress),
+                DTOMapper.toDto(payment),
+                items.stream().map(DTOMapper::toDto).toList()
+        );
+
+        mockMvc.perform(post("/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.customer").value("Customer is required."));
     }
 
     @Test
@@ -163,7 +187,7 @@ class CreateOrderControllerTest {
         var items = List.of(ItemMother.item());
 
         var request = new CreateOrderRequest(
-                UUID.randomUUID(),
+                "top_customer",
                 "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),

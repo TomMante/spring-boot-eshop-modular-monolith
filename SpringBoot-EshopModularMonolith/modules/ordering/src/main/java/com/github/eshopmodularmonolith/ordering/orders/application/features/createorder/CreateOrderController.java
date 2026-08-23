@@ -20,7 +20,7 @@ public class CreateOrderController {
     @PostMapping("/order")
     public ResponseEntity<Void> createOrder(@RequestBody @Validated CreateOrderRequest request) {
         var cmd = new CreateOrderCommand(
-                request.customerId(),
+                request.customer(),
                 request.name(),
                 DTOMapper.toDomain(request.shippingAddress()),
                 DTOMapper.toDomain(request.billingAddress()),

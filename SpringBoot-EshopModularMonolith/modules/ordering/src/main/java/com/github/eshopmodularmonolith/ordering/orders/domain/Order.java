@@ -11,7 +11,7 @@ public class Order extends AggregateRoot<UUID> {
 
     private UUID id;
     private List<Item> items;
-    private UUID customerId;
+    private String customer;
     private String name;
     private Address shippingAddress;
     private Address billingAddress;
@@ -23,25 +23,25 @@ public class Order extends AggregateRoot<UUID> {
     }
 
 
-    private Order(UUID id, List<Item> items, UUID customerId, String name, Address shippingAddress,
-                 Address billingAddress, Payment payment) {
+    private Order(UUID id, List<Item> items, String customer, String name, Address shippingAddress,
+                  Address billingAddress, Payment payment) {
         this.id = id;
         this.items = items;
-        this.customerId = customerId;
+        this.customer = customer;
         this.name = name;
         this.shippingAddress = shippingAddress;
         this.billingAddress = billingAddress;
         this.payment = payment;
     }
 
-    public static Order create(UUID customerId, String orderName, Address shippingAddress, Address billingAddress,
+    public static Order create(String customer, String orderName, Address shippingAddress, Address billingAddress,
                                Payment payment, List<Item> items) {
-        return new Order(UUID.randomUUID(), items, customerId, orderName, shippingAddress, billingAddress, payment);
+        return new Order(UUID.randomUUID(), items, customer, orderName, shippingAddress, billingAddress, payment);
     }
 
-    public static Order reconstitute(UUID id, UUID customerId, String orderName, Address shippingAddress,
+    public static Order reconstitute(UUID id, String customer, String orderName, Address shippingAddress,
                                      Address billingAddress, Payment payment, List<Item> items) {
-        return new Order(id, items, customerId, orderName, shippingAddress, billingAddress, payment);
+        return new Order(id, items, customer, orderName, shippingAddress, billingAddress, payment);
     }
 
 
@@ -49,8 +49,8 @@ public class Order extends AggregateRoot<UUID> {
         return items;
     }
 
-    public UUID customerId() {
-        return customerId;
+    public String customer() {
+        return customer;
     }
 
     public String name() {

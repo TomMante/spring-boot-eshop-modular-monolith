@@ -6,7 +6,7 @@ import java.util.UUID;
 public record OrderDTO(
         UUID id,
         List<ItemDTO> items,
-        UUID customerId,
+        String customer,
         String name,
         AddressDTO shippingAddress,
         AddressDTO billingAddress,

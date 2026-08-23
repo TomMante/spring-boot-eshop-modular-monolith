@@ -12,7 +12,7 @@ import java.util.UUID;
 public record OrderDB(
         @Id UUID id,
         List<ItemDB> items,
-        UUID customerId,
+        String customer,
         String name,
         AddressDB shippingAddress,
         AddressDB billingAddress,
