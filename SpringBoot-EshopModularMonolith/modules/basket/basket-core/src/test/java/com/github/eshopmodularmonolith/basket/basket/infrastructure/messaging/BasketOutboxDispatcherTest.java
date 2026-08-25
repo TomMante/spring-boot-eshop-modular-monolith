@@ -47,6 +47,6 @@ class BasketOutboxDispatcherTest {
 
         var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.color(), item.priceWhenAdded(), item.productName());
         verify(messageBus, times(1)).publish(
-                new BasketCheckoutIntegrationEvent("john", List.of(expectedItem), new BigDecimal("19.98")));
+                new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98")));
     }
 }

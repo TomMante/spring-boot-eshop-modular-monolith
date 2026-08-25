@@ -4,6 +4,7 @@ import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,10 @@ public class FakeOrderRepository implements OrderRepository {
 
     public FakeOrderRepository() {
         repository = new HashMap<>();
+    }
+
+    public List<Order> orders() {
+        return List.copyOf(repository.values());
     }
 
     @Override

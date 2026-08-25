@@ -21,7 +21,7 @@ public class OrderMother {
     public static class Builder {
         private UUID id = UUID.randomUUID();
         private List<Item> items = new ArrayList<>(List.of(ItemMother.item()));
-        private UUID customerId = UUID.randomUUID();
+        private String customer = "john_doe";
         private String name = "First Order";
         private Address shippingAddress = AddressMother.address();
         private Address billingAddress =  AddressMother.address();
@@ -33,7 +33,7 @@ public class OrderMother {
         }
 
         public Order build() {
-            return Order.reconstitute(id, customerId, name, shippingAddress, billingAddress, payment, items);
+            return Order.reconstitute(id, customer, name, shippingAddress, billingAddress, payment, items);
         }
     }
 }

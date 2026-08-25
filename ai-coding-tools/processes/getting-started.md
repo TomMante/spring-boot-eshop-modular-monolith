@@ -5,7 +5,7 @@ Before making architectural decisions, refactoring, or writing tests, consult th
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
 - [DEVELOPMENT.md](../../docs/DEVELOPMENT.md) - Active guidelines, validation, and read-model strategies.
 - [TESTING_AND_BUGS.md](../../docs/TESTING_AND_BUGS.md) - Current testing gaps and known issues.
-- [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) - Current test naming (GWT in method names) and intended later evolution.
+- [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) - What to test and where (behavior seams, fakes at ports, when to narrow), plus current test naming (GWT in method names) and its intended later evolution.
 
 ## 🛠️ Build & Test Commands
 The main Java application is in the `SpringBoot-EshopModularMonolith` directory.
@@ -28,7 +28,7 @@ You must execute all Maven commands from within that directory OR use the `-f` f
     - `shared.infrastructure`: Spring/JPA concerns. Never depended on by domain/contract.
 
 ## 🧪 Testing Guidelines
-- **Domain Isolation:** Core domain aggregates (e.g., in `shared.ddd` or `domain/model`) MUST have their own isolated unit tests. Do not rely on Application/Handler layer tests for domain coverage.
+- **What to Test (summary):** Test at the behavior seam — the narrowest entry point that is *stable* (its shape follows a requirement, not an implementation choice) and *complete* (exercising it produces the observable outcome). The unit under test is a behavior, not a class; which layer the seam sits in is a per-change question, so state it and justify it in the plan. Fake only at ports and assert outcomes, never that a collaborator was called. Narrow the seam when the logic behind it has more cases than you would enumerate at its setup cost — calculations, invariants that must hold regardless of caller, state machines, merge/dedup logic. Full criteria, including test-data guidance and worked examples, in [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md).
 - **Behavior Over Lines:** Focus on testing business invariants and failure paths (e.g., error handlers, missing entities, domain event listeners firing) rather than line coverage.
 - **Naming & Structure (summary):** Follow the current suite: Given/When/Then in the test method name. Do not mix in outcome-only names, and do not start a rename. The later style (GWT as `@Nested` structure, method = outcome only) is described in [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) and planned in [gwt-test-naming-later-refactor](../plans/gwt-test-naming-later-refactor/gwt-test-naming-later-refactor.md).
 

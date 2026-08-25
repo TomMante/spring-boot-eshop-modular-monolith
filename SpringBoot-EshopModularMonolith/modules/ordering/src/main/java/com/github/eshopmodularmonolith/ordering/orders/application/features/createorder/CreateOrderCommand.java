@@ -5,10 +5,9 @@ import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Addre
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 
 import java.util.List;
-import java.util.UUID;
 
 public record CreateOrderCommand(
-        UUID customerId,
+        String customer,
         String name,
         Address shippingAddress,
         Address billingAddress,

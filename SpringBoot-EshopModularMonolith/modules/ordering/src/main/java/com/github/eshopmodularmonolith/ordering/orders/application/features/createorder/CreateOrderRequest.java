@@ -3,14 +3,14 @@ package com.github.eshopmodularmonolith.ordering.orders.application.features.cre
 import com.github.eshopmodularmonolith.ordering.orders.contract.AddressDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.ItemDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.PaymentDTO;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
-import java.util.UUID;
 
 public record CreateOrderRequest(
-        @NotNull(message = "{ordering.order.customerId.notNull}")
-        UUID customerId,
+        @NotBlank(message = "{ordering.order.customer.notBlank}")
+        String customer,
         @NotNull(message = "{ordering.order.name.notBlank}")
         String name,
         AddressDTO shippingAddress,

@@ -35,7 +35,7 @@ public class BasketOutboxDispatcher {
 
     private BasketCheckoutIntegrationEvent toIntegrationEvent(BasketCheckedOut event) {
         var items = event.items().stream().map(BasketOutboxDispatcher::toDto).toList();
-        return new BasketCheckoutIntegrationEvent(event.userName(), items, event.totalPrice());
+        return new BasketCheckoutIntegrationEvent(event.eventId(), event.userName(), items, event.totalPrice());
     }
 
     private static ItemDTO toDto(Item item) {

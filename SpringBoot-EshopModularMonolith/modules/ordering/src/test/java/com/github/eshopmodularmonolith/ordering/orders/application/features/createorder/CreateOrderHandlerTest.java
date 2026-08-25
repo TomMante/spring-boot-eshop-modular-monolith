@@ -31,7 +31,7 @@ class CreateOrderHandlerTest {
     @DisplayName("Given create order command, when handler is called, then order is created")
     void givenCreateOrderCommand_whenHandlerIsCalled_thenOrderIsCreated(){
         var createOrder = new CreateOrderCommand(
-                UUID.randomUUID(),
+                "top_customer",
                 "First Order",
                 AddressMother.address(),
                 AddressMother.address(),
@@ -42,7 +42,7 @@ class CreateOrderHandlerTest {
         assertThat(orderOpt).isPresent();
         var order = orderOpt.get();
         assertThat(order).extracting(Order::id).isEqualTo(orderId);
-        assertThat(order).extracting(Order::customerId).isEqualTo(createOrder.customerId());
+        assertThat(order).extracting(Order::customer).isEqualTo(createOrder.customer());
         assertThat(order).extracting(Order::name).isEqualTo(createOrder.name());
         assertThat(order).extracting(Order::items).usingRecursiveComparison().isEqualTo(createOrder.items());
         assertThat(order).extracting(Order::billingAddress).isEqualTo(createOrder.billingAddress());
