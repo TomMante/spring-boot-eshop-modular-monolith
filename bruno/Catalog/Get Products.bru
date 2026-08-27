@@ -1,0 +1,16 @@
+meta {
+  name: Get Products
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/products?pageIndex=0&pageSize=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  pageIndex: 0
+  pageSize: 10
+}

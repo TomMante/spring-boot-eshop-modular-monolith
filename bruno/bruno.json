@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "EShop Modular Monolith",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

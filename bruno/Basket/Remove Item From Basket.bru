@@ -1,0 +1,17 @@
+meta {
+  name: Remove Item From Basket
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}/basket/items
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "productId": "00000000-0000-0000-0000-000000000000"
+  }
+}

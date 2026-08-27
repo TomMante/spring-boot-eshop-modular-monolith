@@ -1,0 +1,21 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/product
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Sample Product",
+    "categories": ["category-1"],
+    "description": "A sample product created via Bruno",
+    "imageFile": "sample.png",
+    "price": 19.99
+  }
+}

@@ -1,0 +1,51 @@
+meta {
+  name: Create Order
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/order
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "customerId": "00000000-0000-0000-0000-000000000000",
+    "name": "Order for John Doe",
+    "shippingAddress": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "emailAddress": "john.doe@example.com",
+      "addressLine": "123 Main St",
+      "country": "USA",
+      "state": "CA",
+      "zipCode": "90001"
+    },
+    "billingAddress": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "emailAddress": "john.doe@example.com",
+      "addressLine": "123 Main St",
+      "country": "USA",
+      "state": "CA",
+      "zipCode": "90001"
+    },
+    "payment": {
+      "cardName": "John Doe",
+      "cardNumber": "4111111111111111",
+      "expiration": "12/29",
+      "cvv": "123",
+      "paymentMethod": 1
+    },
+    "items": [
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "productId": "00000000-0000-0000-0000-000000000000",
+        "quantity": 1,
+        "price": 19.99
+      }
+    ]
+  }
+}
