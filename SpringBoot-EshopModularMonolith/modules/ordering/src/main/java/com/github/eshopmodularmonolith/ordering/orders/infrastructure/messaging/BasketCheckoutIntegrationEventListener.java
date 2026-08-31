@@ -23,7 +23,7 @@ public class BasketCheckoutIntegrationEventListener {
 
     @EventListener
     public void handle(BasketCheckoutIntegrationEvent event) {
-        var cmd = new CreateOrderCommand(event.userName(), null, null, null, null, event.items().stream().map(this::toDomain).toList());
+        var cmd = new CreateOrderCommand(event.userName(), null, null, null, event.items().stream().map(this::toDomain).toList());
         createOrderHandler.handle(cmd);
         log.info("Received BasketCheckoutIntegrationEvent for user: {}", event.userName());
     }

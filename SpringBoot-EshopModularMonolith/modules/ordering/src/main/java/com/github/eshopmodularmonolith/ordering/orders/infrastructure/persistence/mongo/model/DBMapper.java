@@ -37,11 +37,11 @@ public class DBMapper {
     }
 
     public static OrderDB toDb(Order order){
-        return new OrderDB(order.id(), order.items().stream().map(DBMapper::toDb).toList(), order.customer(), order.name(), toDb(order.shippingAddress()), toDb(order.billingAddress()), toDb(order.payment()));
+        return new OrderDB(order.id(), order.items().stream().map(DBMapper::toDb).toList(), order.customer(), order.placedAt(), toDb(order.shippingAddress()), toDb(order.billingAddress()), toDb(order.payment()));
     }
 
     public static Order toDomain(OrderDB order){
-        return Order.reconstitute(order.id(), order.customer(), order.name(), toDomain(order.shippingAddress()), toDomain(order.billingAddress()), toDomain(order.payment()), order.items().stream().map(DBMapper::toDomain).toList());
+        return Order.reconstitute(order.id(), order.customer(), order.placedAt(), toDomain(order.shippingAddress()), toDomain(order.billingAddress()), toDomain(order.payment()), order.items().stream().map(DBMapper::toDomain).toList());
     }
 
     public static AddressDTO toDto(AddressDB address){
@@ -57,6 +57,6 @@ public class DBMapper {
     }
 
     public static OrderDTO toDto(OrderDB order){
-        return new OrderDTO(order.id(), order.items().stream().map(DBMapper::toDto).toList(), order.customer(), order.name(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
+        return new OrderDTO(order.id(), order.items().stream().map(DBMapper::toDto).toList(), order.customer(), order.placedAt(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
     }
 }

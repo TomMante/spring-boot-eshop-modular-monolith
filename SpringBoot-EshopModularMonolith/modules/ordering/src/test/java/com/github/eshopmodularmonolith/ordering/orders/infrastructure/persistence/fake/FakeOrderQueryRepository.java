@@ -4,25 +4,27 @@ import com.github.eshopmodularmonolith.ordering.orders.application.query.OrderQu
 import com.github.eshopmodularmonolith.ordering.orders.contract.OrderDTO;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
+import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class FakeOrderQueryRepository implements OrderQueryRepository {
 
-    private Map<UUID, OrderDTO> orders;
+    private static final Map<String, Comparator<OrderDTO>> COMPARATORS_BY_PROPERTY = Map.of(
+            "placedAt", Comparator.comparing(OrderDTO::placedAt),
+            "customer", Comparator.comparing(OrderDTO::customer),
+            "id", Comparator.comparing(OrderDTO::id));
 
-    //TODO instead of LinkedHashMap to better test intent, ordering should be implemented.
-    public FakeOrderQueryRepository() {
-        orders = new LinkedHashMap<>();
-    }
+    private final Map<UUID, OrderDTO> orders = new LinkedHashMap<>();
 
-    public void addOrder(OrderDTO order){
+    public void addOrder(OrderDTO order) {
         orders.put(order.id(), order);
     }
 
@@ -33,23 +35,34 @@ public class FakeOrderQueryRepository implements OrderQueryRepository {
 
     @Override
     public PageResult<OrderDTO> paginatedOrders(PageRequest pageRequest) {
-        List<OrderDTO> allOrders = new ArrayList<>(orders.values());
+        var sortedOrders = sortedBy(pageRequest.sortOrders());
 
-        int pageIndex = pageRequest.pageIndex();
-        int pageSize = pageRequest.pageSize();
+        var fromIndex = Math.min(pageRequest.skip(), sortedOrders.size());
+        var toIndex = Math.min(fromIndex + pageRequest.pageSize(), sortedOrders.size());
 
-        int fromIndex = pageIndex * pageSize;
-        if (fromIndex >= allOrders.size()) {
-            return new PageResult<>(Collections.emptyList(), pageIndex, pageSize, allOrders.size(),
-                    (int) Math.ceil((double) allOrders.size() / pageSize));
+        return PageResult.of(sortedOrders.subList(fromIndex, toIndex), pageRequest.pageIndex(),
+                pageRequest.pageSize(), sortedOrders.size());
+    }
+
+    private List<OrderDTO> sortedBy(List<SortOrder> sortOrders) {
+        var sortedOrders = new ArrayList<>(orders.values());
+        sortOrders.stream()
+                .map(this::toComparator)
+                .reduce((first, next) -> first.thenComparing(next))
+                .ifPresent(sortedOrders::sort);
+        return sortedOrders;
+    }
+
+    private Comparator<OrderDTO> toComparator(SortOrder sortOrder) {
+        var comparator = COMPARATORS_BY_PROPERTY.get(sortOrder.property());
+        if (comparator == null) {
+            throw new IllegalArgumentException("Cannot sort orders by unknown property '" + sortOrder.property()
+                    + "'. Pass one of the supported properties instead: " + supportedProperties() + ".");
         }
+        return sortOrder.direction() == SortOrder.Direction.DESC ? comparator.reversed() : comparator;
+    }
 
-        int toIndex = Math.min(fromIndex + pageSize, allOrders.size());
-
-        List<OrderDTO> pageItems = allOrders.subList(fromIndex, toIndex);
-
-        int totalPages = (int) Math.ceil((double) allOrders.size() / pageSize);
-
-        return new PageResult<>(pageItems, pageIndex, pageSize, allOrders.size(), totalPages);
+    private String supportedProperties() {
+        return COMPARATORS_BY_PROPERTY.keySet().stream().sorted().collect(Collectors.joining(", "));
     }
 }

@@ -8,7 +8,6 @@ import java.util.List;
 
 public record CreateOrderCommand(
         String customer,
-        String name,
         Address shippingAddress,
         Address billingAddress,
         Payment payment,

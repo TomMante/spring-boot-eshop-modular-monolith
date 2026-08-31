@@ -21,7 +21,6 @@ public class CreateOrderController {
     public ResponseEntity<Void> createOrder(@RequestBody @Validated CreateOrderRequest request) {
         var cmd = new CreateOrderCommand(
                 request.customer(),
-                request.name(),
                 DTOMapper.toDomain(request.shippingAddress()),
                 DTOMapper.toDomain(request.billingAddress()),
                 DTOMapper.toDomain(request.payment()),
