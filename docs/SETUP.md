@@ -1,7 +1,7 @@
 # Setup Instructions
 
 ## Prerequisites
-- Java 21+
+- Java 25+
 - Maven
 - Docker & Docker Compose (for running dependencies like databases and Keycloak)
 

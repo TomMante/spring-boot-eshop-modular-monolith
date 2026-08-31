@@ -17,3 +17,5 @@ buildNumber.properties
 .classpath
 /.idea/
 /.claude/
+/bruno/environments/local.bru
+/.java-version
