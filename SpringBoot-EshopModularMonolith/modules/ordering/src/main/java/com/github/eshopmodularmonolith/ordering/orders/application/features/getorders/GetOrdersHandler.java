@@ -17,7 +17,7 @@ public class GetOrdersHandler {
     }
 
     public GetOrdersResult handle(GetOrdersQuery query){
-        var pageResult = repository.paginatedOrders(new PageRequest(query.pageIndex(), query.pageSize(), List.of(new SortOrder("name", SortOrder.Direction.ASC))));
+        var pageResult = repository.paginatedOrders(new PageRequest(query.pageIndex(), query.pageSize(), List.of(new SortOrder("placedAt", SortOrder.Direction.DESC))));
         return new GetOrdersResult(pageResult.items(), pageResult.pageIndex(), pageResult.pageSize(), pageResult.totalItems(), pageResult.totalPages());
     }
 }

@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,11 +22,14 @@ class CreateOrderHandlerTest {
 
     private CreateOrderHandler handler;
     private OrderRepository repository;
+    private Clock clock;
+    private Instant fixedInstant = Instant.parse("2024-01-01T00:00:00Z");
 
     @BeforeEach
     void setUp() {
+        clock = Clock.fixed(fixedInstant, Clock.systemUTC().getZone());
         repository = new FakeOrderRepository();
-        handler = new CreateOrderHandler(repository);
+        handler = new CreateOrderHandler(repository, clock);
     }
 
     @Test
@@ -32,7 +37,6 @@ class CreateOrderHandlerTest {
     void givenCreateOrderCommand_whenHandlerIsCalled_thenOrderIsCreated(){
         var createOrder = new CreateOrderCommand(
                 "top_customer",
-                "First Order",
                 AddressMother.address(),
                 AddressMother.address(),
                 PaymentMother.payment(),
@@ -43,10 +47,10 @@ class CreateOrderHandlerTest {
         var order = orderOpt.get();
         assertThat(order).extracting(Order::id).isEqualTo(orderId);
         assertThat(order).extracting(Order::customer).isEqualTo(createOrder.customer());
-        assertThat(order).extracting(Order::name).isEqualTo(createOrder.name());
         assertThat(order).extracting(Order::items).usingRecursiveComparison().isEqualTo(createOrder.items());
         assertThat(order).extracting(Order::billingAddress).isEqualTo(createOrder.billingAddress());
         assertThat(order).extracting(Order::shippingAddress).isEqualTo(createOrder.shippingAddress());
         assertThat(order).extracting(Order::payment).isEqualTo(createOrder.payment());
+        assertThat(order).extracting(Order::placedAt).isEqualTo(fixedInstant);
     }
 }

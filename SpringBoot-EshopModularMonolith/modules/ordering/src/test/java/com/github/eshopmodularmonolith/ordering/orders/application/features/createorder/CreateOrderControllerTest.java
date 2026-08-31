@@ -61,7 +61,6 @@ class CreateOrderControllerTest {
 
         var request = new CreateOrderRequest(
                 "top_customer",
-                "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
@@ -70,7 +69,6 @@ class CreateOrderControllerTest {
 
         var cmd = new CreateOrderCommand(
                 request.customer(),
-                request.name(),
                 billingAddress,
                 shippingAddress,
                 payment,
@@ -86,30 +84,6 @@ class CreateOrderControllerTest {
     }
 
     @Test
-    @DisplayName("When the name is missing, then validation error returned")
-    void whenNameIsMissing_thenValidationErrorReturned() throws Exception{
-        var billingAddress = AddressMother.address();
-        var shippingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
-        var items = List.of(ItemMother.item());
-
-        var request = new CreateOrderRequest(
-                "top_customer",
-                null,
-                DTOMapper.toDto(billingAddress),
-                DTOMapper.toDto(shippingAddress),
-                DTOMapper.toDto(payment),
-                items.stream().map(DTOMapper::toDto).toList()
-        );
-
-        mockMvc.perform(post("/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.name").value("Name is required."));
-    }
-
-    @Test
     @DisplayName("When the billing address is missing, then validation error returned")
     void whenBillingAddressIsMissing_thenValidationErrorReturned() throws Exception{
         var payment = PaymentMother.payment();
@@ -117,7 +91,6 @@ class CreateOrderControllerTest {
 
         var request = new CreateOrderRequest(
                 "top_customer",
-                "First Order",
                 null,
                 null,
                 DTOMapper.toDto(payment),
@@ -141,7 +114,6 @@ class CreateOrderControllerTest {
 
         var request = new CreateOrderRequest(
                 null,
-                "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
@@ -165,7 +137,6 @@ class CreateOrderControllerTest {
 
         var request = new CreateOrderRequest(
                 "",
-                "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
@@ -188,7 +159,6 @@ class CreateOrderControllerTest {
 
         var request = new CreateOrderRequest(
                 "top_customer",
-                "First Order",
                 DTOMapper.toDto(billingAddress),
                 DTOMapper.toDto(shippingAddress),
                 null,

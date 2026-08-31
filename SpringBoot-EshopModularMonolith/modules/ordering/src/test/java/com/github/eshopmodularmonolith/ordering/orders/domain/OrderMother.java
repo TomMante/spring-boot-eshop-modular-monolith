@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.ordering.orders.domain;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,8 +14,8 @@ public class OrderMother {
         return new Builder().build();
     }
 
-    public static Order order(String name){
-        return new Builder().withName(name).build();
+    public static Order order(Instant placedAt) {
+        return new Builder().withPlacedAt(placedAt).build();
     }
 
 
@@ -22,18 +23,18 @@ public class OrderMother {
         private UUID id = UUID.randomUUID();
         private List<Item> items = new ArrayList<>(List.of(ItemMother.item()));
         private String customer = "john_doe";
-        private String name = "First Order";
+        private Instant placedAt = Instant.parse("2023-01-01T00:00:00Z");
         private Address shippingAddress = AddressMother.address();
         private Address billingAddress =  AddressMother.address();
         private Payment payment = PaymentMother.payment();
 
-        public Builder withName(String name){
-            this.name = name;
+        public Builder withPlacedAt(Instant placedAt) {
+            this.placedAt = placedAt;
             return this;
         }
 
         public Order build() {
-            return Order.reconstitute(id, customer, name, shippingAddress, billingAddress, payment, items);
+            return Order.reconstitute(id, customer, placedAt, shippingAddress, billingAddress, payment, items);
         }
     }
 }

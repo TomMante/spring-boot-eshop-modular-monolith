@@ -14,13 +14,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig(BasketCheckoutIntegrationEventListenerTest.Config.class)
 class BasketCheckoutIntegrationEventListenerTest {
+
+    private static Instant fixedInstant = Instant.parse("2024-01-01T00:00:00Z");
 
     @Configuration
     static class Config {
@@ -31,8 +37,13 @@ class BasketCheckoutIntegrationEventListenerTest {
         }
 
         @Bean
-        CreateOrderHandler createOrderHandler(OrderRepository orderRepository) {
-            return new CreateOrderHandler(orderRepository);
+        Clock clock(){
+            return Clock.fixed(fixedInstant, ZoneOffset.UTC);
+        }
+
+        @Bean
+        CreateOrderHandler createOrderHandler(OrderRepository orderRepository, Clock clock) {
+            return new CreateOrderHandler(orderRepository, clock);
         }
 
         @Bean
@@ -66,10 +77,10 @@ class BasketCheckoutIntegrationEventListenerTest {
                 assertThat(orderItem.quantity()).isEqualTo(2);
                 assertThat(orderItem.price()).isEqualByComparingTo(BigDecimal.valueOf(12.50));
             });
-            assertThat(order.name()).isNull();
             assertThat(order.shippingAddress()).isNull();
             assertThat(order.billingAddress()).isNull();
             assertThat(order.payment()).isNull();
+            assertThat(order.placedAt()).isEqualTo(fixedInstant);
         });
     }
 

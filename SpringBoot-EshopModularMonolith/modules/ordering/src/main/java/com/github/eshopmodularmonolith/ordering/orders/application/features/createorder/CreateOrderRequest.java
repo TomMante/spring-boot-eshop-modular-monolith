@@ -11,8 +11,6 @@ import java.util.List;
 public record CreateOrderRequest(
         @NotBlank(message = "{ordering.order.customer.notBlank}")
         String customer,
-        @NotNull(message = "{ordering.order.name.notBlank}")
-        String name,
         AddressDTO shippingAddress,
         @NotNull(message = "{ordering.order.billingAddress.notNull}")
         AddressDTO billingAddress,

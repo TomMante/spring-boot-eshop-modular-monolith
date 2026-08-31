@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import com.github.eshopmodularmonolith.ordering.orders.application.query.OrderQueryRepository;
 import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
+import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
@@ -9,8 +10,13 @@ import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import com.mongodb.client.MongoClient;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
@@ -21,9 +27,14 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.test.context.ContextConfiguration;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.stream.Stream;
 
+import static com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder.Direction.ASC;
+import static com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder.Direction.DESC;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @ContextConfiguration(classes = MongoOrderQueryRepositoryTest.Config.class)
 @Import(value = {MongoOrderRepository.class, MongoOrderQueryRepository.class})
@@ -47,11 +58,13 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
     @Autowired
     private OrderRepository writeRepository;
 
+
+
     @Test
     @DisplayName("Given existing orders, when querying by id, then return correct order")
     void givenExistingOrders_whenQueryingById_thenReturnCorrectOrder() {
-        var order1 = OrderMother.order("First Order");
-        var order2 = OrderMother.order("Second Order");
+        var order1 = OrderMother.order();
+        var order2 = OrderMother.order();
         writeRepository.save(order1);
         writeRepository.save(order2);
         assertThat(queryRepository.findById(order1.id())).isPresent()
@@ -62,35 +75,54 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
                 .isEqualTo(DTOMapper.toDto(order2));
     }
 
-    @Test
-    @DisplayName("Given database with orders, when paginated orders are requested, then paginated orders are returned")
-    void givenDatabaseWithOrders_whenPaginatedOrdersAreRequested_thenPaginatedOrdersAreReturned() {
-        var order1 = OrderMother.order("Order 1");
-        writeRepository.save(order1);
-        var order2 = OrderMother.order("Order 2");
-        writeRepository.save(order2);
-        var order3 = OrderMother.order("Order 3");
-        writeRepository.save(order3);
+    @Nested
+    @DisplayName("Paginated orders")
+    class PaginatedOrders {
 
-        var expected = List.of(DTOMapper.toDto(order1), DTOMapper.toDto(order2));
+        private static final int PAGE_SIZE = 2;
+        private static final int EXPECTED_TOTAL_PAGES = 2;
 
-        var page1 = queryRepository.paginatedOrders(new PageRequest(0, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
-        Assertions.assertThat(page1.items().stream().toList())
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyInAnyOrderElementsOf(expected);
-        Assertions.assertThat(page1.pageIndex()).isZero();
-        Assertions.assertThat(page1.pageSize()).isEqualTo(2);
-        Assertions.assertThat(page1.totalItems()).isEqualTo(3);
-        Assertions.assertThat(page1.totalPages()).isEqualTo(2);
+        private List<Order> seededOrders;
 
-        var page2 = queryRepository.paginatedOrders(new PageRequest(1, 2, List.of(new SortOrder("name", SortOrder.Direction.ASC))));
-        Assertions.assertThat(page2.items())
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyInAnyOrderElementsOf(List.of(DTOMapper.toDto(order3)));
-        Assertions.assertThat(page2.pageIndex()).isOne();
-        Assertions.assertThat(page2.pageSize()).isEqualTo(2);
-        Assertions.assertThat(page2.totalItems()).isEqualTo(3);
-        Assertions.assertThat(page2.totalPages()).isEqualTo(2);
+        @BeforeEach
+        void seedOrdersOldestFirst() {
+            seededOrders = List.of(
+                    OrderMother.order(Instant.parse("2024-01-01T00:00:00Z")),
+                    OrderMother.order(Instant.parse("2025-01-01T00:00:00Z")),
+                    OrderMother.order(Instant.parse("2026-01-01T00:00:00Z")));
+            seededOrders.forEach(writeRepository::save);
+        }
 
+        static Stream<Arguments> pageRequests() {
+            return Stream.of(
+                    arguments(0, ASC, List.of(0, 1)),
+                    arguments(1, ASC, List.of(2)),
+                    arguments(0, DESC, List.of(2, 1)),
+                    arguments(1, DESC, List.of(0)),
+                    arguments(2, ASC, List.of()));
+        }
+
+        @ParameterizedTest(name = "page {0} sorted {1} returns seeded orders {2}")
+        @MethodSource("pageRequests")
+        @DisplayName("Given database with orders, when a page is requested, then that page is returned in sort order")
+        void givenDatabaseWithOrders_whenPageIsRequested_thenPageIsReturnedInSortOrder(
+                int pageIndex, SortOrder.Direction direction, List<Integer> expectedSeededOrderIndexes) {
+
+            var page = queryRepository.paginatedOrders(
+                    new PageRequest(pageIndex, PAGE_SIZE, List.of(new SortOrder("placedAt", direction))));
+
+            var expectedOrders = expectedSeededOrderIndexes.stream()
+                    .map(seededOrders::get)
+                    .map(DTOMapper::toDto)
+                    .toList();
+
+            Assertions.assertThat(page.items())
+                    .usingRecursiveFieldByFieldElementComparator()
+                    .containsExactlyElementsOf(expectedOrders);
+            Assertions.assertThat(page.pageIndex()).isEqualTo(pageIndex);
+            Assertions.assertThat(page.pageSize()).isEqualTo(PAGE_SIZE);
+            Assertions.assertThat(page.totalItems()).isEqualTo(seededOrders.size());
+            Assertions.assertThat(page.totalPages()).isEqualTo(EXPECTED_TOTAL_PAGES);
+        }
     }
 }
