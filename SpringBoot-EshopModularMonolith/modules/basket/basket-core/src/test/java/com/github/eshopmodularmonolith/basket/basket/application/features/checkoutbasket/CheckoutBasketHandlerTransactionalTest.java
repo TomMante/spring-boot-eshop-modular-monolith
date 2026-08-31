@@ -1,5 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
+import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
@@ -131,8 +133,11 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
     @DisplayName("Given checkout succeeds, when handling, then basket is removed and event is stored in the outbox")
     void givenCheckoutSucceeds_thenBasketRemovedAndEventInOutbox() {
         seedBasket();
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
 
-        handler.handle(new CheckoutBasketCommand(userName));
+        handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress));
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
@@ -144,7 +149,11 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         seedBasket();
         doThrow(new RuntimeException("outbox down")).when(outboxEventStore).save(any());
 
-        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName)))
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
+
+        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress)))
                 .isInstanceOf(RuntimeException.class);
 
         assertThat(basketRepository.findByUsername(userName)).isPresent();

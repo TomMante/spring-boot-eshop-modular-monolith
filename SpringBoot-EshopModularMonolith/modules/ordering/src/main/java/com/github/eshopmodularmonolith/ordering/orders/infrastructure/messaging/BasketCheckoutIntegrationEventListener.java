@@ -1,10 +1,14 @@
 package com.github.eshopmodularmonolith.ordering.orders.infrastructure.messaging;
 
+import com.github.eshopmodularmonolith.basket.basket.contract.AddressDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.ItemDTO;
+import com.github.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderCommand;
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
 import com.github.eshopmodularmonolith.ordering.orders.domain.Item;
+import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
+import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -23,7 +27,7 @@ public class BasketCheckoutIntegrationEventListener {
 
     @EventListener
     public void handle(BasketCheckoutIntegrationEvent event) {
-        var cmd = new CreateOrderCommand(event.userName(), null, null, null, event.items().stream().map(this::toDomain).toList());
+        var cmd = new CreateOrderCommand(event.userName(), toDomain(event.billingAddress()), toDomain(event.payment()), toDomain(event.shippingAddress()), event.items().stream().map(this::toDomain).toList());
         createOrderHandler.handle(cmd);
         log.info("Received BasketCheckoutIntegrationEvent for user: {}", event.userName());
     }
@@ -31,5 +35,13 @@ public class BasketCheckoutIntegrationEventListener {
 
     private Item toDomain(ItemDTO item){
         return new Item(item.id(), item.productId(), item.quantity(), item.priceWhenAdded());
+    }
+
+    public static Address toDomain(AddressDTO address){
+        return new Address(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
+    }
+
+    public static Payment toDomain(PaymentDTO payment) {
+        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
     }
 }

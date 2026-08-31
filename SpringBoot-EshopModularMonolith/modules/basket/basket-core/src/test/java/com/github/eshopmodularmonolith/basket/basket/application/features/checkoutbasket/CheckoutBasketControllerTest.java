@@ -1,6 +1,9 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
 
+import com.github.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
+import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +24,7 @@ import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = CheckoutBasketController.class)
@@ -49,22 +53,94 @@ class CheckoutBasketControllerTest {
     @Test
     @DisplayName("Given endpoint is available, when checkout basket endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenCheckoutBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
+
+        var request = new CheckoutBasketRequest(
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress)
+        );
+
         var cmd = new CheckoutBasketCommand(
-                "test_user"
+                "test_user",
+                billingAddress,
+                payment,
+                shippingAddress
         );
 
         mockMvc.perform(post("/basket/checkout")
                         .with(user("test_user"))
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted());
 
         verify(handler, times(1)).handle(cmd);
     }
 
     @Test
+    @DisplayName("When the payment is missing, then validation error returned")
+    void whenPaymentIsMissing_thenValidationErrorReturned() throws Exception{
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+
+        var request = new CheckoutBasketRequest(
+                DTOMapper.toDto(billingAddress),
+                null,
+                DTOMapper.toDto(shippingAddress)
+        );
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.payment").value("Payment method is required."));
+    }
+
+    @Test
+    @DisplayName("When the billing address is missing, then validation error returned")
+    void whenBillingAddressIsMissing_thenValidationErrorReturned() throws Exception{
+        var payment = PaymentMother.payment();
+
+        var request = new CheckoutBasketRequest(
+                null,
+                DTOMapper.toDto(payment),
+                null
+        );
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.billingAddress").value("Billing address is required."));
+    }
+
+    @Test
+    @DisplayName("When the shipping address is missing, then request goes through as shipping address is optional")
+    void whenShippingAddressIsMissing_thenRequestGoesThrough() throws Exception{
+        var billingAddress = AddressMother.address();
+        var payment = PaymentMother.payment();
+
+        var request = new CheckoutBasketRequest(
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                null
+        );
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
     @DisplayName("When user is not logged, then Unauthorized is thrown")
     void whenUserNameIsMissing_thenValidationErrorReturned() throws Exception {
-        mockMvc.perform(post("/basket/items")
+        mockMvc.perform(post("/basket/checkout")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }

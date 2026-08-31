@@ -1,9 +1,15 @@
 package com.github.eshopmodularmonolith.ordering.orders.infrastructure.messaging;
 
+import com.github.eshopmodularmonolith.basket.basket.contract.AddressDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.ItemDTO;
+import com.github.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
+import com.github.eshopmodularmonolith.ordering.orders.domain.AddressMother;
+import com.github.eshopmodularmonolith.ordering.orders.domain.PaymentMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
+import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
+import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +24,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,8 +69,18 @@ class BasketCheckoutIntegrationEventListenerTest {
         var itemId = UUID.randomUUID();
         var productId = UUID.randomUUID();
         var item = new ItemDTO(itemId, productId, 2, "Blue", BigDecimal.valueOf(12.50), "Boba");
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
         var event = new BasketCheckoutIntegrationEvent(
-                UUID.randomUUID(), "john", List.of(item), BigDecimal.valueOf(25.00));
+                UUID.randomUUID(),
+                "john",
+                List.of(item),
+                BigDecimal.valueOf(25.00),
+                toDto(billingAddress),
+                toDto(payment),
+                toDto(shippingAddress)
+        );
 
         publisher.publishEvent(event);
 
@@ -77,11 +92,19 @@ class BasketCheckoutIntegrationEventListenerTest {
                 assertThat(orderItem.quantity()).isEqualTo(2);
                 assertThat(orderItem.price()).isEqualByComparingTo(BigDecimal.valueOf(12.50));
             });
-            assertThat(order.shippingAddress()).isNull();
-            assertThat(order.billingAddress()).isNull();
-            assertThat(order.payment()).isNull();
+            assertThat(order.shippingAddress()).isEqualTo(shippingAddress);
+            assertThat(order.billingAddress()).isEqualTo(billingAddress);
+            assertThat(order.payment()).isEqualTo(payment);
             assertThat(order.placedAt()).isEqualTo(fixedInstant);
         });
+    }
+
+    private AddressDTO toDto(Address address) {
+        return new AddressDTO(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
+    }
+
+    public static PaymentDTO toDto(Payment payment) {
+        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
     }
 
 }

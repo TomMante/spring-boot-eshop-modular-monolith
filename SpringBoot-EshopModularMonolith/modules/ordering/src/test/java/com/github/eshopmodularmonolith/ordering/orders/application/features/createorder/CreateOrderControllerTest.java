@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -70,8 +69,8 @@ class CreateOrderControllerTest {
         var cmd = new CreateOrderCommand(
                 request.customer(),
                 billingAddress,
-                shippingAddress,
                 payment,
+                shippingAddress,
                 items
         );
 

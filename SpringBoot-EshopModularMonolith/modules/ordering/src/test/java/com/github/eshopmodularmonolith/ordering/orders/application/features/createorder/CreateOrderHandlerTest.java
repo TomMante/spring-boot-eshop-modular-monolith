@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,8 +37,8 @@ class CreateOrderHandlerTest {
         var createOrder = new CreateOrderCommand(
                 "top_customer",
                 AddressMother.address(),
-                AddressMother.address(),
                 PaymentMother.payment(),
+                AddressMother.address(),
                 List.of(ItemMother.item()));
         var orderId = handler.handle(createOrder);
         var orderOpt = repository.findById(orderId);
