@@ -4,7 +4,7 @@ This file provides strict guidance for AI Agents (like WARP) working in this rep
 Before making architectural decisions, refactoring, or writing tests, consult the following documents in the `docs/` directory:
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
 - [DEVELOPMENT.md](../../docs/DEVELOPMENT.md) - Active guidelines, validation, and read-model strategies.
-- [TESTING_AND_BUGS.md](../../docs/TESTING_AND_BUGS.md) - Current testing gaps and known issues.
+- [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) - Known defects and testing gaps in the current codebase.
 - [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) - What to test and where (behavior seams, fakes at ports, when to narrow), plus current test naming (GWT in method names) and its intended later evolution.
 
 ## 🛠️ Build & Test Commands
