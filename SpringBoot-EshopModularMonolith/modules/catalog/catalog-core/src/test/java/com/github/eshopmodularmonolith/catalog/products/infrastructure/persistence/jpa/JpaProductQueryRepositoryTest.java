@@ -7,16 +7,20 @@ import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
 
@@ -32,6 +36,11 @@ class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
     @EntityScan(basePackageClasses = {ProductDB.class})
     @EnableJpaRepositories(basePackageClasses = {JpaProductQueryRepository.class, JpaProductRepository.class})
     static class Config {
+
+        @Bean(name = {"catalogTransactionManager", "transactionManager"})
+        PlatformTransactionManager catalogTransactionManager(EntityManagerFactory emf) {
+            return new JpaTransactionManager(emf);
+        }
 
     }
 
@@ -79,7 +88,7 @@ class JpaProductQueryRepositoryTest extends CatalogDatabaseTest {
 
     @Test
     @DisplayName("Given database with products, when find by id is called, then correct product is retrieved")
-    void givenDatabaseWithProducts_whenFindByIdIsCalled_thenCorrectProductIsRetrieved(){
+    void givenDatabaseWithProducts_whenFindByIdIsCalled_thenCorrectProductIsRetrieved() {
         var product1 = ProductMother.productWithName("product1");
         writeRepository.save(product1);
         var product2 = ProductMother.productWithName("product2");

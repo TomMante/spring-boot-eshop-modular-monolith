@@ -28,7 +28,7 @@ public class JpaProductRepository implements ProductRepository {
         return repository.findById(id).map(ProductMapper::toDomain);
     }
 
-    @Transactional
+    @Transactional(transactionManager = "catalogTransactionManager")
     @Override
     public void save(Product product) {
         repository.save(toReadModel(product));

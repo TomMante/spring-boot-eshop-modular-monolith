@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.basket.basket.application.features.check
 import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
@@ -71,7 +72,9 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         @Bean
         DomainEventRegistry domainEventRegistry() {
-            return new DomainEventRegistry();
+            var registry = new DomainEventRegistry();
+            registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
+            return registry;
         }
 
         @Bean
@@ -95,7 +98,8 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         }
 
         @Bean
-        MongoBasketRepository mongoBasketRepository(SpringMongoBasketRepository repository, DomainEventPublisher publisher) {
+        MongoBasketRepository mongoBasketRepository(SpringMongoBasketRepository repository,
+                                                    DomainEventPublisher publisher) {
             return new MongoBasketRepository(repository, publisher);
         }
 
@@ -141,6 +145,13 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
+        assertThat(outboxEventStore.fetchUnprocessedEvents())
+                .singleElement()
+                .isInstanceOfSatisfying(BasketCheckedOut.class, event -> {
+                    assertThat(event.billingAddress()).isEqualTo(billingAddress);
+                    assertThat(event.shippingAddress()).isEqualTo(shippingAddress);
+                    assertThat(event.payment()).isEqualTo(payment);
+                });
     }
 
     @Test

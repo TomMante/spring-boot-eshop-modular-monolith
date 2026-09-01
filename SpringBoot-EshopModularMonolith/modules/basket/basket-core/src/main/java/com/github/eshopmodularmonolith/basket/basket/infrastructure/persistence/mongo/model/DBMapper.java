@@ -5,6 +5,8 @@ import com.github.eshopmodularmonolith.basket.basket.contract.ShoppingCartDTO;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 
+import java.util.stream.Collectors;
+
 public class DBMapper {
 
     private DBMapper() {
@@ -27,7 +29,7 @@ public class DBMapper {
     }
 
     public static ShoppingCart toDomain(ShoppingCartDB cart){
-        return ShoppingCart.reconstitute(cart.userName(), cart.items().stream().map(DBMapper::toDomain).toList());
+        return ShoppingCart.reconstitute(cart.userName(), cart.items().stream().map(DBMapper::toDomain).collect(Collectors.toCollection(java.util.ArrayList::new)));
     }
 
     public static ShoppingCartDTO toDTO(ShoppingCartDB cart){
