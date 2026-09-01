@@ -37,11 +37,11 @@ public class BasketCheckoutIntegrationEventListener {
         return new Item(item.id(), item.productId(), item.quantity(), item.priceWhenAdded());
     }
 
-    public static Address toDomain(AddressDTO address){
+    private Address toDomain(AddressDTO address){
         return new Address(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
     }
 
-    public static Payment toDomain(PaymentDTO payment) {
+    private Payment toDomain(PaymentDTO payment) {
         return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
     }
 }

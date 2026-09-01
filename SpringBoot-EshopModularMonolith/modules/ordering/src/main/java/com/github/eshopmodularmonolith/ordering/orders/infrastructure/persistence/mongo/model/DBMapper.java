@@ -41,7 +41,7 @@ public class DBMapper {
     }
 
     public static Order toDomain(OrderDB order){
-        return Order.reconstitute(order.id(), order.customer(), order.placedAt(), toDomain(order.shippingAddress()), toDomain(order.billingAddress()), toDomain(order.payment()), order.items().stream().map(DBMapper::toDomain).toList());
+        return Order.reconstitute(order.id(), order.customer(), order.placedAt(), toDomain(order.billingAddress()), toDomain(order.payment()), toDomain(order.shippingAddress()), order.items().stream().map(DBMapper::toDomain).toList());
     }
 
     public static AddressDTO toDto(AddressDB address){

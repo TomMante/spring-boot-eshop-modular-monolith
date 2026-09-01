@@ -6,6 +6,7 @@ import com.github.eshopmodularmonolith.ordering.orders.domain.ItemMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.PaymentMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
+import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class CreateOrderHandlerTest {
 
@@ -36,9 +38,9 @@ class CreateOrderHandlerTest {
     void givenCreateOrderCommand_whenHandlerIsCalled_thenOrderIsCreated(){
         var createOrder = new CreateOrderCommand(
                 "top_customer",
-                AddressMother.address(),
+                AddressMother.billing(),
                 PaymentMother.payment(),
-                AddressMother.address(),
+                AddressMother.shipping(),
                 List.of(ItemMother.item()));
         var orderId = handler.handle(createOrder);
         var orderOpt = repository.findById(orderId);
@@ -51,5 +53,41 @@ class CreateOrderHandlerTest {
         assertThat(order).extracting(Order::shippingAddress).isEqualTo(createOrder.shippingAddress());
         assertThat(order).extracting(Order::payment).isEqualTo(createOrder.payment());
         assertThat(order).extracting(Order::placedAt).isEqualTo(fixedInstant);
+    }
+
+    @Test
+    @DisplayName("Given create order command with missing shipping info, when handler is called, then order is rejected")
+    void givenCreateOrderCommandWithMissingShippingInfo_whenHandlerIsCalled_thenOrderIsRejected(){
+        var createOrder = new CreateOrderCommand(
+                "top_customer",
+                AddressMother.billing(),
+                PaymentMother.payment(),
+                null,
+                List.of(ItemMother.item()));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Shipping address is required");
+    }
+
+    @Test
+    @DisplayName("Given create order command with missing billing info, when handler is called, then order is rejected")
+    void givenCreateOrderCommandWithMissingBillingInfo_whenHandlerIsCalled_thenOrderIsRejected(){
+        var createOrder = new CreateOrderCommand(
+                "top_customer",
+                null,
+                PaymentMother.payment(),
+                AddressMother.shipping(),
+                List.of(ItemMother.item()));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Billing address is required");
+    }
+
+    @Test
+    @DisplayName("Given create order command with missing payment info, when handler is called, then order is rejected")
+    void givenCreateOrderCommandWithMissingPaymentInfo_whenHandlerIsCalled_thenOrderIsRejected(){
+        var createOrder = new CreateOrderCommand(
+                "top_customer",
+                AddressMother.billing(),
+                null,
+                AddressMother.shipping(),
+                List.of(ItemMother.item()));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Payment info is required");
     }
 }

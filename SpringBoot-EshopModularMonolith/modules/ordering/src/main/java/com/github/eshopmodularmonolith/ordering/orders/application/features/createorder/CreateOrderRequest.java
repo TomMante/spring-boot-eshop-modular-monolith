@@ -11,11 +11,12 @@ import java.util.List;
 public record CreateOrderRequest(
         @NotBlank(message = "{ordering.order.customer.notBlank}")
         String customer,
-        AddressDTO shippingAddress,
         @NotNull(message = "{ordering.order.billingAddress.notNull}")
         AddressDTO billingAddress,
         @NotNull(message = "{ordering.order.payment.notNull}")
         PaymentDTO payment,
+        @NotNull(message = "{ordering.order.shippingAddress.notNull}")
+        AddressDTO shippingAddress,
         List<ItemDTO> items
 ) {
 }

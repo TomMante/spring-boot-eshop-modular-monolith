@@ -61,8 +61,8 @@ class CreateOrderControllerTest {
         var request = new CreateOrderRequest(
                 "top_customer",
                 DTOMapper.toDto(billingAddress),
-                DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
                 items.stream().map(DTOMapper::toDto).toList()
         );
 
@@ -86,13 +86,14 @@ class CreateOrderControllerTest {
     @DisplayName("When the billing address is missing, then validation error returned")
     void whenBillingAddressIsMissing_thenValidationErrorReturned() throws Exception{
         var payment = PaymentMother.payment();
+        var shippingAddress = AddressMother.address();
         var items = List.of(ItemMother.item());
 
         var request = new CreateOrderRequest(
                 "top_customer",
                 null,
-                null,
                 DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
                 items.stream().map(DTOMapper::toDto).toList()
         );
 
@@ -101,6 +102,28 @@ class CreateOrderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.billingAddress").value("Billing address is required."));
+    }
+
+    @Test
+    @DisplayName("When the shipping address is missing, then validation error returned")
+    void whenShippingAddressIsMissing_thenValidationErrorReturned() throws Exception{
+        var payment = PaymentMother.payment();
+        var billingAddress = AddressMother.address();
+        var items = List.of(ItemMother.item());
+
+        var request = new CreateOrderRequest(
+                "top_customer",
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                null,
+                items.stream().map(DTOMapper::toDto).toList()
+        );
+
+        mockMvc.perform(post("/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.shippingAddress").value("Shipping address is required."));
     }
 
     @Test
@@ -114,8 +137,8 @@ class CreateOrderControllerTest {
         var request = new CreateOrderRequest(
                 null,
                 DTOMapper.toDto(billingAddress),
-                DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
                 items.stream().map(DTOMapper::toDto).toList()
         );
 
@@ -137,8 +160,8 @@ class CreateOrderControllerTest {
         var request = new CreateOrderRequest(
                 "",
                 DTOMapper.toDto(billingAddress),
-                DTOMapper.toDto(shippingAddress),
                 DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
                 items.stream().map(DTOMapper::toDto).toList()
         );
 
@@ -159,8 +182,8 @@ class CreateOrderControllerTest {
         var request = new CreateOrderRequest(
                 "top_customer",
                 DTOMapper.toDto(billingAddress),
-                DTOMapper.toDto(shippingAddress),
                 null,
+                DTOMapper.toDto(shippingAddress),
                 items.stream().map(DTOMapper::toDto).toList()
         );
 

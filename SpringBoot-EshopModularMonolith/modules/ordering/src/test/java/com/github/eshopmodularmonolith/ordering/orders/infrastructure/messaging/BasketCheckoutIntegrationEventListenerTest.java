@@ -11,6 +11,7 @@ import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderReposito
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,10 +63,14 @@ class BasketCheckoutIntegrationEventListenerTest {
     @Autowired
     FakeOrderRepository orderRepository;
 
+    @BeforeEach
+    void setUp() {
+        orderRepository.clear();
+    }
 
     @Test
-    @DisplayName("Given a basket checkout integration event, when it is published, then a pending order is created")
-    void givenBasketCheckoutIntegrationEvent_whenPublished_thenPendingOrderIsCreated() {
+    @DisplayName("Given a basket checkout integration event, when it is published, then an order is created")
+    void givenBasketCheckoutIntegrationEvent_whenPublished_thenOrderIsCreated() {
         var itemId = UUID.randomUUID();
         var productId = UUID.randomUUID();
         var item = new ItemDTO(itemId, productId, 2, "Blue", BigDecimal.valueOf(12.50), "Boba");
@@ -103,7 +108,7 @@ class BasketCheckoutIntegrationEventListenerTest {
         return new AddressDTO(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
     }
 
-    public static PaymentDTO toDto(Payment payment) {
+    private PaymentDTO toDto(Payment payment) {
         return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
     }
 

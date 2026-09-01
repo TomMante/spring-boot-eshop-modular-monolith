@@ -8,6 +8,14 @@ public class AddressMother {
         return new Builder().build();
     }
 
+    public static Address billing(){
+        return address("Billing State");
+    }
+
+    public static Address shipping(){
+        return address("Shipping State");
+    }
+
     public static Address address(String state) {
         return new Builder().withState(state).build();
     }

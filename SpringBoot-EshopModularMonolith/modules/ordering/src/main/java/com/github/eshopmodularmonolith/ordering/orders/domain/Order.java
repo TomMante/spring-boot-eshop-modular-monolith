@@ -24,8 +24,8 @@ public class Order extends AggregateRoot<UUID> {
     }
 
 
-    private Order(UUID id, List<Item> items, String customer, Instant placedAt, Address shippingAddress,
-                  Address billingAddress, Payment payment) {
+    private Order(UUID id, List<Item> items, String customer, Instant placedAt,
+                  Address billingAddress, Payment payment,Address shippingAddress) {
         this.id = id;
         this.items = items;
         this.customer = customer;
@@ -35,14 +35,17 @@ public class Order extends AggregateRoot<UUID> {
         this.payment = payment;
     }
 
-    public static Order create(String customer, Instant placedAt, Address shippingAddress, Address billingAddress,
-                               Payment payment, List<Item> items) {
-        return new Order(UUID.randomUUID(), items, customer, placedAt, shippingAddress, billingAddress, payment);
+    public static Order create(String customer, Instant placedAt, Address billingAddress,
+                               Payment payment, Address shippingAddress, List<Item> items) {
+        if (billingAddress == null) throw new IllegalArgumentException("Billing address is required");
+        if (payment == null) throw new IllegalArgumentException("Payment info is required");
+        if (shippingAddress == null) throw new IllegalArgumentException("Shipping address is required");
+        return new Order(UUID.randomUUID(), items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
-    public static Order reconstitute(UUID id, String customer, Instant placedAt, Address shippingAddress,
-                                     Address billingAddress, Payment payment, List<Item> items) {
-        return new Order(id, items, customer, placedAt, shippingAddress, billingAddress, payment);
+    public static Order reconstitute(UUID id, String customer, Instant placedAt,
+                                     Address billingAddress, Payment payment, Address shippingAddress, List<Item> items) {
+        return new Order(id, items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
 

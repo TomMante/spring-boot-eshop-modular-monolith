@@ -24,6 +24,59 @@ Better solutions:
 2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
+## ⚖️ Controller, handler, aggregate — who owns what
+
+"Domain logic belongs in the aggregate" is only useful once you can decide what
+counts as domain logic. The criterion used in this repository:
+
+> **An aggregate owns a decision if it can make it from the state it already holds
+> plus its arguments, and the decision must hold regardless of who asked.**
+>
+> **A handler owns a step if it needs something the aggregate must not reach for** —
+> a port, a repository, a clock, a transaction, or coordination across more than one
+> thing.
+
+Short version: **handlers supply, aggregates decide.**
+
+The controller is an adapter by role even though it lives under
+`application/features/…`: it translates transport into a command and does nothing
+else. Defaults, validation beyond bean-validation annotations, and any business
+decision belong past it.
+
+| Concern | Owner | Why |
+|---|---|---|
+| Total price from items × prices | `ShoppingCart.checkout` | Function of the cart's own items |
+| Fetching current prices | `CheckoutBasketHandler` | Needs `ProductService` — a port |
+| Shipping defaults to billing when absent | `ShoppingCart.checkout` | Pure function of its arguments |
+| Loading the cart / `BasketNotFound` | handler | Repository lookup |
+| Deleting the basket after checkout | handler | A lifecycle decision *about* the aggregate, not *by* it |
+| `placedAt` on an order | handler holds the `Clock`, `Order.create` receives the `Instant` | An aggregate must not read ambient time |
+
+That last row is the pattern at its purest: the handler owns the *dependency*, the
+aggregate owns the *fact*.
+
+**A shortcut that decides most borderline cases:** ask whether you could unit-test the
+step with no fake at all. If yes, it is domain logic. If it needs a fake, it is
+orchestration. That line falls almost exactly on the boundary — which is the
+"fake only at ports" rule from [TESTING_CONVENTIONS.md](TESTING_CONVENTIONS.md) seen
+from the other side.
+
+**Do not put policy in a domain event's constructor.** Domain events here are
+registered in `DomainEventRegistry`, serialized to JSON, persisted in an outbox and
+mirrored by an integration event — they are the most contract-like types a module
+owns. A rule such as "shipping defaults to billing" changes on a different clock than
+the event's shape, so it belongs in the aggregate method that builds the event, not in
+the record itself. (If one ever must go there, it has to be a *compact canonical*
+constructor: Jackson deserializes records through the canonical constructor, so a rule
+on a convenience overload is silently skipped for every event read back from the
+outbox.)
+
+**The failure mode to watch for:** handlers accumulating conditionals that each look
+like harmless orchestration and collectively become the domain model — the anemic
+domain model, arrived at one ternary at a time.
+
+---
+
 ## 🧩 Shared module structure
 
 The `shared` module contains reusable building blocks that are used across bounded contexts and vertical slices.  
