@@ -4,16 +4,20 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -34,6 +38,10 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
     @EnableJpaRepositories(basePackageClasses = JpaProductRepository.class)
     static class Config {
 
+        @Bean(name = {"catalogTransactionManager", "transactionManager"})
+        PlatformTransactionManager catalogTransactionManager(EntityManagerFactory emf) {
+            return new JpaTransactionManager(emf);
+        }
     }
 
     @MockitoBean

@@ -1,6 +1,8 @@
 package com.github.eshopmodularmonolith.basket.basket.domain.events;
 
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
+import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
+import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 
 import java.math.BigDecimal;
@@ -13,10 +15,13 @@ public record BasketCheckedOut(
         Instant occurredOn,
         String userName,
         List<Item> items,
-        BigDecimal totalPrice) implements DomainEvent {
+        BigDecimal totalPrice,
+        Address billingAddress,
+        Payment payment,
+        Address shippingAddress) implements DomainEvent {
 
-    public BasketCheckedOut(String userName, List<Item> items, BigDecimal totalPrice) {
-        this(UUID.randomUUID(), Instant.now(), userName, items, totalPrice);
+    public BasketCheckedOut(String userName, List<Item> items, BigDecimal totalPrice, Address billingAddress, Payment payment, Address shippingAddress) {
+        this(UUID.randomUUID(), Instant.now(), userName, items, totalPrice, billingAddress, payment, shippingAddress);
     }
 
     @Override

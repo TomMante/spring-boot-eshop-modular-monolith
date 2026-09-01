@@ -19,4 +19,4 @@ This can be done with standard databases in 2 ways:
 ## Testing Strategy
 - Unit tests use Given/When/Then in the method name. See [Testing Conventions](TESTING_CONVENTIONS.md) for the current template and the intended later shift to GWT-as-structure.
 - Cucumber / `.feature` files are reserved for acceptance tests, if the project grows that far.
-- See [Testing & Bugs](TESTING_AND_BUGS.md) for coverage gaps and known issues.
+- See [Known Issues](KNOWN_ISSUES.md) for known defects and testing gaps.

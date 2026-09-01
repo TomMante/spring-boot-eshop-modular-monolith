@@ -1,6 +1,8 @@
 package com.github.eshopmodularmonolith.basket.basket.domain.model;
 
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
+import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import com.github.eshopmodularmonolith.shared.domain.AggregateRoot;
 
 import java.math.BigDecimal;
@@ -54,9 +56,9 @@ public class ShoppingCart extends AggregateRoot<String> {
         items.removeIf(item -> item.productId().equals(productId));
     }
 
-    public void checkout(Map<UUID, BigDecimal> currentPrices) {
+    public void checkout(Map<UUID, BigDecimal> currentPrices, Address billingAddress, Payment payment, Address shippingAddress) {
         var totalPrice = items.stream().map(i -> currentPrices.get(i.productId())).reduce(BigDecimal.ZERO, BigDecimal::add);
-        var event = new BasketCheckedOut(userName, items, totalPrice);
+        var event = new BasketCheckedOut(userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
     }
 }

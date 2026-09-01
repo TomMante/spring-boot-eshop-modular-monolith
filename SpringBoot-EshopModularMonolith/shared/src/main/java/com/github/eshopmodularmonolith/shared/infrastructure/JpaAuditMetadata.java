@@ -14,7 +14,7 @@ import java.time.Instant;
 public class JpaAuditMetadata {
 
     @CreatedDate
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
     @CreatedBy
     private String createdBy;

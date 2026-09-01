@@ -35,7 +35,7 @@ public class CheckoutBasketHandler {
                         ProductInfo::price
                 ));
 
-        cart.checkout(currentPrices);
+        cart.checkout(currentPrices, cmd.billingAddress(), cmd.payment(), cmd.shippingAddress());
 
         // Remove basket
         repository.delete(cart);

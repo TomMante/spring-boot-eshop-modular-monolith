@@ -24,9 +24,9 @@ public class OrderMother {
         private List<Item> items = new ArrayList<>(List.of(ItemMother.item()));
         private String customer = "john_doe";
         private Instant placedAt = Instant.parse("2023-01-01T00:00:00Z");
-        private Address shippingAddress = AddressMother.address();
-        private Address billingAddress =  AddressMother.address();
+        private Address billingAddress = AddressMother.billing();
         private Payment payment = PaymentMother.payment();
+        private Address shippingAddress = AddressMother.shipping();
 
         public Builder withPlacedAt(Instant placedAt) {
             this.placedAt = placedAt;
@@ -34,7 +34,7 @@ public class OrderMother {
         }
 
         public Order build() {
-            return Order.reconstitute(id, customer, placedAt, shippingAddress, billingAddress, payment, items);
+            return Order.reconstitute(id, customer, placedAt, billingAddress, payment, shippingAddress, items);
         }
     }
 }

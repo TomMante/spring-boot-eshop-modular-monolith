@@ -14,6 +14,7 @@ import com.github.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import com.github.eshopmodularmonolith.shared.infrastructure.SpringDomainEventPublisher;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +24,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +92,11 @@ class CreateProductHandlerTransactionalTest extends CatalogDatabaseTest {
         @Bean
         CreateProductHandler createProductHandler(ProductRepository repository) {
             return new CreateProductHandler(repository);
+        }
+
+        @Bean(name = {"catalogTransactionManager", "transactionManager"})
+        PlatformTransactionManager catalogTransactionManager(EntityManagerFactory emf) {
+            return new JpaTransactionManager(emf);
         }
     }
 

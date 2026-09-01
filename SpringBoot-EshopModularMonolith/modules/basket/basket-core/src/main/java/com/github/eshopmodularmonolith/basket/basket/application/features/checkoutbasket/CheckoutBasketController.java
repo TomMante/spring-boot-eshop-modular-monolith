@@ -1,9 +1,12 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
+import com.github.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
 import com.github.eshopmodularmonolith.shared.contract.identity.AuthenticatedUser;
 import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -16,8 +19,14 @@ public class CheckoutBasketController {
     }
 
     @PostMapping("/basket/checkout")
-    public ResponseEntity<Void> checkoutBasket(@AuthenticatedUser CurrentUser currentUser){
-        var cmd = new CheckoutBasketCommand(currentUser.username());
+    public ResponseEntity<Void> checkoutBasket(
+            @AuthenticatedUser CurrentUser currentUser,
+            @Validated @RequestBody CheckoutBasketRequest request) {
+        var cmd = new CheckoutBasketCommand(
+                currentUser.username(),
+                DTOMapper.toDomain(request.billingAddress()),
+                DTOMapper.toDomain(request.payment()),
+                request.shippingAddress() == null? null : DTOMapper.toDomain(request.shippingAddress()));
         handler.handle(cmd);
         return ResponseEntity.accepted().build();
     }

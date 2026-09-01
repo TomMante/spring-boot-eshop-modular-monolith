@@ -1,6 +1,9 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
+import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
@@ -69,7 +72,9 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         @Bean
         DomainEventRegistry domainEventRegistry() {
-            return new DomainEventRegistry();
+            var registry = new DomainEventRegistry();
+            registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
+            return registry;
         }
 
         @Bean
@@ -93,7 +98,8 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         }
 
         @Bean
-        MongoBasketRepository mongoBasketRepository(SpringMongoBasketRepository repository, DomainEventPublisher publisher) {
+        MongoBasketRepository mongoBasketRepository(SpringMongoBasketRepository repository,
+                                                    DomainEventPublisher publisher) {
             return new MongoBasketRepository(repository, publisher);
         }
 
@@ -131,11 +137,21 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
     @DisplayName("Given checkout succeeds, when handling, then basket is removed and event is stored in the outbox")
     void givenCheckoutSucceeds_thenBasketRemovedAndEventInOutbox() {
         seedBasket();
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
 
-        handler.handle(new CheckoutBasketCommand(userName));
+        handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress));
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
+        assertThat(outboxEventStore.fetchUnprocessedEvents())
+                .singleElement()
+                .isInstanceOfSatisfying(BasketCheckedOut.class, event -> {
+                    assertThat(event.billingAddress()).isEqualTo(billingAddress);
+                    assertThat(event.shippingAddress()).isEqualTo(shippingAddress);
+                    assertThat(event.payment()).isEqualTo(payment);
+                });
     }
 
     @Test
@@ -144,7 +160,11 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         seedBasket();
         doThrow(new RuntimeException("outbox down")).when(outboxEventStore).save(any());
 
-        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName)))
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address("Midgard");
+        var payment = PaymentMother.payment();
+
+        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress)))
                 .isInstanceOf(RuntimeException.class);
 
         assertThat(basketRepository.findByUsername(userName)).isPresent();

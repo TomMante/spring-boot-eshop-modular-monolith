@@ -8,9 +8,9 @@ import java.util.List;
 
 public record CreateOrderCommand(
         String customer,
-        Address shippingAddress,
         Address billingAddress,
         Payment payment,
+        Address shippingAddress,
         List<Item> items
 ) {
 }

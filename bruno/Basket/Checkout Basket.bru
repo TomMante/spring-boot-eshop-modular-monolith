@@ -6,6 +6,36 @@ meta {
 
 post {
   url: {{base_url}}/basket/checkout
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "billingAddress": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "emailAddress": "john.doe@example.com",
+      "addressLine": "1 Billing Street",
+      "country": "USA",
+      "state": "Billing State",
+      "zipCode": "10001"
+    },
+    "payment": {
+      "cardName": "John Doe",
+      "cardNumber": "4111111111111111",
+      "expiration": "12/29",
+      "cvv": "123",
+      "paymentMethod": 1
+    },
+    "shippingAddress": {
+      "firstName": "Jane",
+      "lastName": "Roe",
+      "emailAddress": "jane.roe@example.com",
+      "addressLine": "2 Shipping Avenue",
+      "country": "USA",
+      "state": "Shipping State",
+      "zipCode": "90210"
+    }
+  }
 }

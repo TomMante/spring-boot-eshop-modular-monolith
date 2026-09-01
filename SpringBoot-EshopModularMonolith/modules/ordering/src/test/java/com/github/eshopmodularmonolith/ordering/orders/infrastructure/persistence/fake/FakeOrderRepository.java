@@ -35,4 +35,8 @@ public class FakeOrderRepository implements OrderRepository {
     public void delete(UUID orderId) {
         repository.remove(orderId);
     }
+
+    public void clear() {
+        repository.clear();
+    }
 }

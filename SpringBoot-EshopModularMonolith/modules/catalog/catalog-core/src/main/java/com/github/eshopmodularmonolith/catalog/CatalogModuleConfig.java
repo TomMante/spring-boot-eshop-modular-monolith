@@ -30,7 +30,7 @@ import java.util.Map;
 @EnableJpaRepositories(
         basePackageClasses = {ProductDB.class, OutboxEventJpaRepository.class},
         entityManagerFactoryRef = "catalogEmf",
-        transactionManagerRef = "catalogTx"
+        transactionManagerRef = "catalogTransactionManager"
 )
 @ComponentScan(basePackages = "com.github.eshopmodularmonolith.catalog.products")
 @EnableScheduling
@@ -58,8 +58,8 @@ public class CatalogModuleConfig {
                 .build();
     }
 
-    @Bean
-    PlatformTransactionManager catalogTx(@Qualifier("catalogEmf") EntityManagerFactory emf) {
+    @Bean("catalogTransactionManager")
+    PlatformTransactionManager catalogTransactionManager(@Qualifier("catalogEmf") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }
 
