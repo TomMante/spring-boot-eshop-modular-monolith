@@ -4,7 +4,9 @@ Defects and testing gaps that are known, deliberately not fixed yet, and recorde
 
 The two sections are kept apart because *broken* and *unverified* call for different remedies.
 
-**Relationship to plans:** a plan's *Deferred* section records what **that increment** chose not to do. This file records what is **true about the codebase right now**, whichever increment found it — so something can legitimately appear in both.
+**Relationship to [BACKLOG.md](BACKLOG.md):** this file is for code that is **wrong or unverified right now**; the backlog is for code that is fine as far as it goes but missing a capability or a decision. Route by nature, not by origin — something surfaced while deferring a plan step is usually a defect and belongs here.
+
+**Relationship to plans:** a plan's *Deferred* section records what **that increment** chose not to do, and is frozen once the plan merges. These two files are the live lists. Anything a plan defers must land in one of them, or be consciously dropped — so something can legitimately appear in both a plan and here.
 
 ## 🐛 Known Bugs
 
@@ -33,6 +35,30 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** Acceptable only because this is a study project against test data with no real cardholder information. It would be a blocking compliance defect in any deployed system.
 - **Mitigated so far:** `InMemoryMessageBus` no longer logs message payloads, so the data does not reach application logs.
 - **Action Required:** Out of reach of a refactor — it needs a payment provider integration, so that checkout carries a provider token instead of card details and no module ever sees a PAN. Until then, do not add further copies, and keep payloads out of logs.
+
+### 5. `createdBy` Is Silently Wiped on Every Update
+- **Location:** `JpaAuditMetadata.createdBy`
+- **Issue:** `createdAt` carries `@Column(nullable = false, updatable = false)`; `createdBy` carries neither. `JpaProductRepository.save` reconstructs `ProductDB` from the domain object, whose fresh `JpaAuditMetadata` is all nulls, and `merge` copies those over the stored row. `createdAt` is protected by `updatable = false`; `createdBy` is nullable and updatable, so it is overwritten with null on every update without any error.
+- **Impact:** Silent audit-data loss. Loud enough to notice only because its sibling column failed first — the same defect on `createdAt` threw a NOT NULL violation and was fixed; this one has no such backstop.
+- **Action Required:** Add `@Column(updatable = false)` to `createdBy`. One annotation in `shared.infrastructure` fixes it for every entity. Testing Gap 6 is the reason it survived — nothing exercises an update through the real JPA adapter.
+
+### 6. Checkout Accepts an Empty Basket
+- **Locations:** `CheckoutBasketHandler.handle`, `ShoppingCart.checkout`, `Order.create`
+- **Issue:** No layer rejects a checkout with no items. The handler does not guard, `ShoppingCart.checkout` reduces an empty stream to a `totalPrice` of zero, and `Order.create` validates address and payment but not the item list. The result is a persisted order with no items and a zero total, from a request that is meaningless.
+- **Impact:** A junk order is created and is indistinguishable in the read model from a real one.
+- **Action Required:** Two rules, and both are needed — an empty basket should be rejected at the checkout entry point with a 400, and `Order.create` should refuse an empty item list as an invariant. Fixing only the aggregate turns a bad request into a poison outbox event instead of an HTTP error (see Known Bug 2).
+
+### 7. No Consumer-Side Idempotency
+- **Locations:** `BasketCheckoutIntegrationEvent.eventId`, `BasketCheckoutIntegrationEventListener.handle`
+- **Issue:** The integration event carries an `eventId`, but nothing consults it. The outbox is at-least-once by construction — `BasketOutboxDispatcher` publishes and only then calls `markAsProcessed`, so a crash or failure between the two republishes an event that was already handled. The listener creates an order unconditionally.
+- **Impact:** A redelivered checkout event creates a duplicate order. The `eventId` reads as if this were handled; it is not.
+- **Action Required:** Dedup on `eventId` at the consumer — a processed-message table or collection checked before handling. This is the counterpart to Known Bug 2: that one decides what happens to an event that never succeeds, this one what happens to an event that succeeds twice.
+
+### 8. Order Sort Has No Tie-Breaker
+- **Location:** `GetOrdersHandler.handle`
+- **Issue:** The read path sorts on `placedAt` DESC alone. Orders sharing an instant compare equal, so their relative order is unspecified — and because the sort is applied per page, a row can appear on two pages or on none while paginating.
+- **Impact:** Non-deterministic pagination. Rare with millisecond precision and organic traffic; reliable in tests and bulk inserts, where it presents as flakiness rather than as a read-model bug.
+- **Action Required:** Add a secondary key — `placedAt` DESC, `id` ASC. More clock precision is not a fix; it only makes collisions rarer.
 
 ## 🧪 Testing Considerations & Gaps
 
@@ -66,6 +92,11 @@ Every test builds its own `@Configuration`, so the wiring that the running appli
 
 ### 6. No Test Exercises an Update Through the JPA Adapter
 - **Locations:** `JpaProductRepository.save`, `JpaAuditMetadata`
-- **Issue:** `CreateProductHandlerTransactionalTest` covers creation only, and `UpdateProductHandlerTest` fakes at the port — so nothing runs an update through real JPA. That hid a real defect: `save` reconstructs `ProductDB` from the domain object, whose fresh `JpaAuditMetadata` is all nulls, and `merge` copies those over the stored row. `created_at` failed loudly against its NOT NULL constraint (fixed with `updatable = false`); `created_by` is nullable, so it was silently wiped on every update until the same annotation was added.
-- **Related:** the deeper cause is that `save` blind-overwrites a whole row from a projection that does not carry every column. The structural fix is load-and-mutate — fetch the managed entity and copy the mutable fields onto it. Ordering's Mongo path will meet the same shape when a `MongoAuditMetadata` counterpart arrives.
+- **Issue:** `CreateProductHandlerTransactionalTest` covers creation only, and `UpdateProductHandlerTest` fakes at the port — so nothing runs an update through real JPA. That hid a real defect: `save` reconstructs `ProductDB` from the domain object, whose fresh `JpaAuditMetadata` is all nulls, and `merge` copies those over the stored row. `created_at` failed loudly against its NOT NULL constraint and was fixed with `updatable = false`; `created_by` is nullable, so it is **still** silently wiped on every update — see Known Bug 5.
+- **Related:** the deeper cause is that `save` blind-overwrites a whole row from a projection that does not carry every column. The structural fix is load-and-mutate — fetch the managed entity and copy the mutable fields onto it. Ordering's Mongo path will meet the same shape when a `MongoAuditMetadata` counterpart arrives ([BACKLOG.md](BACKLOG.md) item 3).
 - **Improvement:** Add an update case to `JpaProductRepositoryTest` asserting that `createdAt` and `createdBy` survive, and extend Gap 2 above beyond its failure-path scope.
+
+### 7. Transactional Semantics of Order Creation Are Unverified
+- **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
+- **Issue:** `CreateOrderHandler` carries no `@Transactional` on either of its two entry points — the HTTP controller and the integration-event listener, which runs on the outbox dispatcher's scheduler thread. One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
+- **Improvement:** Recorded so it is not rediscovered as a surprise rather than because a test is owed right now. It becomes a real gap the moment order creation writes more than once, which Backlog item 1 (`totalPrice`) and item 5 (`OrderCreated` outbox) both approach.

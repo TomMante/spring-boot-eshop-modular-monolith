@@ -3,9 +3,12 @@ This file provides strict guidance for AI Agents (like WARP) working in this rep
 ## 📚 Project Documentation
 Before making architectural decisions, refactoring, or writing tests, consult the following documents in the `docs/` directory:
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
-- [DEVELOPMENT.md](../../docs/DEVELOPMENT.md) - Active guidelines, validation, and read-model strategies.
+- [DESIGN_NOTES.md](../../docs/DESIGN_NOTES.md) - Options and open questions only. Nothing in it is a decision; do not treat it as direction.
 - [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) - Known defects and testing gaps in the current codebase.
+- [BACKLOG.md](../../docs/BACKLOG.md) - Work deliberately postponed: missing capabilities and unmade decisions.
 - [TESTING_CONVENTIONS.md](../../docs/TESTING_CONVENTIONS.md) - What to test and where (behavior seams, fakes at ports, when to narrow), plus current test naming (GWT in method names) and its intended later evolution.
+
+**These last two are the only live lists of outstanding work.** Plan documents under `ai-coding-tools/plans/` are frozen history — a plan's *Deferred* section records what that increment decided, not what is still open. When asked what work remains, read the two files above; do not reconstruct an answer by scanning plans.
 
 ## 🛠️ Build & Test Commands
 The main Java application is in the `SpringBoot-EshopModularMonolith` directory.

@@ -12,8 +12,9 @@ where it showed how to implement a modular monolith using DDD, CQRS and VSA.
 
 Detailed documentation is located in the `docs/` directory:
 - **[Architecture (DDD, CQRS, Modules)](docs/ARCHITECTURE.md)**
-- **[Development Guidelines & Notes](docs/DEVELOPMENT.md)**
+- **[Design Notes (options and open questions, not decisions)](docs/DESIGN_NOTES.md)**
 - **[Known Issues (defects & testing gaps)](docs/KNOWN_ISSUES.md)**
+- **[Backlog (work deliberately postponed)](docs/BACKLOG.md)**
 - **[Setup Instructions](docs/SETUP.md)**
 
 ## Repository Structure

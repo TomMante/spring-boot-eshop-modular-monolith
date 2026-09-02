@@ -97,6 +97,9 @@ template, not Cucumber — unit tests are not `.feature` files.
 `@Nested` is unused for this today. Shared setup, when it exists, lives in
 the test class rather than a Given/When type hierarchy.
 
+Cucumber and `.feature` files are reserved for acceptance tests, if this
+project ever grows that far. Nothing in the current suite uses them.
+
 ### Trade-off and intended evolution
 
 GWT is a useful way to **think** about a test (fixture → action → outcome).

@@ -34,6 +34,28 @@ On your first reply in a session, list which files under `ai-coding-tools/proces
         - Put that plan in a markdown file with the name of the plan, within a folder with the same name of the plan, in the folder ai-coding-tools/plans
         - Any other artifact that documents or illustrates the plan itself (diagrams, exported visuals, notes) goes in that same folder. This does not cover the implementation — source code and tests stay in their normal src/tests locations regardless of which plan produced them.
         - For the git branch/commit/PR lifecycle around a plan (opt-in, only when explicitly requested), see [feature-workflow.md](feature-workflow.md).
+    - **Two live lists, and plans are not one of them.** Outstanding work lives
+      in exactly two files: [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) and
+      [BACKLOG.md](../../docs/BACKLOG.md). Route by the nature of the item, not
+      by where it was found:
+        - the code is **wrong or unverified right now** → Known Issues
+        - the code is fine, but a **capability is missing or a decision unmade**
+          → Backlog
+      Something surfaced while deferring a plan step is usually a defect, so
+      "a plan deferred it" is not a category. Anything nobody has committed
+      to doing belongs in neither — it goes to
+      [DESIGN_NOTES.md](../../docs/DESIGN_NOTES.md), which exists to keep
+      speculation out of the backlog.
+    - **Close out a plan before calling it done.** A plan's *Deferred* section
+      is a record of what that increment decided, and it freezes when the plan
+      merges. Every entry in it must be either reflected in one of the two
+      files above or consciously dropped — say which, per entry. Leave the
+      plan's own text unchanged; it is history, not a to-do list. The same
+      applies to anything discovered mid-implementation and not fixed.
+    - Keep entries where they are read, not where they were written: never
+      restate a Known Issue's *Action Required* as a separate Backlog entry,
+      and make each entry self-contained, since plan documents may not be
+      reachable later.
 - **README Maintenance:**
     - After any change that could affect what [README.md](../../README.md) describes (tools/domains exposed, installation/usage, requirements, project structure), check whether it needs updating and update it as part of the same change.
 - **Process Doc Conventions:** (for files under `ai-coding-tools/`)

@@ -35,7 +35,15 @@ before. Entering plan mode by itself does not imply this workflow.
    scope or approach changes, update the plan doc and commit that update
    (same convention as step 3), then continue implementation — loop back to
    5–6 as needed.
-8. **Open the PR.** Once the user agrees implementation is done, open a PR
+8. **Close out the plan.** Before opening the PR, walk the plan's *Deferred*
+   section and anything else the increment surfaced but did not fix, and
+   route each entry into [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) or
+   [BACKLOG.md](../../docs/BACKLOG.md) — or state that it is being dropped.
+   The routing rule is in [rules-of-engagement.md](rules-of-engagement.md).
+   The plan's own text stays as written; it is the record of what this
+   increment decided, not a live list. Commit this with the implementation,
+   so the two files are never behind the branch.
+9. **Open the PR.** Once the user agrees implementation is done, open a PR
    from `feature/<plan-name>` into `main`. Copilot review has a cost, so
    ask before requesting it rather than requesting it by default — both
    when the PR is first opened and again after any later push to that PR,
