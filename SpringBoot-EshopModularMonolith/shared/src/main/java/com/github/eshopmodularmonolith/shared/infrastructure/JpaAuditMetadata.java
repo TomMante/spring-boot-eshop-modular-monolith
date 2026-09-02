@@ -17,6 +17,7 @@ public class JpaAuditMetadata {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
     @CreatedBy
+    @Column(updatable = false)
     private String createdBy;
     @LastModifiedDate
     private Instant lastModified;
