@@ -64,7 +64,7 @@ class JpaOutboxEventStoreTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.1-alpine3.23");
 
     @Autowired
     private JpaOutboxEventStore jpaOutboxEventStore;

@@ -24,7 +24,7 @@ public abstract class BasketDatabaseTest {
     // multi-document transactions and advertises the mapped host so the driver can reach it.
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:7.0.6").withReplicaSet();
+    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble").withReplicaSet();
 
     @Autowired
     protected MongoTemplate mongoTemplate;

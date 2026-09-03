@@ -21,7 +21,7 @@ class FlywayMigrationTest {
 
 
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.1-alpine3.23");
 
     private Flyway flyway;
     private Connection connection;
