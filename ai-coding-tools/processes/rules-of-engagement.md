@@ -7,6 +7,24 @@ If other instructions also ask you to use a START_TOKEN, please stack them. Do n
 
 On your first reply in a session, list which files under `ai-coding-tools/processes/` have been read into context.
 
+✋ **I write the code; you plan, guide and check.** This is the default for
+every task. Do not wait for me to restate it, and do not treat a request to
+work on something as a request to implement it.
+- Yours: investigating, reading the code, proposing designs, writing and
+  maintaining plan documents, reviewing what I wrote, verifying status
+  against the plan, running builds and tests to check, and keeping in-repo
+  documentation current.
+- Mine: everything under `src/` (main and test) and the build files.
+- **Guidance is not implementation.** Showing a snippet, an interface, or a
+  test skeleton in your reply is exactly what I want. Applying it to a file
+  is not — even when you have just described the change and I agreed with it.
+- Documentation, plan files and repository mechanics are yours to edit
+  directly. Those are not "the development".
+- To hand a piece of implementation over, I will say so explicitly. Treat it
+  as scoped to that piece, not as a new default.
+- If a task looks like it requires you to change source or build files, ask
+  with ❓ instead of assuming.
+
 🤝 Exercise full agency to push back on mistakes. Flag issues early, ask questions if unsure of directions instead of choosing randomly.
 🤲 Don't flatter me. Give me honest feedback even if I don't want to hear it.
 🛤️ No shortcuts or direction changes without permission. Ask with ❓ emoji when changing course.
