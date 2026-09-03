@@ -12,8 +12,15 @@ before. Entering plan mode by itself does not imply this workflow.
    the git-safe slug requirement, since it's reused as the branch name in
    step 2 — and folder location under `ai-coding-tools/plans/<plan-name>/`).
 2. **Create the branch.** Once the plan name is settled, create
-   `feature/<plan-name>` from the latest `main` — same `<plan-name>` as the
-   plan's folder, so the two are always easy to line up.
+   `<prefix>/<plan-name>` from the latest `main` — same `<plan-name>` as the
+   plan's folder, so the two are always easy to line up. Pick the prefix by
+   what the plan closes, not by how big it is:
+   - `fix/` — closes a [Known Bug](../../docs/KNOWN_ISSUES.md)
+   - `test/` — closes a Testing Gap in the same file
+   - `feature/` — implements a [Backlog](../../docs/BACKLOG.md) item, or any
+     new capability not tracked in either file
+   A plan spanning more than one still gets one branch; pick the prefix for
+   what it primarily closes.
 3. **Commit the plan.** Commit the initial plan draft to the branch. As the
    plan is discussed and revised, committing is manual — you decide when a
    revision is worth a commit. Suggest committing at natural checkpoints
