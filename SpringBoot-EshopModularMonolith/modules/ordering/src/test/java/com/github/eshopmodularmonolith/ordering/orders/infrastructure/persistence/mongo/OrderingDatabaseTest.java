@@ -23,7 +23,7 @@ public abstract class OrderingDatabaseTest {
 
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:7.0.6");
+    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble");
 
     @Autowired
     @Qualifier("orderMongoTemplate")

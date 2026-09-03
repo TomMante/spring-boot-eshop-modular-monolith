@@ -54,6 +54,12 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** Non-deterministic pagination. Rare with millisecond precision and organic traffic; reliable in tests and bulk inserts, where it presents as flakiness rather than as a read-model bug.
 - **Action Required:** Add a secondary key — `placedAt` DESC, `id` ASC. More clock precision is not a fix; it only makes collisions rarer.
 
+### 8. `spring.mongodb.uri` Is a Non-Standard Property With a Silent Default
+- **Locations:** `MongoConfiguration.mongoClient` (reads `@Value("${spring.mongodb.uri:mongodb://localhost/test}")`), `application.yaml` (never sets it)
+- **Issue:** This is not a Spring Data Mongo property (`spring.data.mongodb.*`) — it is a name this codebase invented, read by hand, and it is set nowhere in `application.yaml`. The default value is always live, in every environment, unless something external overrides it.
+- **Impact:** A deployment that forgets to set `spring.mongodb.uri` does not fail to start — it connects to `mongodb://localhost/test`, silently, and fails later in whatever way an empty or wrong database produces. Surfaced while writing [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md), which has to override this property by hand with `@DynamicPropertySource` because `@ServiceConnection` has no way to reach a property Boot's own Mongo auto-configuration doesn't know about.
+- **Action Required:** Rename to a standard `spring.data.mongodb.*` key so `@ServiceConnection` and ordinary Boot tooling work with it, or keep the custom name but drop the silent default so a missing value fails at startup instead of connecting to the wrong thing.
+
 ## 🧪 Testing Considerations & Gaps
 
 ### 1. Missing Domain Test for `ShoppingCart.checkout`
@@ -77,26 +83,18 @@ The `UpdateProductHandler` handles the "happy path" (product exists and is updat
 - **Issue:** The class is completely empty and misses test coverage.
 - **Improvement:** Implement the error handler to provide a proper Contract DTO error response (instead of an unhandled 500 Server Error) if order creation fails, and add corresponding tests.
 
-### 5. Nothing Loads the Real Module Configurations
-Every test builds its own `@Configuration`, so the wiring that the running application actually uses is never exercised. Three separate failures reached a manual run rather than a test:
-- A bare `@Transactional` in `JpaProductRepository` could not resolve among three `TransactionManager` beans. Each module's slice test sees only its own, so by-type resolution succeeds there and fails only in the assembled context.
-- The `DomainEventRegistry` contribution in `BasketModuleConfig.postConstruct()` is untested. Removing or misspelling it still compiles and leaves the suite green, while checkout poisons the outbox at runtime with `Unknown event type`.
-- The catalog test slices declare transaction-manager beans under names that drifted from production's.
-**A context-load test alone would have caught none of the three.** Worth stating plainly, because it is the obvious first answer and it is wrong:
-- `TransactionInterceptor` resolves the transaction manager on the *first invocation* of a transactional method, not at wiring time. The context starts clean; the ambiguity waits for the first call.
-- `@PostConstruct` registers whatever key it is handed. Misspell it, remove it, and the context still loads.
-- Slice configs drifting from production is the *tests* being wrong. A test of production config cannot observe it in that direction.
-
-- **Improvement:** An integration test that loads the real `EshopModularMonolithStarter` context **and then exercises it** — assert each module contributed its `DomainEventRegistry` entries, and perform one transactional write per module so the interceptor actually resolves a manager. Loading is the floor; the assertions are what close the gap. It needs the infrastructure the app needs (Postgres and Mongo via Testcontainers; Keycloak is not required, since `issuer-uri` produces a `SupplierJwtDecoder` that defers OIDC discovery to the first token validation), so it belongs with the existing Testcontainers tests. Note that `MongoConfiguration` reads a non-standard `spring.mongodb.uri`, so `@ServiceConnection` will not wire it — it needs `@DynamicPropertySource`.
-- **Not an end-to-end test.** The subject is assembly, not behaviour, and the two are not substitutes. End-to-end would catch these only as a side effect and report them as a 500 or a missing order, which starts a debugging session instead of naming the bean. It is also genuinely expensive here — Keycloak, a token, and an inherent multi-second wait on the outbox dispatcher's `fixedDelay`. A separate end-to-end test is worth having eventually, outside the normal test run, to answer whether the flow works for a user; it should never be what tells us a bean is ambiguous.
-
-### 6. No Test Exercises an Update Through the JPA Adapter
+### 5. No Test Exercises an Update Through the JPA Adapter
 - **Locations:** `JpaProductRepository.save`, `JpaAuditMetadata`
 - **Issue:** `CreateProductHandlerTransactionalTest` covers creation only, and `UpdateProductHandlerTest` fakes at the port — so nothing runs an update through real JPA. That hid a real defect: `save` reconstructs `ProductDB` from the domain object, whose fresh `JpaAuditMetadata` is all nulls, and `merge` copies those over the stored row. `created_at` failed loudly against its NOT NULL constraint; `created_by` is nullable, so it was silently wiped on every update and survived for a further increment before being noticed by reading the class rather than by a failure. Both now carry `@Column(updatable = false)` — **the defect is fixed, the gap is not.** No test would catch its reintroduction.
 - **Related:** the deeper cause is that `save` blind-overwrites a whole row from a projection that does not carry every column. The structural fix is load-and-mutate — fetch the managed entity and copy the mutable fields onto it. Ordering's Mongo path will meet the same shape when a `MongoAuditMetadata` counterpart arrives ([BACKLOG.md](BACKLOG.md) item 3).
 - **Improvement:** Add an update case to `JpaProductRepositoryTest` asserting that `createdAt` and `createdBy` survive, and extend Gap 2 above beyond its failure-path scope.
 
-### 7. Transactional Semantics of Order Creation Are Unverified
+### 6. Transactional Semantics of Order Creation Are Unverified
 - **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
 - **Issue:** `CreateOrderHandler` carries no `@Transactional` on either of its two entry points — the HTTP controller and the integration-event listener, which runs on the outbox dispatcher's scheduler thread. One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
 - **Improvement:** Recorded so it is not rediscovered as a surprise rather than because a test is owed right now. It becomes a real gap the moment order creation writes more than once, which Backlog item 1 (`totalPrice`) and item 5 (`OrderCreated` outbox) both approach.
+
+### 7. Slice Test Configs Can Still Drift From Production
+- **Locations:** every `@DataJpaTest`/`@DataMongoTest`-based test's local `@Configuration`, versus the module configs in `main`
+- **Issue:** [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md) closed the gap in one direction — nothing previously loaded the real assembled context — but it cannot see drift in the other direction. A slice test's hand-built `@Configuration` declaring a bean under the wrong name, missing a bean production has, or configuring one differently is invisible to a test of production config, by construction: production is what it loads, so it has nothing to compare against. This was one of the three original failures the new test set out to close (catalog's slice-declared transaction-manager names had drifted from production's) and it remains open.
+- **Improvement:** No single test closes this; it needs slice test configuration to stop being reinvented per test class, or a comparison that isn't itself another hand-built config. Not scoped here.

@@ -40,7 +40,12 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 ### 3. `MongoAuditMetadata`
 - Ordering has no counterpart to `shared.infrastructure.JpaAuditMetadata`, so Mongo-backed documents carry no created/modified audit fields.
 - **Blocked on:** adding `@Version` to the documents. Mongo auditing decides created-vs-modified purely from `isNew`, which is id-based, and every document in this codebase assigns its id up front — so without a version field auditing cannot distinguish the two cases at all.
-- **Note:** whatever shape this takes should not repeat the defect recorded in Testing Gap 6 — a `save` that blind-overwrites a whole row from a projection that does not carry every column.
+- **Note:** whatever shape this takes should not repeat the defect recorded in Testing Gap 5 — a `save` that blind-overwrites a whole row from a projection that does not carry every column.
+
+### 7. Extend the Wiring Test to the Basket Write Path
+- [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md) proves a transactional write resolves its manager for catalog (`CreateProductHandler` through `JpaProductRepository`) but not for basket. `CheckoutBasketHandler` is `@Transactional("basketTransactionManager")` against Mongo, and Mongo transactions require `MongoDBContainer.withReplicaSet()`.
+- **Why deferred:** that increment deliberately paid for one container shape (plain `MongoDBContainer`) to get the catalog path green first, rather than the replica-set startup cost before anything worked.
+- **Action:** add a second write-and-read-back test in `ApplicationWiringTest`, switching `mongoDb` to `.withReplicaSet()`, exercising `CheckoutBasketHandler`.
 
 ## ⏳ Gated on a trigger
 
