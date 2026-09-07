@@ -57,7 +57,9 @@ public class ShoppingCart extends AggregateRoot<String> {
     }
 
     public void checkout(Map<UUID, BigDecimal> currentPrices, Address billingAddress, Payment payment, Address shippingAddress) {
-        var totalPrice = items.stream().map(i -> currentPrices.get(i.productId())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var totalPrice = items.stream()
+                .map(i -> currentPrices.get(i.productId()).multiply(BigDecimal.valueOf(i.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         var event = new BasketCheckedOut(userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
     }

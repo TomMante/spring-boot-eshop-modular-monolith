@@ -2,71 +2,84 @@
 
 ## Status
 
-Draft — under discussion, not yet started.
+- [x] Step 1 — `color` removed from the basket add-item path. Full suite green.
+- [x] Step 2 — `totalPrice` fixed to use current catalog prices. Full suite green.
+- [ ] Step 3 — fix `addItem` to merge duplicate products
 
 ## Context
 
 [Known Bug 1](../../../docs/KNOWN_ISSUES.md) names two defects in `ShoppingCart.checkout(Map<UUID, BigDecimal> currentPrices, ...)`: the total-price calculation ignores `quantity`, and `CheckoutBasketHandler`'s `Collectors.toMap(ProductInfo::id, ProductInfo::price)` throws `IllegalStateException` when the same product was added twice, because `addItem` never merges duplicates. [Backlog 1](../../../docs/BACKLOG.md) tied fixing this to first deciding `Order`'s pricing basis (add-time vs. checkout-time) and adding `totalPrice` end to end. [Testing Gap 1](../../../docs/KNOWN_ISSUES.md) asks for an isolated `ShoppingCartTest` on `checkout`.
 
-Discussing the plan surfaced that the pricing-basis decision is larger and less urgent than it looked, and that the current `totalPrice` is dead weight rather than a bug worth fixing in place:
+Discussing the plan went through two revisions before landing here:
 
-- `totalPrice` is computed in `ShoppingCart.checkout`, carried across the module boundary in `BasketCheckoutIntegrationEvent`, and never read — `BasketCheckoutIntegrationEventListener` builds `CreateOrderCommand` without ever consulting `event.totalPrice()`. It is computed, sent, and dropped today.
-- Item prices that do reach `Order` already come from `ItemDTO.priceWhenAdded` (add-time), regardless of what `checkout()` computes for the total. Making the total checkout-time-accurate would additionally require overwriting item prices before the event fires — new behavior nothing does today — plus a real decision on what happens when a product's current price can't be fetched (deleted/discontinued).
-- `Order.totalPrice` should be a value `Order.create` derives from its own items (`Σ item.price × quantity`), not a number trusted from a caller — otherwise it's the same "computed once, possibly wrong, believed anyway" shape as today's bug. Deriving it inside `Order` also means the direct `POST /order` path and the basket-checkout path share one rule for free, with no extra field needed on `CreateOrderCommand`/`CreateOrderRequest`.
+1. First pass: remove `totalPrice` from basket entirely, since it's computed and then never read (`BasketCheckoutIntegrationEventListener` never consults `event.totalPrice()`), and defer the whole pricing-basis question to Backlog.
+2. Second pass, on reflection: that framed the gap too narrowly. Checkout genuinely is the moment a total should be confirmed against current prices — real checkout systems (Stripe, BigCommerce) compute the charge at commit time from live prices, not from whatever was true when the item was added to the cart. Deleting the calculation would have avoided the bug rather than fixed it, and thrown away the one piece of this codebase that already attempts real-time cross-module communication between basket and catalog at checkout.
 
-None of that is worth doing to fix a crash. So this plan **removes `totalPrice` from basket entirely** rather than fixing its calculation, and defers building `Order.totalPrice` to its own Backlog item once the pricing basis is actually decided. What's left in scope is the part that's a live defect right now: the duplicate-product crash, fixed at its root (`addItem`'s own invariant, not the price-map construction downstream that happens to trip over it).
+Landed design: **fix `totalPrice`'s calculation to use current catalog prices** (`Σ currentPrice × quantity`, current price fetched from catalog via `ProductService` at checkout — the same fetch that already exists, just currently miscalculated). `priceWhenAdded` stays on `Item` — it isn't being replaced, it exists for a future add-time-vs-current-price delta view, which is exactly why the two are named differently rather than one field being overloaded. This plan does *not* build that delta view or reconcile it into `Order` — see Explicitly Deferred.
 
-Discussing the merge key surfaced a second simplification: `color` is basket-only (ordering's `Item` has never had it — confirmed at [Item.java:9](../../../SpringBoot-EshopModularMonolith/modules/ordering/src/main/java/com/github/eshopmodularmonolith/ordering/orders/domain/Item.java:9) and `BasketCheckoutIntegrationEventListener.toDomain(ItemDTO)` already never reads it), it's threaded through ~12 files for no consumer beyond display, and in a real catalog a different color would be a different product id. Removing it turns "merge key" into a non-question: `productId` is the only identifier.
+Two things are deliberately left unfixed here, by explicit choice: the priority is demonstrating the current-price-at-checkout mechanism and the fact that add-time and current price are different concepts worth tracking separately — not shipping a fully hardened checkout. Both are documented as open items rather than silently left broken:
+
+- **Missing-price handling.** If `ProductService.fetchProductInfo` can't find a product, `CheckoutBasketHandler`'s `flatMap(Optional::stream)` silently drops it from `currentPrices` — so `ShoppingCart.checkout` can still throw a `NullPointerException` looking up that product's price. This is Known Bug 1's second defect, unfixed, narrowed and re-recorded rather than closed.
+- **The event's own numbers won't reconcile.** `BasketCheckedOut`/`BasketCheckoutIntegrationEvent` will carry a `totalPrice` computed from current prices, while `items` on the same event still show `priceWhenAdded`. Summing the item lines on the event will not equal its `totalPrice`. This is a real, visible rough edge — recorded as a Backlog decision (a shape carrying both prices per item, e.g. a dedicated `CheckedOutItem`) rather than solved now.
+
+Discussing the merge key surfaced a separate, unrelated simplification: `color` is basket-only (ordering's `Item` has never had it — confirmed at [Item.java:9](../../../SpringBoot-EshopModularMonolith/modules/ordering/src/main/java/com/github/eshopmodularmonolith/ordering/orders/domain/Item.java:9) and `BasketCheckoutIntegrationEventListener.toDomain(ItemDTO)` already never reads it), it's threaded through ~12 files for no consumer beyond display, and in a real catalog a different color would be a different product id. Removing it turns "merge key" into a non-question: `productId` is the only identifier. Done in step 1.
 
 ### Design decisions
 
-- **Merge key is `productId` alone.** `color` is removed from the basket add-item path end to end, not just ignored for merge purposes.
-- **`totalPrice` is removed, not fixed**, from `ShoppingCart.checkout`, `BasketCheckedOut`, and `BasketCheckoutIntegrationEvent`. `Order.totalPrice` does not exist yet; building it is deferred (see Explicitly Deferred).
-- **`CheckoutBasketHandler` stops calling `ProductService` at checkout.** Its only use today (`currentPrices`) exists solely to feed the calculation being removed. This also makes the "missing price → NPE" half of Known Bug 1 moot by construction — there's no fetch left to fail.
-- **Testing Gap 1 is retargeted, not carried over as-is.** Once `checkout()` computes nothing, it has no calculation left to test in isolation. The logic that now qualifies under [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md) is `addItem`'s merge behavior (a calculation over existing state), so the new `ShoppingCartTest` targets that instead.
-- **Merging replaces, not mutates.** `Item` is a record; "merging" means constructing a new `Item` with summed quantity and replacing the old list entry, not calling a setter.
+- **Merge key is `productId` alone.** `color` is removed from the basket add-item path end to end, not just ignored for merge purposes. *(Step 1, done.)*
+- **`totalPrice` is fixed, not removed.** `ShoppingCart.checkout` keeps its `currentPrices` parameter and computes `Σ currentPrices.get(item.productId()) × item.quantity()`. `CheckoutBasketHandler` keeps calling `ProductService` at checkout — that real-time catalog fetch is the point, not incidental plumbing to delete.
+- **`priceWhenAdded` is untouched and not consumed by this calculation.** It stays on `Item` for a future delta view; `totalPrice` is priced entirely off `currentPrices`, not blended with it.
+- **Missing-price handling is out of scope, not silently ignored.** The existing silent-drop behavior stays as today's code has it; the resulting possible `NullPointerException` is re-recorded as a narrowed Known Bug rather than fixed, since deciding reject-vs-skip is real, separate design work.
+- **The event's total-vs-items inconsistency is accepted, not designed away.** Making `items` reflect current price too (via a new type, since `Item` itself is persisted cart state and shouldn't carry a checkout-only field) is real, separate work — recorded as a Backlog decision, not built here.
+- **`Order` still doesn't consume `totalPrice`.** `CreateOrderCommand`/`Order.create` are untouched by this plan. The gap between "basket computes a real total" and "ordering ignores it" persists and stays a Backlog item.
+- **Testing Gap 1 closes as originally scoped.** The isolated `ShoppingCartTest` this plan adds covers `checkout()`'s calculation directly — the exact gap the doc named — plus `addItem`'s new merge behavior from step 3.
+- **Merging (step 3) replaces, not mutates.** `Item` is a record; "merging" means constructing a new `Item` with summed quantity and replacing the old list entry, not calling a setter.
 
 ### Testing rigor per step
 
-Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../processes/rules-of-engagement.md): steps 1 and 2 are field/parameter deletions with no new behavior to pin down — tests alongside implementation, updating what breaks. Step 3 is new deterministic logic with real regression risk (this is the actual bug fix) — strict red → green → refactor.
+Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../processes/rules-of-engagement.md): step 1 was a field deletion with no new behavior to pin down — tests alongside implementation. Steps 2 and 3 are both new deterministic calculations with real regression risk — strict red → green → refactor, both landing in the same new `ShoppingCartTest`.
 
 ---
 
 ## Todo List
 
-### 1. Remove `color` from the basket add-item path
+### 1. Remove `color` from the basket add-item path — done
 *Deletion following an established shape — tests alongside implementation.*
 
-- [ ] `Item` (domain) — drop `color`
-- [ ] `ShoppingCart.addItem` — drop the `color` parameter
-- [ ] `AddItemIntoBasketCommand` — drop `color`
-- [ ] `AddItemIntoBasketRequest` — drop `color`
-- [ ] `AddItemIntoBasketController` — stop reading `request.color()`
-- [ ] `AddItemIntoBasketHandler` — stop passing a color into `cart.addItem`
-- [ ] `ItemDB` (mongo) — drop `color`
-- [ ] `DBMapper` — drop `color` from `toDb(Item)`, `toDomain(ItemDB)`, `toDTO(ItemDB)`
-- [ ] `ItemDTO` (basket-contract) — drop `color`
-- [ ] `BasketOutboxDispatcher.toDto(Item)` — drop `color`
-- [ ] `bruno/Basket/Add Item Into Basket.bru` — drop the `"color": "red"` line
-- [ ] Update tests that construct items/requests with a color: `AddItemIntoBasketControllerTest`, `AddItemIntoBasketHandlerTest`, `BasketOutboxDispatcherTest`, `ShoppingCartMother` (and any others the compiler finds)
-- [ ] Check [README.md](../../../README.md) for any basket API example mentioning `color`
+- [x] `Item` (domain) — drop `color`
+- [x] `ShoppingCart.addItem` — drop the `color` parameter
+- [x] `AddItemIntoBasketCommand` — drop `color`
+- [x] `AddItemIntoBasketRequest` — drop `color`
+- [x] `AddItemIntoBasketController` — stop reading `request.color()`
+- [x] `AddItemIntoBasketHandler` — stop passing a color into `cart.addItem`
+- [x] `ItemDB` (mongo) — drop `color`
+- [x] `DBMapper` — drop `color` from `toDb(Item)`, `toDomain(ItemDB)`, `toDTO(ItemDB)`
+- [x] `ItemDTO` (basket-contract) — drop `color`
+- [x] `BasketOutboxDispatcher.toDto(Item)` — drop `color`
+- [x] `bruno/Basket/Add Item Into Basket.bru` — drop the `"color": "red"` line
+- [x] Updated tests: `AddItemIntoBasketControllerTest`, `AddItemIntoBasketHandlerTest`, `BasketOutboxDispatcherTest`, `CheckoutBasketHandlerTest`, `CheckoutBasketHandlerTransactionalTest`, `RemoveItemFromBasketHandlerTest`, `BasketCheckoutIntegrationEventListenerTest`
+- [x] No remaining references to `color`/`Color` anywhere in `modules/` (confirmed by grep)
+- [x] Checked [README.md](../../../README.md) for any basket API example mentioning `color` — no mentions of `color` or basket endpoints at all, nothing to update
 
-### 2. Remove `totalPrice` from basket checkout
-*Deletion of dead/miscalculated logic — tests alongside implementation.*
+### 2. Fix `totalPrice` to use current catalog prices
+*New deterministic calculation with real regression risk — strict red → green → refactor.*
 
-- [ ] `ShoppingCart.checkout` — drop the `totalPrice` calculation and the `currentPrices` parameter; new signature is `checkout(Address billingAddress, Payment payment, Address shippingAddress)`
-- [ ] `BasketCheckedOut` — drop the `totalPrice` field
-- [ ] `BasketCheckoutIntegrationEvent` (basket-contract) — drop the `totalPrice` field
-- [ ] `BasketOutboxDispatcher.toIntegrationEvent` — stop passing `event.totalPrice()`
-- [ ] `CheckoutBasketHandler` — remove the `currentPrices` construction (the `ProductService.fetchProductInfo` loop and `Collectors.toMap`); call `cart.checkout(cmd.billingAddress(), cmd.payment(), cmd.shippingAddress())` directly. `ProductService` has no other use in this class (confirmed while planning), so remove its field and constructor parameter too
-- [ ] Update `CheckoutBasketHandlerTest` / `CheckoutBasketHandlerTransactionalTest` — drop `currentPrices`/`ProductService` stubbing and any `totalPrice` assertions
-- [ ] Update `BasketOutboxDispatcherTest` — drop `totalPrice` from constructed events/assertions
-- [ ] Confirm `BasketCheckoutIntegrationEventListener` compiles unchanged in behavior (it already never reads `totalPrice`)
+- [x] Red first: new `ShoppingCartTest` — `checkout()` with multiple items and quantities greater than 1 produces `totalPrice = Σ(currentPrices.get(productId) × quantity)`, using current prices that deliberately differ from each item's `priceWhenAdded`, and per-product subtotals that differ from each other (7×15.00 vs 3×25.00) so the total can't coincidentally match the old bug, a swapped-quantity mistake, or an accidental use of `priceWhenAdded`. Plus a second case: two `Item`s reconstituted with the same `productId` both get priced (pins the "duplicate keys tolerated" half of Known Bug 1's original text, independent of step 3's `addItem` fix)
+- [x] Green: `ShoppingCart.checkout` — fixed the reduce to multiply by `quantity`; `currentPrices` parameter unchanged
+- [x] Refactor: not warranted — left as written
+- [x] `CheckoutBasketHandler` — confirmed no change needed; still builds `currentPrices` via `ProductService.fetchProductInfo` / `Collectors.toMap` exactly as before
+- [x] `BasketCheckedOut` — confirmed no change; `totalPrice` field unchanged
+- [x] `BasketCheckoutIntegrationEvent` — confirmed no change; `totalPrice` field unchanged
+- [x] `BasketOutboxDispatcher` — confirmed no change; still passes `event.totalPrice()`
+- [x] `CheckoutBasketHandlerTest` / `CheckoutBasketHandlerTransactionalTest` — checked, no update needed: both fixtures use quantity 1, so their `totalPrice` assertions are numerically unaffected by the fix. Per the seam decision above, these tests only need to prove one happy path each — the quantity cases are the domain test's job, not theirs
+- [x] `BasketOutboxDispatcherTest` — checked, no update needed: it constructs `BasketCheckedOut` by hand rather than via `checkout()`, so it never exercised the calculation to begin with
+- [x] Confirmed `BasketCheckoutIntegrationEventListener` unaffected (it already never reads `totalPrice`)
+- [x] Full suite green (`basket-contract`, `basket-core`, `ordering`)
 
 ### 3. Fix `ShoppingCart.addItem` to merge duplicate products
-*New deterministic behavior with real regression risk — strict red → green → refactor. This is the actual fix for Known Bug 1's remaining defect and closes Testing Gap 1 (retargeted).*
+*New deterministic behavior with real regression risk — strict red → green → refactor. This is the fix for Known Bug 1's duplicate-product crash and, together with step 2, closes Testing Gap 1.*
 
-- [ ] Red first: new `ShoppingCartTest` — adding the same `productId` twice sums quantity into one `Item` instead of appending a second; adding two different products keeps both as separate items (existing behavior, guards against an overly broad merge)
+- [ ] Red first: same `ShoppingCartTest` — adding the same `productId` twice sums quantity into one `Item` instead of appending a second; adding two different products keeps both as separate items (existing behavior, guards against an overly broad merge)
 - [ ] Green: `ShoppingCart.addItem` looks up an existing item by `productId`; if found, replace it with a new `Item` carrying summed quantity; otherwise append as today
 - [ ] Refactor: revisit only if the lookup/replace reads awkwardly once written — no refactor forced if it doesn't
 
@@ -76,16 +89,20 @@ Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../pro
 
 - [ ] `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green
 - [ ] Manual smoke via bruno: `POST /basket/items` twice with the same `productId` — basket ends up with one line at quantity 2, not two lines and not a crash
-- [ ] Manual smoke: checkout that basket — no crash, resulting outbox/integration event payload has no `totalPrice` field anywhere
-- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — remove Known Bug 1 entirely (the calculation is deleted, not fixed, and duplicate products can no longer occur)
-- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — remove Testing Gap 1 (the logic it named no longer exists; the logic that replaced it — `addItem`'s merge — gets a test as part of this plan, so there's no gap left to record)
-- [ ] [BACKLOG.md](../../../docs/BACKLOG.md) — replace Backlog 1 with a revised entry: `Order.totalPrice` does not exist at all (not "is wrong"); building it needs the add-time-vs-checkout-time decision, and if checkout-time is chosen, a design for overwriting item prices at checkout and for a product that can't be priced (deleted/discontinued). Note that `Order.create` should derive the total from its own items rather than accept one from a caller
-- [ ] Check [README.md](../../../README.md) for anything describing basket item `color` or a checkout total price
+- [ ] Manual smoke: checkout that basket — no crash, resulting outbox/integration event's `totalPrice` reflects current catalog price × quantity, not `priceWhenAdded`
+- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — narrow Known Bug 1 to just the remaining defect: `ShoppingCart.checkout` still throws `NullPointerException` if a cart item's product can't be priced at checkout (deleted/discontinued), because `CheckoutBasketHandler` silently drops unresolvable products from `currentPrices` instead of surfacing the failure. Quantity-ignored and the duplicate-product crash are both genuinely fixed and drop out of the bug's text
+- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — remove Testing Gap 1 (closed for real: `ShoppingCartTest` now covers `checkout()`'s calculation directly, plus `addItem`'s merge)
+- [ ] [BACKLOG.md](../../../docs/BACKLOG.md) — revise Backlog 1 into two entries:
+  1. **`Order.totalPrice` still doesn't exist.** Basket now computes a correct, current-price total, but `CreateOrderCommand`/`Order.create` ignore it entirely — the value is computed and still never used downstream. Building it needs a decision on whether `Order` trusts the event's value or re-derives its own from items it received (see the reasoning against trusting a caller-computed number, worked out during this plan's discussion).
+  2. **`BasketCheckedOut`'s items don't reflect current price.** `totalPrice` is current-price-based but each item still only carries `priceWhenAdded`, so the event's total doesn't reconcile against summing its own item lines, and there's no way for a consumer to show the customer an add-time-vs-current-price delta. Needs a dedicated shape (e.g. `CheckedOutItem` carrying both prices) — deliberately not `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field.
+- [ ] Check [README.md](../../../README.md) for anything describing basket item `color`, or a checkout total price worth documenting
 
 ---
 
 ## Explicitly deferred (recorded, not fixed here)
 
-- **`Order.totalPrice`.** Doesn't exist after this plan, same as before it — but now it's a missing capability, not a wrong calculation, so it belongs in [BACKLOG.md](../../../docs/BACKLOG.md) rather than as a Known Bug. See the revised Backlog entry above.
-- **Missing-price-at-checkout handling.** Moot for now — `CheckoutBasketHandler` no longer fetches current prices at checkout at all. Resurfaces as a real question once `Order.totalPrice` is built on a checkout-time basis.
+- **Missing-price-at-checkout handling.** `ShoppingCart.checkout` can still NPE if a product can't be priced. Re-recorded as a narrowed Known Bug 1 rather than fixed — deciding reject-vs-skip is its own design work, not an extension of the arithmetic fix.
+- **`BasketCheckedOut` items not carrying current price.** New Backlog entry — needs a dedicated type, not a retrofit of `Item`.
+- **`Order.totalPrice`.** Still doesn't exist; still a Backlog entry, now with a real (if unused) source value to eventually decide whether to trust.
+- **The add-time-vs-current-price "delta" view itself** — showing the customer both numbers — isn't designed here at all, only motivated. It depends on the `CheckedOutItem`-shaped Backlog item above existing first.
 - **Every other Known Bug and Testing Gap** (Known Bugs 2–7, Gaps 2–7) — untouched by this plan, unaffected.

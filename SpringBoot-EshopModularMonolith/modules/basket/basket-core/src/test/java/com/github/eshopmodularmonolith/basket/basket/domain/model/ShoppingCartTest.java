@@ -1,0 +1,64 @@
+package com.github.eshopmodularmonolith.basket.basket.domain.model;
+
+import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class ShoppingCartTest {
+
+
+    @Test
+    @DisplayName("Given a shopping cart with items and a list of current prices, when checkout happens, then the cart is checked out with the correct total price")
+    void givenShoppingCartWithItemsAndListOfCurrentPrices_whenCheckoutHappens_thenCartIsCheckedOutWithCorrectTotalPrice() {
+        // Arrange
+        var shoppingCart = ShoppingCart.create("testUser");
+        var product1 = UUID.randomUUID();
+        var product2 = UUID.randomUUID();
+        shoppingCart.addItem(product1, 7, new BigDecimal("10.00"), "Product 1");
+        shoppingCart.addItem(product2, 3, new BigDecimal("20.00"), "Product 2");
+
+        var billingAddress = AddressMother.billing();
+        var shippingAddress = AddressMother.shipping();
+        var payment = PaymentMother.payment();
+        var currentPrices = Map.of(
+                product1, new BigDecimal("15.00"),
+                product2, new BigDecimal("25.00")
+        ); // Assuming the total price for the items added
+
+        shoppingCart.checkout(currentPrices, billingAddress, payment, shippingAddress);
+
+        var domainEvents = shoppingCart.clearDomainEvents();
+
+        assertThat(domainEvents).hasSize(1);
+        var event = domainEvents.get(0);
+        assertThat(event).isInstanceOf(BasketCheckedOut.class);
+        var basketCheckedOutEvent = (BasketCheckedOut) event;
+        assertThat(basketCheckedOutEvent.totalPrice()).isEqualByComparingTo(new BigDecimal("180.00")); // 7*15 + 3*25
+
+    }
+
+    @Test
+    @DisplayName("Given a shopping cart reconstituted with two items for the same product, when checkout happens, then both quantities are priced")
+    void givenCartWithDuplicateProductIdItems_whenCheckoutHappens_thenBothQuantitiesArePriced() {
+        var product = UUID.randomUUID();
+        var cart = ShoppingCart.reconstitute("testUser", List.of(
+                new Item(UUID.randomUUID(), product, 2, new BigDecimal("10.00"), "Product"),
+                new Item(UUID.randomUUID(), product, 5, new BigDecimal("10.00"), "Product")
+        ));
+        var currentPrices = Map.of(product, new BigDecimal("12.00"));
+
+        cart.checkout(currentPrices, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping());
+
+        var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
+        assertThat(event.totalPrice()).isEqualByComparingTo(new BigDecimal("84.00")); // (2+5) * 12.00
+    }
+}
