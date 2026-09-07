@@ -124,7 +124,7 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
     @BeforeEach
     void setUpFixtures() {
         userName = "John";
-        item = new Item(UUID.randomUUID(), UUID.randomUUID(), 1, "blue", new BigDecimal("400.00"), "hat");
+        item = new Item(UUID.randomUUID(), UUID.randomUUID(), 1, new BigDecimal("400.00"), "hat");
         when(productService.fetchProductInfo(item.productId()))
                 .thenReturn(Optional.of(new ProductInfo(item.productId(), "hat", new BigDecimal("783.00"))));
     }

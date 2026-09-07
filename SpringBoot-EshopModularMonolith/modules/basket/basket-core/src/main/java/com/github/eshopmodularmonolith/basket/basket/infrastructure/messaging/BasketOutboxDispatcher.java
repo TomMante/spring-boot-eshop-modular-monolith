@@ -43,7 +43,7 @@ public class BasketOutboxDispatcher {
     }
 
     private static ItemDTO toDto(Item item) {
-        return new ItemDTO(item.id(), item.productId(), item.quantity(), item.color(), item.priceWhenAdded(), item.productName());
+        return new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
     }
 
     private static AddressDTO toDto(Address address) {

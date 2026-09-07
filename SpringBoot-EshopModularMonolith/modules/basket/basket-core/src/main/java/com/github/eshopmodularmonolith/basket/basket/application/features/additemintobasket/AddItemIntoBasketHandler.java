@@ -19,7 +19,7 @@ public class AddItemIntoBasketHandler {
     public void handle(AddItemIntoBasketCommand cmd){
         var cart = repository.findByUsername(cmd.userName()).orElseThrow(BasketNotFound::new);
         var product = productService.fetchProductInfo(cmd.productId()).orElseThrow(() -> new CatalogProductNotFound(cmd.productId()));
-        cart.addItem(cmd.productId(), cmd.quantity(), cmd.color(), product.price(), product.name());
+        cart.addItem(cmd.productId(), cmd.quantity(), product.price(), product.name());
         repository.save(cart);
     }
 }

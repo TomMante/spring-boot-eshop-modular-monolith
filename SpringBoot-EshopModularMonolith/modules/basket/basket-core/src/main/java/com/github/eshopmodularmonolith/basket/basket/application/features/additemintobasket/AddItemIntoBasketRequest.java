@@ -6,6 +6,5 @@ import java.util.UUID;
 
 public record AddItemIntoBasketRequest(
         @NotNull(message = "{basket.basketItem.productId.notNull}") UUID productId,
-        int quantity,
-        String color) {
+        int quantity) {
 }

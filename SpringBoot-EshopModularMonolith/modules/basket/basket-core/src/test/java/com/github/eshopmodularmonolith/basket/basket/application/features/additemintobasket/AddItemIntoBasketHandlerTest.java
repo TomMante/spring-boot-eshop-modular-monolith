@@ -57,7 +57,7 @@ class AddItemIntoBasketHandlerTest {
         assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new AddItemIntoBasketCommand(
                 existingCart.userName(), product.id(),
-                3, "Blue"
+                3
         );
         handler.handle(cmd);
         var result = repository.findByUsername(existingCart.id());
@@ -68,7 +68,6 @@ class AddItemIntoBasketHandlerTest {
         assertThat(item.id()).isNotNull();
         assertThat(item.productId()).isEqualTo(product.id());
         assertThat(item.quantity()).isEqualTo(cmd.quantity());
-        assertThat(item.color()).isEqualTo(cmd.color());
         assertThat(item.priceWhenAdded()).isEqualTo(product.price());
         assertThat(item.productName()).isEqualTo(product.name());
     }
@@ -81,7 +80,7 @@ class AddItemIntoBasketHandlerTest {
         assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new AddItemIntoBasketCommand(
                 existingCart.userName(), UUID.randomUUID(),
-                3, "Blue"
+                3
         );
         assertThatExceptionOfType(CatalogProductNotFound.class).isThrownBy(() -> handler.handle(cmd));
     }
@@ -91,7 +90,7 @@ class AddItemIntoBasketHandlerTest {
     void givenNonExistingCart_whenTryingToAddItemToBasket_thenExceptionIsThrown(){
         var cmd = new AddItemIntoBasketCommand(
                 "test", UUID.randomUUID(),
-                3, "Blue"
+                3
         );
         assertThatExceptionOfType(BasketNotFound.class).isThrownBy(() -> handler.handle(cmd));
     }
