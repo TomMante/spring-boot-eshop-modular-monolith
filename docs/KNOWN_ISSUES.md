@@ -54,12 +54,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** Non-deterministic pagination. Rare with millisecond precision and organic traffic; reliable in tests and bulk inserts, where it presents as flakiness rather than as a read-model bug.
 - **Action Required:** Add a secondary key — `placedAt` DESC, `id` ASC. More clock precision is not a fix; it only makes collisions rarer.
 
-### 8. `spring.mongodb.uri` Is a Non-Standard Property With a Silent Default
-- **Locations:** `MongoConfiguration.mongoClient` (reads `@Value("${spring.mongodb.uri:mongodb://localhost/test}")`), `application.yaml` (never sets it)
-- **Issue:** This is not a Spring Data Mongo property (`spring.data.mongodb.*`) — it is a name this codebase invented, read by hand, and it is set nowhere in `application.yaml`. The default value is always live, in every environment, unless something external overrides it.
-- **Impact:** A deployment that forgets to set `spring.mongodb.uri` does not fail to start — it connects to `mongodb://localhost/test`, silently, and fails later in whatever way an empty or wrong database produces. Surfaced while writing [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md), which has to override this property by hand with `@DynamicPropertySource` because `@ServiceConnection` has no way to reach a property Boot's own Mongo auto-configuration doesn't know about.
-- **Action Required:** Rename to a standard `spring.data.mongodb.*` key so `@ServiceConnection` and ordinary Boot tooling work with it, or keep the custom name but drop the silent default so a missing value fails at startup instead of connecting to the wrong thing.
-
 ## 🧪 Testing Considerations & Gaps
 
 ### 1. Missing Domain Test for `ShoppingCart.checkout`

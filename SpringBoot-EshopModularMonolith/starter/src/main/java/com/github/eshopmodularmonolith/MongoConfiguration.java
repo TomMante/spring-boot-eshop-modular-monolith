@@ -19,7 +19,7 @@ public class MongoConfiguration {
     // Spring Boot's own MongoAutoConfiguration backs off once any MongoDatabaseFactory bean
     // exists (each module defines its own), so it never creates a MongoClient. Provide it here instead.
     @Bean
-    public MongoClient mongoClient(@Value("${spring.mongodb.uri:mongodb://localhost/test}") String uri) {
+    public MongoClient mongoClient(@Value("${spring.mongodb.uri}") String uri) {
         var settings = MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString(uri))
                 .uuidRepresentation(UuidRepresentation.STANDARD)
