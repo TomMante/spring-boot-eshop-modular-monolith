@@ -10,6 +10,8 @@ Before making architectural decisions, refactoring, or writing tests, consult th
 
 **These last two are the only live lists of outstanding work.** Plan documents under `ai-coding-tools/plans/` are frozen history — a plan's *Deferred* section records what that increment decided, not what is still open. When asked what work remains, read the two files above; do not reconstruct an answer by scanning plans.
 
+Use the [open-points](../skills/open-points/SKILL.md) skill to turn those two files into a prioritized checklist on demand, rather than re-deriving priority by hand each time.
+
 ## 🛠️ Build & Test Commands
 The main Java application is in the `SpringBoot-EshopModularMonolith` directory.
 You must execute all Maven commands from within that directory OR use the `-f` flag.
