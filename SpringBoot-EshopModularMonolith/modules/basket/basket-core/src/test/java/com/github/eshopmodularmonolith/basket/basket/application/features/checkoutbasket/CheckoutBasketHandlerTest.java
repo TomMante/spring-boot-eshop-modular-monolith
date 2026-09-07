@@ -5,6 +5,7 @@ import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
@@ -121,5 +122,16 @@ class CheckoutBasketHandlerTest {
     void givenNonExistingCart_whenCheckoutCommandIsReceived_thenExceptionIsThrown() {
         var cmd = new CheckoutBasketCommand("non-existing-user", null, null, null);
         assertThatExceptionOfType(BasketNotFound.class).isThrownBy(() -> handler.handle(cmd));
+    }
+
+    @Test
+    @DisplayName("Given a cart item whose product is no longer in the catalog, when checkout command is received, then UnpriceableCartItem is thrown")
+    void givenCartItemWithProductNoLongerInCatalog_whenCheckoutCommandIsReceived_thenUnpriceableCartItemIsThrown() {
+        var removedProductId = UUID.randomUUID();
+        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), removedProductId, 1, BigDecimal.valueOf(400), "Removed Product"))).build();
+        repository.save(existingCart);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), PaymentMother.payment(), null);
+
+        assertThatExceptionOfType(UnpriceableCartItem.class).isThrownBy(() -> handler.handle(cmd));
     }
 }

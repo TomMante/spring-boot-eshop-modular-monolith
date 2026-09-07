@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.basket.basket.domain.model;
 import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ShoppingCartTest {
 
@@ -75,6 +77,21 @@ class ShoppingCartTest {
         assertThat(cart.items()).hasSize(2);
         assertThat(cart.items().get(0).quantity()).isEqualTo(5);
         assertThat(cart.items().get(1).quantity()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("Given a shopping cart with an item missing from current prices, when checkout happens, then UnpriceableCartItem is thrown")
+    void givenCartWithItemMissingFromCurrentPrices_whenCheckoutHappens_thenUnpriceableCartItemIsThrown() {
+        var product = UUID.randomUUID();
+        var shoppingCart = ShoppingCart.create("testUser");
+        shoppingCart.addItem(product, 2, new BigDecimal("10.00"), "Product");
+
+        Map<UUID, BigDecimal> currentPrices = Map.of();
+
+        assertThatExceptionOfType(UnpriceableCartItem.class)
+                .isThrownBy(() -> shoppingCart.checkout(currentPrices, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
+
+        assertThat(shoppingCart.clearDomainEvents()).isEmpty();
     }
 
 }
