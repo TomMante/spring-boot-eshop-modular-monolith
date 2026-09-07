@@ -61,4 +61,20 @@ class ShoppingCartTest {
         var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
         assertThat(event.totalPrice()).isEqualByComparingTo(new BigDecimal("84.00")); // (2+5) * 12.00
     }
+
+    @Test
+    @DisplayName("Given a cart with an existing product, when addItem is called with the same product, then the quantity is updated")
+    void givenCartWithExistingProduct_whenAddItem_thenQuantityIsUpdated() {
+        var product1 = UUID.randomUUID();
+        var product2 = UUID.randomUUID();
+        var cart = ShoppingCart.create("testUser");
+        cart.addItem(product1, 2, new BigDecimal("10.00"), "Product");
+        cart.addItem(product1, 3, new BigDecimal("10.00"), "Product");
+        cart.addItem(product2, 4, new BigDecimal("20.00"), "Product 2");
+
+        assertThat(cart.items()).hasSize(2);
+        assertThat(cart.items().get(0).quantity()).isEqualTo(5);
+        assertThat(cart.items().get(1).quantity()).isEqualTo(4);
+    }
+
 }

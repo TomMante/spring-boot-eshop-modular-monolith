@@ -4,7 +4,7 @@
 
 - [x] Step 1 — `color` removed from the basket add-item path. Full suite green.
 - [x] Step 2 — `totalPrice` fixed to use current catalog prices. Full suite green.
-- [ ] Step 3 — fix `addItem` to merge duplicate products
+- [x] Step 3 — `addItem` merges duplicate products by `productId`. Full suite green.
 
 ## Context
 
@@ -79,9 +79,10 @@ Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../pro
 ### 3. Fix `ShoppingCart.addItem` to merge duplicate products
 *New deterministic behavior with real regression risk — strict red → green → refactor. This is the fix for Known Bug 1's duplicate-product crash and, together with step 2, closes Testing Gap 1.*
 
-- [ ] Red first: same `ShoppingCartTest` — adding the same `productId` twice sums quantity into one `Item` instead of appending a second; adding two different products keeps both as separate items (existing behavior, guards against an overly broad merge)
-- [ ] Green: `ShoppingCart.addItem` looks up an existing item by `productId`; if found, replace it with a new `Item` carrying summed quantity; otherwise append as today
-- [ ] Refactor: revisit only if the lookup/replace reads awkwardly once written — no refactor forced if it doesn't
+- [x] Red first: `ShoppingCartTest` — adding the same `productId` twice sums quantity into one `Item` instead of appending a second, and adding a different product keeps both as separate items (guards against an overly broad merge), both asserted in one test
+- [x] Green: `ShoppingCart.addItem` scans for an existing item by `productId`; if found, replaces it in place via `Item.increaseQuantity(amount)` (a new method on the record, keeping the original `id`, `priceWhenAdded`, and `productName` — only quantity changes); otherwise appends as today
+- [ ] Refactor: minor nit noted — the new `Item` is constructed unconditionally before the merge check, including a wasted `UUID.randomUUID()` call on the merge path; cheap to move into the append-only branch. Not blocking
+- [x] Full suite green (confirmed by user; not independently re-run per their instruction)
 
 ---
 
@@ -90,12 +91,10 @@ Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../pro
 - [ ] `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green
 - [ ] Manual smoke via bruno: `POST /basket/items` twice with the same `productId` — basket ends up with one line at quantity 2, not two lines and not a crash
 - [ ] Manual smoke: checkout that basket — no crash, resulting outbox/integration event's `totalPrice` reflects current catalog price × quantity, not `priceWhenAdded`
-- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — narrow Known Bug 1 to just the remaining defect: `ShoppingCart.checkout` still throws `NullPointerException` if a cart item's product can't be priced at checkout (deleted/discontinued), because `CheckoutBasketHandler` silently drops unresolvable products from `currentPrices` instead of surfacing the failure. Quantity-ignored and the duplicate-product crash are both genuinely fixed and drop out of the bug's text
-- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — remove Testing Gap 1 (closed for real: `ShoppingCartTest` now covers `checkout()`'s calculation directly, plus `addItem`'s merge)
-- [ ] [BACKLOG.md](../../../docs/BACKLOG.md) — revise Backlog 1 into two entries:
-  1. **`Order.totalPrice` still doesn't exist.** Basket now computes a correct, current-price total, but `CreateOrderCommand`/`Order.create` ignore it entirely — the value is computed and still never used downstream. Building it needs a decision on whether `Order` trusts the event's value or re-derives its own from items it received (see the reasoning against trusting a caller-computed number, worked out during this plan's discussion).
-  2. **`BasketCheckedOut`'s items don't reflect current price.** `totalPrice` is current-price-based but each item still only carries `priceWhenAdded`, so the event's total doesn't reconcile against summing its own item lines, and there's no way for a consumer to show the customer an add-time-vs-current-price delta. Needs a dedicated shape (e.g. `CheckedOutItem` carrying both prices) — deliberately not `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field.
-- [ ] Check [README.md](../../../README.md) for anything describing basket item `color`, or a checkout total price worth documenting
+- [x] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — narrowed Known Bug 1 to just the remaining defect (`ShoppingCart.checkout` can still NPE on a product that can't be priced at checkout). Quantity-ignored and the duplicate-product crash are both genuinely fixed and dropped from the bug's text
+- [x] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) — removed Testing Gap 1 (closed for real by `ShoppingCartTest`; remaining gaps keep their original numbers 2–7, not renumbered, matching this project's existing numbering convention)
+- [x] [BACKLOG.md](../../../docs/BACKLOG.md) — revised item 1 into `Order.totalPrice` Doesn't Exist (resolved pricing-basis context, decision now framed as trust-vs-derive), and added a new item 8, `BasketCheckedOut` Items Don't Reflect Current Price
+- [x] Checked [README.md](../../../README.md) for anything describing basket item `color` or a checkout total price — no mentions of either, nothing to update
 
 ---
 

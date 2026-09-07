@@ -48,8 +48,14 @@ public class ShoppingCart extends AggregateRoot<String> {
     }
 
     public void addItem(UUID productId, int quantity, BigDecimal price, String productName){
-        var item = new Item(UUID.randomUUID(), productId, quantity, price, productName);
-        items.add(item);
+        for (int i = 0 ; i < items.size(); i++) {
+            var existingItem = items.get(i);
+            if (existingItem.productId().equals(productId)) {
+                items.set(i, existingItem.increaseQuantity(quantity));
+                return;
+            }
+        }
+        items.add(new Item(UUID.randomUUID(), productId, quantity, price, productName));
     }
 
     public void removeItem(UUID productId){
