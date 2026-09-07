@@ -44,7 +44,7 @@ class RemoveItemFromBasketHandlerTest {
     @DisplayName("Give existing cart, when remove item from basket command is sent, then item is removed from basket")
     void givenExistingCart_whenRemoveItemFromBasketCommandIsSent_thenItemIsRemovedFromBasket() {
         var existingCart = ShoppingCartMother.cart();
-        existingCart.addItem(product.id(), 2, "blue", product.price(), product.name());
+        existingCart.addItem(product.id(), 2, product.price(), product.name());
         repository.save(existingCart);
         assertThat(repository.findByUsername(existingCart.id())).isPresent().get().extracting(ShoppingCart::id).isEqualTo(existingCart.id());
         var cmd = new RemoveItemFromBasketCommand(

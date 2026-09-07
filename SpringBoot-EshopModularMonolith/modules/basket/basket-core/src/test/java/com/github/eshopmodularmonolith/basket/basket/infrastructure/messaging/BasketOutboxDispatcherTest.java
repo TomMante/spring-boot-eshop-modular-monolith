@@ -39,7 +39,7 @@ class BasketOutboxDispatcherTest {
     @Test
     @DisplayName("Given a BasketCheckedOut in the outbox, when dispatching, then it is translated to an integration event and marked processed")
     void givenOutboxMessagesToBeProcessed_whenDispatching_thenMessagesAreDispatched() {
-        var item = new Item(UUID.randomUUID(), UUID.randomUUID(), 2, "red", new BigDecimal("9.99"), "socks");
+        var item = new Item(UUID.randomUUID(), UUID.randomUUID(), 2, new BigDecimal("9.99"), "socks");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();
@@ -50,7 +50,7 @@ class BasketOutboxDispatcherTest {
         dispatcher.dispatch();
         assertThat(outboxEventStore.fetchUnprocessedEvents()).isEmpty();
 
-        var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.color(), item.priceWhenAdded(), item.productName());
+        var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
         verify(messageBus, times(1)).publish(
                 new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98"), DTOMapper.toDto(billingAddress), DTOMapper.toDto(payment), DTOMapper.toDto(shippingAddress)));
     }

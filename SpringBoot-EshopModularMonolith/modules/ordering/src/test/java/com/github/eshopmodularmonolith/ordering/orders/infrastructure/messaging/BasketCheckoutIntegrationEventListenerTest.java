@@ -73,7 +73,7 @@ class BasketCheckoutIntegrationEventListenerTest {
     void givenBasketCheckoutIntegrationEvent_whenPublished_thenOrderIsCreated() {
         var itemId = UUID.randomUUID();
         var productId = UUID.randomUUID();
-        var item = new ItemDTO(itemId, productId, 2, "Blue", BigDecimal.valueOf(12.50), "Boba");
+        var item = new ItemDTO(itemId, productId, 2, BigDecimal.valueOf(12.50), "Boba");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();

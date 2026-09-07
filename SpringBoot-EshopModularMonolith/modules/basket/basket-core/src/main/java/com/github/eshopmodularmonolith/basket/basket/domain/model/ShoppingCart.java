@@ -47,9 +47,15 @@ public class ShoppingCart extends AggregateRoot<String> {
         return new ShoppingCart(userName, items);
     }
 
-    public void addItem(UUID productId, int quantity, String color, BigDecimal price, String productName){
-        var item = new Item(UUID.randomUUID(), productId, quantity, color, price, productName);
-        items.add(item);
+    public void addItem(UUID productId, int quantity, BigDecimal price, String productName){
+        for (int i = 0 ; i < items.size(); i++) {
+            var existingItem = items.get(i);
+            if (existingItem.productId().equals(productId)) {
+                items.set(i, existingItem.increaseQuantity(quantity));
+                return;
+            }
+        }
+        items.add(new Item(UUID.randomUUID(), productId, quantity, price, productName));
     }
 
     public void removeItem(UUID productId){
@@ -57,7 +63,9 @@ public class ShoppingCart extends AggregateRoot<String> {
     }
 
     public void checkout(Map<UUID, BigDecimal> currentPrices, Address billingAddress, Payment payment, Address shippingAddress) {
-        var totalPrice = items.stream().map(i -> currentPrices.get(i.productId())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var totalPrice = items.stream()
+                .map(i -> currentPrices.get(i.productId()).multiply(BigDecimal.valueOf(i.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         var event = new BasketCheckedOut(userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
     }

@@ -13,6 +13,14 @@ public class AddressMother {
         return new Builder().withState(state).build();
     }
 
+    public static Address billing() {
+        return address("Billing State");
+    }
+
+    public static Address shipping() {
+        return address("Shipping State");
+    }
+
     public static class Builder {
         private String firstName = "John";
         private String lastName = "Doe";
@@ -27,7 +35,7 @@ public class AddressMother {
             return this;
         }
 
-        public Address build(){
+        public Address build() {
             return new Address(firstName, lastName, emailAddress, addressLine, country, state, zipCode);
         }
     }

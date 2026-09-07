@@ -54,15 +54,13 @@ class AddItemIntoBasketControllerTest {
     void givenEndpointIsAvailable_whenAddItemIntoBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var request = new AddItemIntoBasketRequest(
             UUID.randomUUID(),
-                10,
-                "Blue"
+                10
         );
 
         var cmd = new AddItemIntoBasketCommand(
                 "test_user",
                 request.productId(),
-                request.quantity(),
-                request.color()
+                request.quantity()
         );
 
         mockMvc.perform(post("/basket/items")
@@ -79,8 +77,7 @@ class AddItemIntoBasketControllerTest {
     void whenProductIdIsMissing_thenValidationErrorReturned() throws Exception{
         var request = new AddItemIntoBasketRequest(
                 null,
-                0,
-                null
+                0
         );
 
         mockMvc.perform(post("/basket/items")

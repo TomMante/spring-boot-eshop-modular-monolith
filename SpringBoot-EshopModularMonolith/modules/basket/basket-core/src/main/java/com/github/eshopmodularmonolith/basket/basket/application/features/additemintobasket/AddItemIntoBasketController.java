@@ -22,7 +22,7 @@ public class AddItemIntoBasketController {
     @PostMapping("/basket/items")
     public ResponseEntity<Void> addItemIntoBasket(@RequestBody @Validated AddItemIntoBasketRequest request,
                                                   @AuthenticatedUser CurrentUser currentUser){
-        var cmd = new AddItemIntoBasketCommand(currentUser.username(), request.productId(), request.quantity(), request.color());
+        var cmd = new AddItemIntoBasketCommand(currentUser.username(), request.productId(), request.quantity());
         handler.handle(cmd);
         return ResponseEntity.accepted().build();
     }

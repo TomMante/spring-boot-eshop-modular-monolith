@@ -55,7 +55,7 @@ class CheckoutBasketHandlerTest {
     @DisplayName("Given existing cart, when checkout command is received, then cart is checked out")
     void givenExistingCart_whenCheckoutCommandIsReceived_thenCartIsCheckedOut() {
         var addedPrice = BigDecimal.valueOf(400);
-        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, "blue", addedPrice, product.name()))).build();
+        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name()))).build();
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
@@ -88,7 +88,7 @@ class CheckoutBasketHandlerTest {
     @DisplayName("Given existing cart, when checkout command is received without shipping address, then cart is checked out with shipping address as billing address")
     void givenExistingCart_whenCheckoutCommandIsReceivedWithoutShippingAddress_thenCartIsCheckedOutWithShippingAddressAsBillingAddress() {
         var addedPrice = BigDecimal.valueOf(400);
-        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, "blue", addedPrice, product.name()))).build();
+        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name()))).build();
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
         var payment = PaymentMother.payment();

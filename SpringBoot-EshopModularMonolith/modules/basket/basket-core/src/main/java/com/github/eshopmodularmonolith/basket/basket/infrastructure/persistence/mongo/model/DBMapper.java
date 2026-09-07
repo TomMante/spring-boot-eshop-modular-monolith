@@ -13,15 +13,15 @@ public class DBMapper {
     }
 
     public static ItemDB toDb(Item cartItem){
-        return new ItemDB(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.priceWhenAdded(), cartItem.productName());
+        return new ItemDB(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.priceWhenAdded(), cartItem.productName());
     }
 
     public static Item toDomain(ItemDB cartItem){
-        return new Item(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.price(), cartItem.productName());
+        return new Item(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.price(), cartItem.productName());
     }
 
     public static ItemDTO toDTO(ItemDB cartItem){
-        return new ItemDTO(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.color(), cartItem.price(), cartItem.productName());
+        return new ItemDTO(cartItem.id(), cartItem.productId(), cartItem.quantity(), cartItem.price(), cartItem.productName());
     }
 
     public static ShoppingCartDB toDb(ShoppingCart cart){

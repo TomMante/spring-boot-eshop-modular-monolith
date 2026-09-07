@@ -19,19 +19,11 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 
 ## 🎯 Ready to pick up
 
-### 1. Pricing Basis and `Order.totalPrice`
-- **Decision needed first:** the two price sources in the system disagree by design, and storing both without choosing persists a contradiction — `Σ(item.price × quantity)` will not equal `totalPrice` whenever a catalog price moves between add and checkout, and nothing marks which is authoritative.
-
-  | Value | Source | Meaning |
-  | --- | --- | --- |
-  | ordering `Item.price` | basket's `priceWhenAdded` | price when the item was added to the cart |
-  | event `totalPrice` | `ShoppingCart.checkout(currentPrices)`, refetched from the catalog | price at checkout |
-
-  - *Checkout-time pricing* — conventional for e-commerce, price confirmed at purchase. Checkout overwrites item prices with current ones; total is `Σ(current price × quantity)`. Gives the basket's refetch an actual purpose.
-  - *Add-time pricing* — the customer keeps the price they saw. Basket stops refetching; total is `Σ(priceWhenAdded × quantity)`, derivable from items, so storing it is an audit snapshot rather than new information.
-- **Then, in one piece of work:** fix the `ShoppingCart.checkout` defects (Known Bug 1), and add `totalPrice` to `Order`, `OrderDB`, `OrderDTO`, both mappers, and `CreateOrderCommand`/`Request`/`Controller`.
-- **Closes:** Known Bug 1 and Testing Gap 1 — the total-price calculation is the one piece of domain logic here that earns an isolated `ShoppingCartTest`.
-- **Why deferred:** the previous increment would have had to persist a number already known to be wrong. Not persisting it yet was the better of the two.
+### 1. `Order.totalPrice` Doesn't Exist
+- **Resolved by [basket-quantity-fix](../ai-coding-tools/plans/basket-quantity-fix/basket-quantity-fix.md):** the pricing-basis question this item used to gate on is settled — checkout-time pricing, `Σ(current catalog price × quantity)`, fetched via `ProductService` at checkout. That plan also fixed `ShoppingCart.checkout`'s defects (closed Known Bug 1) and added `ShoppingCartTest` (closed Testing Gap 1).
+- **What's still missing:** `CreateOrderCommand`/`Order.create` never receive or compute a total at all. Basket now computes a correct, current-price `totalPrice` on `BasketCheckedOut`, but `BasketCheckoutIntegrationEventListener` still never reads it — the value is computed and still never used downstream.
+- **Decision needed:** should `Order` trust the value carried on the integration event, or re-derive its own from the items it received? Trusting a caller-computed number repeats the shape of the bug this item used to describe — an aggregate should generally own its own invariant rather than believe one handed to it. Settle this before adding `totalPrice` to `Order`, `OrderDB`, `OrderDTO`, both mappers, and (if the event's value isn't trusted) `CreateOrderCommand`/`Request`/`Controller`.
+- **Why still deferred:** demonstrating the current-price-at-checkout mechanism was that plan's priority; wiring the result into `Order` is separate, smaller work once the trust-vs-derive question is answered.
 
 ### 2. Nested Validation on Address and Payment Contents
 - Neither `CreateOrderRequest` nor `CheckoutBasketRequest` validates the fields *inside* an address or payment — only that the object itself is present. An address of all-blank strings is accepted by both entry points.
@@ -46,6 +38,12 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md) proves a transactional write resolves its manager for catalog (`CreateProductHandler` through `JpaProductRepository`) but not for basket. `CheckoutBasketHandler` is `@Transactional("basketTransactionManager")` against Mongo, and Mongo transactions require `MongoDBContainer.withReplicaSet()`.
 - **Why deferred:** that increment deliberately paid for one container shape (plain `MongoDBContainer`) to get the catalog path green first, rather than the replica-set startup cost before anything worked.
 - **Action:** add a second write-and-read-back test in `ApplicationWiringTest`, switching `mongoDb` to `.withReplicaSet()`, exercising `CheckoutBasketHandler`.
+
+### 8. `BasketCheckedOut` Items Don't Reflect Current Price
+- [basket-quantity-fix](../ai-coding-tools/plans/basket-quantity-fix/basket-quantity-fix.md) made `BasketCheckedOut.totalPrice` correct — `Σ(current catalog price × quantity)` — but each `Item` on that same event still only carries `priceWhenAdded`, the add-time price. Summing the event's own item lines does not reconcile against its `totalPrice`.
+- **Why it matters:** there's no way for a consumer of this event to show a customer the add-time-vs-current-price delta ("price dropped since you added it"), and the event is internally inconsistent for anyone reading it later, e.g. as an audit trail.
+- **Action:** needs a dedicated shape carrying both prices per item (e.g. `CheckedOutItem(id, productId, quantity, priceWhenAdded, currentPrice, productName)`) — deliberately not a change to `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field.
+- **Why deferred:** proving the current-price-at-checkout mechanism exists at all was the priority; representing both prices together, and any delta view built on it, is separate follow-up work.
 
 ## ⏳ Gated on a trigger
 
