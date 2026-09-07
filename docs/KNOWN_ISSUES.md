@@ -10,12 +10,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 
 ## 🐛 Known Bugs
 
-### 1. `ShoppingCart.checkout` Can NPE on an Unpriceable Product
-- **Location:** `ShoppingCart.checkout(Map<UUID, BigDecimal> currentPrices, ...)`, `CheckoutBasketHandler.handle`
-- **Issue:** `CheckoutBasketHandler` builds `currentPrices` from `ProductService.fetchProductInfo` per cart item, but `.flatMap(Optional::stream)` silently drops any product that can't be found — so a deleted or discontinued product simply has no entry in the map. `ShoppingCart.checkout`'s `currentPrices.get(item.productId())` then returns `null` for that item, throwing a `NullPointerException` at `.multiply(...)`, before the total is even reduced.
-- **Impact:** A basket containing a product removed from the catalog between add and checkout crashes checkout instead of failing predictably.
-- **Action Required:** Decide reject-vs-skip: either `ShoppingCart.checkout` throws a named domain exception when a product can't be priced (rejecting the whole checkout, surfaced as a 4xx) or the unpriceable item is excluded with the customer informed some other way. Either closes this; the crash is the issue, not which one is chosen.
-
 ### 2. `BasketOutboxDispatcher` Has No Per-Event Error Isolation
 - **Location:** `BasketOutboxDispatcher.dispatch()`
 - **Issue:** The loop publishes an event and then calls `markAsProcessed`. If a consumer throws, the exception propagates out of the scheduled method *before* the event is marked processed, so it is republished every 5 seconds indefinitely — and because the loop never resumes, that one document also blocks every later event in the basket outbox. There is no dead-letter path and no retry limit.
