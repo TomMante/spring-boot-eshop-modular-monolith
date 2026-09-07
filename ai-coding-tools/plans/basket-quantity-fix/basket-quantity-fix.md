@@ -77,11 +77,13 @@ Per the "TDD where it earns its cost" rule in [rules-of-engagement.md](../../pro
 - [x] Full suite green (`basket-contract`, `basket-core`, `ordering`)
 
 ### 3. Fix `ShoppingCart.addItem` to merge duplicate products
-*New deterministic behavior with real regression risk — strict red → green → refactor. This is the fix for Known Bug 1's duplicate-product crash and, together with step 2, closes Testing Gap 1.*
+*New deterministic behavior with real regression risk — strict red → green → refactor. Together with step 2, closes Testing Gap 1.*
+
+**Caveat found during Copilot review, not fully closed:** this step stops `addItem` from ever *creating* a duplicate `productId` going forward, but `CheckoutBasketHandler`'s `Collectors.toMap(ProductInfo::id, ProductInfo::price)` still has no merge function — a cart that already contains a duplicate (e.g. reconstituted from data written before this fix) would still throw `IllegalStateException` there, before `ShoppingCart.checkout` is ever reached. `ShoppingCartTest`'s duplicate-item case proves `checkout()`'s own calculation is robust to duplicates; it doesn't cover the handler's map-building, which is where the crash actually lives. Known Bug 1's "duplicate-product crash" framing was closed based on the `addItem` fix alone — that claim is narrower than it reads.
 
 - [x] Red first: `ShoppingCartTest` — adding the same `productId` twice sums quantity into one `Item` instead of appending a second, and adding a different product keeps both as separate items (guards against an overly broad merge), both asserted in one test
 - [x] Green: `ShoppingCart.addItem` scans for an existing item by `productId`; if found, replaces it in place via `Item.increaseQuantity(amount)` (a new method on the record, keeping the original `id`, `priceWhenAdded`, and `productName` — only quantity changes); otherwise appends as today
-- [ ] Refactor: minor nit noted — the new `Item` is constructed unconditionally before the merge check, including a wasted `UUID.randomUUID()` call on the merge path; cheap to move into the append-only branch. Not blocking
+- [x] Refactor: done — the new `Item` is now only constructed on the append path (`items.add(new Item(...))`), not unconditionally before the merge check. The nit noted here earlier no longer applies to the code as written.
 - [x] Full suite green (confirmed by user; not independently re-run per their instruction)
 
 ---
