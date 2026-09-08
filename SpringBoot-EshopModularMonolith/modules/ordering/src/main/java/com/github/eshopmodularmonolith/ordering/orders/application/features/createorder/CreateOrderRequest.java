@@ -4,6 +4,7 @@ import com.github.eshopmodularmonolith.ordering.orders.contract.AddressDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.ItemDTO;
 import com.github.eshopmodularmonolith.ordering.orders.contract.PaymentDTO;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public record CreateOrderRequest(
         PaymentDTO payment,
         @NotNull(message = "{ordering.order.shippingAddress.notNull}")
         AddressDTO shippingAddress,
+        @NotEmpty(message = "{ordering.order.items.notEmpty}")
         List<ItemDTO> items
 ) {
 }

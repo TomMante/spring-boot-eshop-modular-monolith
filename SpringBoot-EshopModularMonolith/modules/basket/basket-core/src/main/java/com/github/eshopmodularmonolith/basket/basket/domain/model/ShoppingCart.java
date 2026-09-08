@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.domain.model;
 
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
@@ -64,6 +65,9 @@ public class ShoppingCart extends AggregateRoot<String> {
     }
 
     public void checkout(Map<UUID, BigDecimal> currentPrices, Address billingAddress, Payment payment, Address shippingAddress) {
+        if (items.isEmpty()) {
+            throw new EmptyCartCheckout();
+        }
         var totalPrice = items.stream()
                 .map(i -> {
                     var currentPrice = currentPrices.get(i.productId());

@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
 import com.github.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.shared.contract.error.ApiError;
 import com.github.eshopmodularmonolith.shared.contract.error.ApiErrors;
@@ -19,5 +20,10 @@ public class CheckoutBasketErrorHandler {
     @ExceptionHandler(BasketNotFound.class)
     public ResponseEntity<ApiError> handler(BasketNotFound exception) {
         return ApiErrors.notFound("basket.not-found", exception.getLocalizedMessage());
+    }
+
+    @ExceptionHandler(EmptyCartCheckout.class)
+    public ResponseEntity<ApiError> handler(EmptyCartCheckout exception) {
+        return ApiErrors.badRequest("basket.checkout.empty-cart", exception.getLocalizedMessage());
     }
 }
