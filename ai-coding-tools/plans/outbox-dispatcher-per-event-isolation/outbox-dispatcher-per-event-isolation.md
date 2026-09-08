@@ -50,9 +50,9 @@ Also raised during planning: since `OutboxEventProcessor` is a genuinely shared,
 - [x] Full suite green (confirmed by the user).
 
 ## Verification
-- `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green.
-- Update [docs/KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) Known Bug 2: broaden **Location** to `OutboxEventProcessor` (shared) plus both concrete dispatchers, narrow **Issue**/**Impact** to reflect that a failure no longer stops the batch or blocks unrelated events, and narrow **Action Required** to just the still-open half — deciding attempt-counter/dead-letter semantics so a poisoned event doesn't retry forever with no visibility beyond a log line. Do not remove the entry; the bug is only partially closed.
-- Checked [README.md](../../../README.md) — no mention of outbox/dispatch behavior, nothing to update.
+- [x] `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green.
+- [x] Updated [docs/KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md) Known Bug 2 (retitled "Outbox Dispatchers Have No Retry Limit or Dead-Letter State for a Poisoned Event"): broadened **Location** to `OutboxEventProcessor` (shared) plus both concrete dispatchers, narrowed **Issue**/**Impact** to reflect that a failure no longer stops the batch or blocks unrelated events, and narrowed **Action Required** to just the still-open half. Entry kept, not removed — the bug is only partially closed. Checked for stale cross-references to the old title/location elsewhere (BACKLOG.md, other Known Issues entries, frozen plans); none found needing an update.
+- [x] Checked [README.md](../../../README.md) — no mention of outbox/dispatch behavior, nothing to update.
 
 ## Explicitly deferred
 - Attempt-counter / dead-letter state for a permanently-poisoned event — confirmed out of scope with the user; recorded as the narrowed remainder of Known Bug 2 rather than dropped.
