@@ -7,8 +7,8 @@ import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
+import com.github.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeMessageBus;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeOutboxEventStore;
-import com.github.eshopmodularmonolith.shared.infrastructure.MessageBus;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,19 +19,16 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 class BasketOutboxDispatcherTest {
 
     private OutboxEventStore outboxEventStore;
-    private MessageBus messageBus;
+    private FakeMessageBus messageBus;
     private BasketOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        messageBus = mock(MessageBus.class);
+        messageBus = new FakeMessageBus();
         outboxEventStore = new FakeOutboxEventStore();
         dispatcher = new BasketOutboxDispatcher(outboxEventStore, messageBus);
     }
@@ -51,7 +48,8 @@ class BasketOutboxDispatcherTest {
         assertThat(outboxEventStore.fetchUnprocessedEvents()).isEmpty();
 
         var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
-        verify(messageBus, times(1)).publish(
-                new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98"), DTOMapper.toDto(billingAddress), DTOMapper.toDto(payment), DTOMapper.toDto(shippingAddress)));
+        assertThat(messageBus.publishedMessages()).hasSize(1);
+        assertThat(messageBus.publishedMessages())
+                .containsExactly(new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98"), DTOMapper.toDto(billingAddress), DTOMapper.toDto(payment), DTOMapper.toDto(shippingAddress)));
     }
 }

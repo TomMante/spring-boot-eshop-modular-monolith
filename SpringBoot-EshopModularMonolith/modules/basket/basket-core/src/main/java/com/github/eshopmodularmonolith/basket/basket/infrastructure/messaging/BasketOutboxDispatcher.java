@@ -10,6 +10,7 @@ import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Address
 import com.github.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.infrastructure.MessageBus;
+import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventProcessor;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,22 +19,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class BasketOutboxDispatcher {
 
-    private final OutboxEventStore outboxEventStore;
     private final MessageBus messageBus;
+    private final OutboxEventProcessor outboxEventProcessor;
 
     public BasketOutboxDispatcher(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
-        this.outboxEventStore = outboxEventStore;
         this.messageBus = messageBus;
+        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore);
     }
 
     @Scheduled(fixedDelay = 5000)
     public void dispatch() {
-        var events = outboxEventStore.fetchUnprocessedEvents();
-        for (DomainEvent event : events) {
-            if (event instanceof BasketCheckedOut e) {
-                messageBus.publish(toIntegrationEvent(e));
-            }
-            outboxEventStore.markAsProcessed(event);
+        outboxEventProcessor.dispatchPendingEvents(this::publish);
+    }
+
+    private void publish(DomainEvent event) {
+        if (event instanceof BasketCheckedOut e) {
+            messageBus.publish(toIntegrationEvent(e));
         }
     }
 

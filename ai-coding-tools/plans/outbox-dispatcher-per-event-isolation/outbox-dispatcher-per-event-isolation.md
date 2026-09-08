@@ -37,10 +37,10 @@ Also raised during planning: since `OutboxEventProcessor` is a genuinely shared,
 - [x] Full suite green (confirmed by the user).
 
 ### 2. Wire `BasketOutboxDispatcher` to `OutboxEventProcessor`
-- [ ] Add `FakeMessageBus` to the basket-core test tree, alongside the existing `FakeOutboxEventStore`: implements `MessageBus`, records published messages, exposed via `published()`.
-- [ ] `BasketOutboxDispatcher`: add an `OutboxEventProcessor` field built from its own `OutboxEventStore`; keep the `MessageBus` field as-is; `dispatch()` becomes `@Scheduled(fixedDelay = 5000) public void dispatch() { outboxEventProcessor.dispatchPendingEvents(this::publish); }`; move the `BasketCheckedOut` instanceof/mapping/`messageBus.publish` line into a new private `publish(DomainEvent event)` method.
-- [ ] Convert `BasketOutboxDispatcherTest`'s existing test off `mock(MessageBus.class)`/`verify(...)` onto `FakeMessageBus`, asserting `messageBus.published()` contains the expected `BasketCheckoutIntegrationEvent`.
-- [ ] Full suite green.
+- [x] Added `FakeMessageBus` to the basket-core test tree (`.fake` subpackage, alongside `FakeOutboxEventStore`): implements `MessageBus`, records published messages via `publishedMessages()`.
+- [x] `BasketOutboxDispatcher`: the raw `OutboxEventStore` field was dropped (nothing else needed it) in favor of an `OutboxEventProcessor` field built from it in the constructor; `MessageBus` stays a direct field; `dispatch()` delegates via `outboxEventProcessor.dispatchPendingEvents(this::publish)`; the `BasketCheckedOut` instanceof/mapping/`messageBus.publish` line moved into a private `publish(DomainEvent event)` method.
+- [x] Converted `BasketOutboxDispatcherTest`'s existing test off `mock(MessageBus.class)`/`verify(...)` onto `FakeMessageBus`, asserting `messageBus.publishedMessages()` contains the expected `BasketCheckoutIntegrationEvent`. Also removed the four imports (`MessageBus`, `mock`, `times`, `verify`) left dangling by that conversion.
+- [x] Full suite green (confirmed by the user).
 
 ### 3. Wire `CatalogOutboxDispatcher` to `OutboxEventProcessor`
 - [ ] Add the same `FakeMessageBus` shape to the catalog-core test tree.
