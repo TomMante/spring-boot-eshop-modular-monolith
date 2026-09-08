@@ -30,9 +30,9 @@ Also raised during planning: since `OutboxEventProcessor` is a genuinely shared,
 ## Todo List
 
 ### 1. Build and prove `OutboxEventProcessor` in `shared.infrastructure` (TDD)
-- [ ] Add `EventPublisher` functional interface (`void publish(DomainEvent event)`).
-- [ ] Add `FakeOutboxEventStore` to the shared module's test tree (same shape as basket-core's and catalog-core's existing ones).
-- [ ] Red first: in a new `OutboxEventProcessorTest`, save two domain events (a local test-only `DomainEvent` record, mirroring the one already in [OutboxEventSubscriberTest.java](../../../SpringBoot-EshopModularMonolith/shared/src/test/java/com/github/eshopmodularmonolith/shared/infrastructure/OutboxEventSubscriberTest.java)) to `FakeOutboxEventStore`. Call `dispatchPendingEvents` with a lambda that throws for the first event and records the second into a list. Assert the call doesn't throw, the list contains only the second event, and the first remains in `fetchUnprocessedEvents()`.
+- [x] Add `EventPublisher` functional interface (`void publish(DomainEvent event)`).
+- [x] Add `FakeOutboxEventStore` to the shared module's test tree (`shared.infrastructure.fake`, matching basket-core's/catalog-core's existing package shape; implemented as a single `LinkedHashMap` of unprocessed events, removed on `markAsProcessed` — a cleaner equivalent, not a copy, of the two-map version those two use).
+- [x] Red first: in a new `OutboxEventProcessorTest`, save two domain events (a local test-only `DomainEvent` record, mirroring the one already in [OutboxEventSubscriberTest.java](../../../SpringBoot-EshopModularMonolith/shared/src/test/java/com/github/eshopmodularmonolith/shared/infrastructure/OutboxEventSubscriberTest.java)) to `FakeOutboxEventStore`. Call `dispatchPendingEvents` with a lambda that throws for the poisoned event and records the healthy one into a `published` list. Assert the call doesn't throw, `published` contains exactly the healthy event, and the poisoned one remains in `fetchUnprocessedEvents()`. Confirmed red against the current no-op stub (`mvn test -Dtest=OutboxEventProcessorTest -pl shared -am`): fails because nothing gets marked processed yet, for the expected reason.
 - [ ] Green: implement `OutboxEventProcessor` (constructor takes `OutboxEventStore`; `dispatchPendingEvents(EventPublisher publish)` with the try/catch loop) and its `logger` field.
 - [ ] Full suite green.
 
