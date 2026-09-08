@@ -1,32 +1,29 @@
-package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
+package com.github.eshopmodularmonolith.catalog.products.infrastructure.messaging;
 
 
 import com.github.eshopmodularmonolith.catalog.products.contract.integrationevents.ProductCreatedMessage;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
-import com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeOutboxEventStore;
-import com.github.eshopmodularmonolith.shared.infrastructure.MessageBus;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.messaging.fake.FakeMessageBus;
+import com.github.eshopmodularmonolith.catalog.products.infrastructure.messaging.fake.FakeOutboxEventStore;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
-class OutboxDispatcherTest {
+class CatalogOutboxDispatcherTest {
 
 
     private OutboxEventStore outboxEventStore;
-    private MessageBus messageBus;
+    private FakeMessageBus messageBus;
     private CatalogOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        messageBus = Mockito.mock(MessageBus.class);
+        messageBus = new FakeMessageBus();
         outboxEventStore = new FakeOutboxEventStore();
         dispatcher = new CatalogOutboxDispatcher(outboxEventStore, messageBus);
     }
@@ -40,7 +37,8 @@ class OutboxDispatcherTest {
         assertThat(outboxEventStore.fetchUnprocessedEvents()).isNotEmpty();
         dispatcher.dispatch();
         assertThat(outboxEventStore.fetchUnprocessedEvents()).isEmpty();
-        verify(messageBus, times(1)).publish(new ProductCreatedMessage(domainEvent.productId()));
+        assertThat(messageBus.publishedMessages()).hasSize(1);
+        assertThat(messageBus.publishedMessages()).containsExactly(new ProductCreatedMessage(domainEvent.productId()));
     }
 
 }
