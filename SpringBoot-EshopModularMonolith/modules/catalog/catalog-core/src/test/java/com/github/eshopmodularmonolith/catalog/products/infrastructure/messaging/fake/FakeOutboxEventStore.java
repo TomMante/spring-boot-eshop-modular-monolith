@@ -1,4 +1,4 @@
-package com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake;
+package com.github.eshopmodularmonolith.catalog.products.infrastructure.messaging.fake;
 
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
