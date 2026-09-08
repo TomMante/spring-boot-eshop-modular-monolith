@@ -90,4 +90,16 @@ class CreateOrderHandlerTest {
                 List.of(ItemMother.item()));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Payment info is required");
     }
+
+    @Test
+    @DisplayName("Given create order command with no items, when handler is called, then order is rejected")
+    void givenCreateOrderCommandWithNoItems_whenHandlerIsCalled_thenOrderIsRejected(){
+        var createOrder = new CreateOrderCommand(
+                "top_customer",
+                AddressMother.billing(),
+                PaymentMother.payment(),
+                AddressMother.shipping(),
+                List.of());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Order must contain at least one item");
+    }
 }

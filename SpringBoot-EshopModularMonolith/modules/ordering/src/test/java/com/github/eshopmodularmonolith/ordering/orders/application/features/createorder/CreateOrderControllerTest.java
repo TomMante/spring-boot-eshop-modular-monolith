@@ -193,4 +193,48 @@ class CreateOrderControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.payment").value("Payment method is required."));
     }
+
+    @Test
+    @DisplayName("When the items list is null, then validation error returned")
+    void whenItemsIsNull_thenValidationErrorReturned() throws Exception{
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address();
+        var payment = PaymentMother.payment();
+
+        var request = new CreateOrderRequest(
+                "top_customer",
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
+                null
+        );
+
+        mockMvc.perform(post("/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.items").value("At least one item is required."));
+    }
+
+    @Test
+    @DisplayName("When the items list is empty, then validation error returned")
+    void whenItemsIsEmpty_thenValidationErrorReturned() throws Exception{
+        var billingAddress = AddressMother.address();
+        var shippingAddress = AddressMother.address();
+        var payment = PaymentMother.payment();
+
+        var request = new CreateOrderRequest(
+                "top_customer",
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                DTOMapper.toDto(shippingAddress),
+                List.of()
+        );
+
+        mockMvc.perform(post("/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.items").value("At least one item is required."));
+    }
 }

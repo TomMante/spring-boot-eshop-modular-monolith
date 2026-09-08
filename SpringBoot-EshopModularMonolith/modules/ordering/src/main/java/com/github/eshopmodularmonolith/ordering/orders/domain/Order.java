@@ -40,6 +40,7 @@ public class Order extends AggregateRoot<UUID> {
         if (billingAddress == null) throw new IllegalArgumentException("Billing address is required");
         if (payment == null) throw new IllegalArgumentException("Payment info is required");
         if (shippingAddress == null) throw new IllegalArgumentException("Shipping address is required");
+        if (items == null || items.isEmpty()) throw new IllegalArgumentException("Order must contain at least one item");
         return new Order(UUID.randomUUID(), items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
