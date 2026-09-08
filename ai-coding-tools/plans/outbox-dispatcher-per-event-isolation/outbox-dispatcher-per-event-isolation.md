@@ -33,8 +33,8 @@ Also raised during planning: since `OutboxEventProcessor` is a genuinely shared,
 - [x] Add `EventPublisher` functional interface (`void publish(DomainEvent event)`).
 - [x] Add `FakeOutboxEventStore` to the shared module's test tree (`shared.infrastructure.fake`, matching basket-core's/catalog-core's existing package shape; implemented as a single `LinkedHashMap` of unprocessed events, removed on `markAsProcessed` — a cleaner equivalent, not a copy, of the two-map version those two use).
 - [x] Red first: in a new `OutboxEventProcessorTest`, save two domain events (a local test-only `DomainEvent` record, mirroring the one already in [OutboxEventSubscriberTest.java](../../../SpringBoot-EshopModularMonolith/shared/src/test/java/com/github/eshopmodularmonolith/shared/infrastructure/OutboxEventSubscriberTest.java)) to `FakeOutboxEventStore`. Call `dispatchPendingEvents` with a lambda that throws for the poisoned event and records the healthy one into a `published` list. Assert the call doesn't throw, `published` contains exactly the healthy event, and the poisoned one remains in `fetchUnprocessedEvents()`. Confirmed red against the current no-op stub (`mvn test -Dtest=OutboxEventProcessorTest -pl shared -am`): fails because nothing gets marked processed yet, for the expected reason.
-- [ ] Green: implement `OutboxEventProcessor` (constructor takes `OutboxEventStore`; `dispatchPendingEvents(EventPublisher publish)` with the try/catch loop) and its `logger` field.
-- [ ] Full suite green.
+- [x] Green: implemented `OutboxEventProcessor` (constructor takes `OutboxEventStore`; `dispatchPendingEvents(EventPublisher publisher)` with the try/catch loop, `logger.error` on failure) — matches the design exactly.
+- [x] Full suite green (confirmed by the user).
 
 ### 2. Wire `BasketOutboxDispatcher` to `OutboxEventProcessor`
 - [ ] Add `FakeMessageBus` to the basket-core test tree, alongside the existing `FakeOutboxEventStore`: implements `MessageBus`, records published messages, exposed via `published()`.
