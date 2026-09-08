@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.basket.basket.domain.model;
 import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,17 @@ class ShoppingCartTest {
 
         assertThatExceptionOfType(UnpriceableCartItem.class)
                 .isThrownBy(() -> shoppingCart.checkout(currentPrices, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
+
+        assertThat(shoppingCart.clearDomainEvents()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Given an empty shopping cart, when checkout happens, then EmptyCartCheckout is thrown")
+    void givenEmptyShoppingCart_whenCheckoutHappens_thenEmptyCartCheckoutIsThrown() {
+        var shoppingCart = ShoppingCart.create("testUser");
+
+        assertThatExceptionOfType(EmptyCartCheckout.class)
+                .isThrownBy(() -> shoppingCart.checkout(Map.of(), AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
 
         assertThat(shoppingCart.clearDomainEvents()).isEmpty();
     }

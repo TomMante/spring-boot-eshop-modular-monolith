@@ -5,6 +5,7 @@ import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
@@ -133,5 +134,15 @@ class CheckoutBasketHandlerTest {
         var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), PaymentMother.payment(), null);
 
         assertThatExceptionOfType(UnpriceableCartItem.class).isThrownBy(() -> handler.handle(cmd));
+    }
+
+    @Test
+    @DisplayName("Given an empty cart, when checkout command is received, then EmptyCartCheckout is thrown")
+    void givenEmptyCart_whenCheckoutCommandIsReceived_thenEmptyCartCheckoutIsThrown() {
+        var existingCart = ShoppingCartMother.create().build();
+        repository.save(existingCart);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), PaymentMother.payment(), null);
+
+        assertThatExceptionOfType(EmptyCartCheckout.class).isThrownBy(() -> handler.handle(cmd));
     }
 }

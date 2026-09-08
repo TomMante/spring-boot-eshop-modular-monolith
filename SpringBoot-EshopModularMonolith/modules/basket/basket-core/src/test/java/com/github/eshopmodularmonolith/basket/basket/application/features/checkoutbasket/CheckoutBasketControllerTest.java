@@ -5,6 +5,7 @@ import com.github.eshopmodularmonolith.basket.basket.application.exceptions.Bask
 import com.github.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
 import com.github.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import com.github.eshopmodularmonolith.basket.basket.domain.PaymentMother;
+import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
@@ -191,5 +192,26 @@ class CheckoutBasketControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("basket.not-found"));
+    }
+
+    @Test
+    @DisplayName("Given an empty cart, when checkout basket endpoint is called, then Bad Request is returned")
+    void givenEmptyCart_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
+        var billingAddress = AddressMother.address();
+        var payment = PaymentMother.payment();
+        var request = new CheckoutBasketRequest(
+                DTOMapper.toDto(billingAddress),
+                DTOMapper.toDto(payment),
+                null
+        );
+
+        doThrow(new EmptyCartCheckout()).when(handler).handle(any());
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("basket.checkout.empty-cart"));
     }
 }
