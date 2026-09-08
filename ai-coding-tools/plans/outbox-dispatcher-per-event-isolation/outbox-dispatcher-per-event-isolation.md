@@ -17,6 +17,7 @@ Raised during planning: since the fetch-loop-isolate-mark shape is identical in 
 - **`BasketOutboxDispatcher` and `CatalogOutboxDispatcher` hold an `OutboxEventProcessor` field** (constructed from their own `@Qualifier`-ed `OutboxEventStore`) alongside their existing `MessageBus` field — no inheritance, no change to Spring wiring or bean qualifiers. Each keeps its own `@Scheduled(fixedDelay = 5000) public void dispatch() { outboxEventProcessor.dispatchPendingEvents(this::publish); }` (same cadence as today); `publish(DomainEvent event)` becomes a private method holding exactly the `instanceof` check + mapping + `messageBus.publish(...)` call each already has today. No change to the public `dispatch()` contract either dispatcher's tests currently exercise.
 - **Logging convention:** `private static final Logger logger = LoggerFactory.getLogger(OutboxEventProcessor.class)` via `org.slf4j`, matching the existing pattern in [BasketCheckedOutHandler.java](../../../SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/main/java/com/github/eshopmodularmonolith/basket/basket/application/features/checkoutbasket/BasketCheckedOutHandler.java). Log at `error` with the event's `eventId()` and `eventType()` — both available on every `DomainEvent`, so `OutboxEventProcessor` needs no per-event-type-specific fields.
 - **Not adding retry/attempt-count/dead-letter state** — that's the explicitly deferred half of Known Bug 2, requiring an `OutboxEventStore` port change; recorded back into the doc, not silently dropped.
+- **`FakeMessageBus` replaces the Mockito mock in both dispatcher test files.** Both `BasketOutboxDispatcherTest` and `OutboxDispatcherTest` (catalog) currently mock `MessageBus` and `verify(...)` it was called — this plan adds a `FakeMessageBus` per module (same one-fake-per-module pattern `FakeOutboxEventStore` already uses, since `MessageBus` is a shared-module port), recording published messages and offering `failToPublish(message)` to simulate a downstream listener throwing. Per [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md), faking at the port and asserting outcomes (what got published, what's still unprocessed) is preferred over mocking and verifying a collaborator was called — a mock can't simulate a failure mid-call anyway, which this plan's isolation test needs. Each module's existing dispatch test is folded onto the same fake while we're in the file, so both test files end up with one test-double style instead of two.
 
 ## Testing rigor
 
@@ -27,7 +28,9 @@ Raised during planning: since the fetch-loop-isolate-mark shape is identical in 
 ## Todo List
 
 ### 1. Prove per-event isolation in `BasketOutboxDispatcher` (TDD)
-- [ ] Red first: in `BasketOutboxDispatcherTest`, save two `BasketCheckedOut` events to the (existing) `FakeOutboxEventStore`; stub `messageBus.publish(...)` to throw for the first event's translated `BasketCheckoutIntegrationEvent` and succeed for the second. Assert `dispatcher.dispatch()` does not throw, the second event is published and marked processed (absent from `fetchUnprocessedEvents()`), and the first remains in `fetchUnprocessedEvents()` (unprocessed, retried next run).
+- [ ] Add `FakeMessageBus` to the basket-core test tree, alongside the existing `FakeOutboxEventStore`: implements `MessageBus`, records published messages in a list exposed via `published()`, and offers `failToPublish(message)` to mark a specific (equals-matched) message as one whose `publish(...)` call throws.
+- [ ] Convert `BasketOutboxDispatcherTest`'s existing test off `mock(MessageBus.class)`/`verify(...)` onto `FakeMessageBus`, asserting `messageBus.published()` contains the expected `BasketCheckoutIntegrationEvent` instead.
+- [ ] Red first: save two `BasketCheckedOut` events to the (existing) `FakeOutboxEventStore`; call `messageBus.failToPublish(...)` with the first event's translated `BasketCheckoutIntegrationEvent`. Assert `dispatcher.dispatch()` does not throw, `messageBus.published()` contains only the second event's translated message, and the first event remains in `fetchUnprocessedEvents()` (unprocessed, retried next run).
 - [ ] Green: wrap the per-event work in `BasketOutboxDispatcher.dispatch()`'s loop in `try { ...; markAsProcessed(event); } catch (Exception ex) { logger.error(...); }`, with a `logger` field on the class.
 - [ ] Full suite green.
 
@@ -39,7 +42,8 @@ Raised during planning: since the fetch-loop-isolate-mark shape is identical in 
 
 ### 3. Apply `OutboxEventProcessor` to `CatalogOutboxDispatcher`
 - [ ] `CatalogOutboxDispatcher`: same shape — an `OutboxEventProcessor` field, `dispatch()` delegates via `this::publish`, the existing `ProductCreated` instanceof/mapping/`messageBus.publish` line moves into a private `publish(DomainEvent event)` method.
-- [ ] `OutboxDispatcherTest`: add the same-shape isolation test as Step 1 (two `ProductCreated` events, first's `ProductCreatedMessage` publish throws, second succeeds) — mirrors an established pattern, written alongside the change rather than red-first.
+- [ ] Add the same `FakeMessageBus` shape to the catalog-core test tree, and convert `OutboxDispatcherTest`'s existing test off `mock(MessageBus.class)`/`verify(...)` onto it, same as Step 1.
+- [ ] Add the same-shape isolation test as Step 1 (two `ProductCreated` events, `failToPublish` the first's `ProductCreatedMessage`, second succeeds) — mirrors an already-established, already-proven pattern, written alongside the change rather than red-first.
 - [ ] Full suite green.
 
 ## Verification
