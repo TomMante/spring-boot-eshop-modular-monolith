@@ -2,7 +2,7 @@
 
 Manual test collection covering every REST endpoint currently exposed by the app (Basket, Catalog, Ordering), plus a request to obtain a Keycloak access token.
 
-This folder is untracked for now — add it to git yourself when ready (see the note in the parent conversation).
+The collection itself is committed; `environments/local.bru` is not, because it holds the Keycloak client secret and a user password. Bruno creates it for you when you select the **local** environment — fill it in following *One-time setup* below.
 
 ## Prerequisites
 

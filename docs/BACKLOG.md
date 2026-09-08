@@ -45,6 +45,12 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Action:** needs a dedicated shape carrying both prices per item (e.g. `CheckedOutItem(id, productId, quantity, priceWhenAdded, currentPrice, productName)`) — deliberately not a change to `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field.
 - **Why deferred:** proving the current-price-at-checkout mechanism exists at all was the priority; representing both prices together, and any delta view built on it, is separate follow-up work.
 
+### 9. Module Isolation Is Asserted but Not Enforced
+- The central architectural claim — modules do not share a database and communicate only through Spring `ApplicationEvents`, never direct calls — is stated in [ARCHITECTURE.md](ARCHITECTURE.md) and in the project instructions, and nothing fails when it is broken. A direct call from one module's handler into another's, or a repository reaching across schemas, compiles and passes the suite today.
+- **What this would take:** an ArchUnit test asserting the rules that already exist in prose — no package under one module depends on another module's `core`/internal packages, only its `-contract`; `shared.ddd` depends on neither infrastructure nor contract; `shared.contract` depends on no domain or infrastructure type; nothing outside a module's own package touches its persistence classes. Spring Modulith is the alternative, and would replace hand-written rules with its own model plus documentation generation — a larger adoption decision, not a drop-in.
+- **Why deferred:** the rules have held so far by discipline and review, so this buys regression safety rather than a fix. It becomes urgent as soon as anyone other than the author writes a module, or the codebase grows past what one person keeps in their head.
+- **Note:** whichever route is chosen, the payoff is only real if the check runs in CI — the existing GitHub Actions workflows already run `mvn verify`, so an ArchUnit test in the normal suite needs no pipeline change.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.
