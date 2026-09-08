@@ -29,12 +29,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Mitigated so far:** `InMemoryMessageBus` no longer logs message payloads, so the data does not reach application logs.
 - **Action Required:** Out of reach of a refactor — it needs a payment provider integration, so that checkout carries a provider token instead of card details and no module ever sees a PAN. Until then, do not add further copies, and keep payloads out of logs.
 
-### 5. Checkout Accepts an Empty Basket
-- **Locations:** `CheckoutBasketHandler.handle`, `ShoppingCart.checkout`, `Order.create`
-- **Issue:** No layer rejects a checkout with no items. The handler does not guard, `ShoppingCart.checkout` reduces an empty stream to a `totalPrice` of zero, and `Order.create` validates address and payment but not the item list. The result is a persisted order with no items and a zero total, from a request that is meaningless.
-- **Impact:** A junk order is created and is indistinguishable in the read model from a real one.
-- **Action Required:** Two rules, and both are needed — an empty basket should be rejected at the checkout entry point with a 400, and `Order.create` should refuse an empty item list as an invariant. Fixing only the aggregate turns a bad request into a poison outbox event instead of an HTTP error (see Known Bug 2).
-
 ### 6. No Consumer-Side Idempotency
 - **Locations:** `BasketCheckoutIntegrationEvent.eventId`, `BasketCheckoutIntegrationEventListener.handle`
 - **Issue:** The integration event carries an `eventId`, but nothing consults it. The outbox is at-least-once by construction — `BasketOutboxDispatcher` publishes and only then calls `markAsProcessed`, so a crash or failure between the two republishes an event that was already handled. The listener creates an order unconditionally.

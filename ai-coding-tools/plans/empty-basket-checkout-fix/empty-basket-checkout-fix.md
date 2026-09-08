@@ -1,9 +1,9 @@
 # Empty Basket Checkout Fix
 
 ## Status
-- [ ] Step 1 — `ShoppingCart.checkout` rejects an empty cart.
-- [ ] Step 2 — `Order.create` refuses an empty item list.
-- [ ] Step 3 — `CreateOrderRequest.items` rejects null/empty at the `/order` entry point.
+- [x] Step 1 — `ShoppingCart.checkout` rejects an empty cart. Full suite green.
+- [x] Step 2 — `Order.create` refuses an empty item list. Full suite green.
+- [x] Step 3 — `CreateOrderRequest.items` rejects null/empty at the `/order` entry point. Full suite green.
 
 ## Context
 
@@ -27,29 +27,29 @@ While investigating, found a related but distinct gap: `CreateOrderRequest.items
 ## Todo List
 
 ### 1. `ShoppingCart.checkout` rejects an empty cart
-- [ ] Red first: in `ShoppingCartTest`, `ShoppingCart.create(...)` with no items → `checkout` throws `EmptyCartCheckout`, and no domain event is recorded.
-- [ ] Green: add `com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout extends RuntimeException` (no-arg, message `"Cannot checkout an empty cart."`). `ShoppingCart.checkout` throws it first, before building `currentPrices`/`totalPrice`, when `items.isEmpty()`.
-- [ ] Refactor: none anticipated.
-- [ ] Add to the existing `CheckoutBasketErrorHandler`: `EmptyCartCheckout` → `ApiErrors.badRequest("basket.checkout.empty-cart", exception.getLocalizedMessage())`.
-- [ ] `CheckoutBasketControllerTest`: one test mocking `CheckoutBasketHandler` to throw `EmptyCartCheckout`, asserting 400 + `$.code == "basket.checkout.empty-cart"` (same shape as the existing unpriceable-item test).
-- [ ] `CheckoutBasketHandlerTest`: one test — save a cart via `ShoppingCartMother.create().build()` (no items), assert `handler.handle(cmd)` throws `EmptyCartCheckout`. This is the originally-reported flow: create a basket, checkout without adding anything.
-- [ ] Full suite green.
+- [x] Red first: in `ShoppingCartTest`, `ShoppingCart.create(...)` with no items → `checkout` throws `EmptyCartCheckout`, and no domain event is recorded.
+- [x] Green: added `com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout extends RuntimeException` (no-arg, message `"Cannot checkout an empty cart."`). `ShoppingCart.checkout` throws it first, before building `currentPrices`/`totalPrice`, when `items.isEmpty()`.
+- [x] Refactor: not needed.
+- [x] Added to the existing `CheckoutBasketErrorHandler`: `EmptyCartCheckout` → `ApiErrors.badRequest("basket.checkout.empty-cart", exception.getLocalizedMessage())`.
+- [x] `CheckoutBasketControllerTest`: added a test mocking `CheckoutBasketHandler` to throw `EmptyCartCheckout`, asserting 400 + `$.code == "basket.checkout.empty-cart"`.
+- [x] `CheckoutBasketHandlerTest`: added a test — cart saved via `ShoppingCartMother.create().build()` (no items) — asserting `handler.handle(cmd)` throws `EmptyCartCheckout`.
+- [x] Full suite green (46/46 in basket-core).
 
 ### 2. `Order.create` refuses an empty item list
-- [ ] Add `if (items == null || items.isEmpty()) throw new IllegalArgumentException("Order must contain at least one item");` to `Order.create`, alongside its three existing checks.
-- [ ] `CreateOrderHandlerTest`: add "Given create order command with no items, when handler is called, then order is rejected" (`List.of()`), mirroring the existing missing-billing/-payment/-shipping tests exactly (`assertThatExceptionOfType(IllegalArgumentException.class)...withMessageContaining(...)`).
-- [ ] Full suite green.
+- [x] Added `if (items == null || items.isEmpty()) throw new IllegalArgumentException("Order must contain at least one item");` to `Order.create`, alongside its three existing checks.
+- [x] `CreateOrderHandlerTest`: added "Given create order command with no items, when handler is called, then order is rejected" (`List.of()`), mirroring the existing missing-billing/-payment/-shipping tests exactly.
+- [x] Full suite green.
 
 ### 3. `CreateOrderRequest.items` rejects null/empty at the `/order` entry point
-- [ ] Add `@NotEmpty(message = "{ordering.order.items.notEmpty}")` to `CreateOrderRequest.items`.
-- [ ] Add `ordering.order.items.notEmpty=At least one item is required.` to `modules/ordering/src/main/resources/messages.properties`, alongside the three existing keys.
-- [ ] `CreateOrderControllerTest`: two tests mirroring the existing missing-field tests — `items: null` and `items: []` — both expecting 400 + `$.fieldErrors.items == "At least one item is required."`.
-- [ ] Full suite green.
+- [x] Added `@NotEmpty(message = "{ordering.order.items.notEmpty}")` to `CreateOrderRequest.items`.
+- [x] Added `ordering.order.items.notEmpty=At least one item is required.` to `modules/ordering/src/main/resources/messages.properties`, alongside the three existing keys.
+- [x] `CreateOrderControllerTest`: added two tests mirroring the existing missing-field tests — `items: null` and `items: []` — both asserting 400 + `$.fieldErrors.items == "At least one item is required."`.
+- [x] Full suite green (30/30 in ordering).
 
 ## Verification
-- `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green.
-- Update `docs/KNOWN_ISSUES.md`: remove Known Bug 5 entirely (both required rules now in place, plus the bundled `/order` request-validation gap).
-- Check [README.md](../../../README.md) for anything describing checkout/order-creation validation that needs updating (backend-only change; confirm nothing to update).
+- [x] `mvn test -f SpringBoot-EshopModularMonolith/pom.xml` — full suite green.
+- [x] Updated `docs/KNOWN_ISSUES.md`: removed Known Bug 5 entirely (both required rules now in place, plus the bundled `/order` request-validation gap).
+- [x] Checked [README.md](../../../README.md) for anything describing checkout/order-creation validation — backend-only change, nothing there needed updating.
 
 ## Explicitly deferred
 None anticipated. If anything surfaces mid-implementation, route it per the closeout convention (Known Issues / Backlog / consciously dropped) before opening the PR.
