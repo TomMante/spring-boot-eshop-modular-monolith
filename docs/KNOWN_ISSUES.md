@@ -56,6 +56,13 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** The manifests as written would never pass readiness, and the pod would be killed by the liveness probe on a loop. Invisible today because nothing deploys them.
 - **Action Required:** Permit the health endpoint explicitly (`/actuator/health/**`, and `/actuator/info` if wanted) in `SecurityFilterChainConfig`, and state the exposed management endpoints in configuration rather than relying on defaults. Decide deliberately whether liveness and readiness should use the separate `health/liveness` and `health/readiness` groups; anything beyond health should stay authenticated.
 
+### 11. Dead `sessionManagement` Line Implies a Statelessness That Is Not Configured
+- **Location:** `SecurityFilterChainConfig.filterChain`, line 16
+- **Issue:** `.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))` is present as a commented-out line. It is not a toggle — `SessionCreationPolicy` is not imported, so uncommenting it would not compile. A reader scanning the filter chain sees statelessness apparently configured; the running application uses the default policy, under which a session may be created.
+- **On the CSRF hotspot flagged alongside it:** `.csrf(AbstractHttpConfigurer::disable)` **is correct here and must not be "fixed" by enabling CSRF.** CSRF protection exists for credentials a browser attaches automatically — session cookies, custom auth cookies, HTTP Basic. This application authenticates solely with an `Authorization: Bearer` header that a client must set explicitly, and a cross-site attacker cannot make the browser add it. Verified across the codebase: no `formLogin`, no `httpBasic`, no cookie-based authentication, no session use of any kind. Enabling CSRF would break every API client for no security gain.
+- **Impact:** No vulnerability today. The exposure is that the safety argument above is written nowhere in the code, and the one line that would make it structural is commented out. If a browser-facing or cookie-borne login is ever added, the CSRF disable silently becomes a real hole, and the next reader has no record of the premise it depended on.
+- **Action Required:** Delete the commented-out line or restore it properly with its import — `STATELESS` is the right policy for this application either way. Replace it with a brief comment stating why CSRF is disabled and the condition under which that stops being true, so the reasoning survives the next Sonar hotspot review instead of being re-derived.
+
 ## 🧪 Testing Considerations & Gaps
 
 ### 2. Missing Failure Path in `UpdateProductHandler`

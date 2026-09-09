@@ -24,7 +24,7 @@ public class JpaProductQueryRepository implements ProductQueryRepository {
     @Override
     public PageResult<ProductDTO> paginatedProducts(PageRequest pageRequest) {
         var orderBy = pageRequest.sortOrders().stream()
-                .map(s -> "p." + s.property() + " " + s.direction().name())
+                .map(sortOrder -> ProductSortField.from(sortOrder.property()).jpqlPath() + " " + sortOrder.direction().name())
                 .collect(Collectors.joining(", "));
 
         var query = entityManager.createQuery("""
