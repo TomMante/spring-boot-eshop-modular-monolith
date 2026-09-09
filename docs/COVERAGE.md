@@ -51,29 +51,58 @@ module. There are ten.
 
 ## Constraint 2: the report path must resolve in every project
 
-`sonar.coverage.jacoco.xmlReportPaths` is resolved per project, so a path
-written relative to `${basedir}` has to match that project's nesting depth.
-Counting `../` per module is how this was done originally, and four modules
-counted wrong — silently, because a path that does not resolve produces no
-coverage rather than an error.
-
-It is now declared once, in the root pom, with two complementary entries:
+`sonar.coverage.jacoco.xmlReportPaths` is resolved per project, so a path written
+relative to `${project.basedir}` has to match that project's nesting depth. It is
+declared once, in the root pom, as one entry per depth:
 
 ```xml
-<sonar.coverage.jacoco.xmlReportPaths>${project.parent.basedir}/${aggregate.report.dir},${project.basedir}/${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>
+<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/${aggregate.report.dir},${project.basedir}/../${aggregate.report.dir},${project.basedir}/../../${aggregate.report.dir},${project.basedir}/../../../${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>
 ```
 
-| Project | `${project.parent.basedir}` | `${project.basedir}` |
-|---|---|---|
-| any module | Maven root ✅ | wrong |
-| root reactor | unresolvable | Maven root ✅ |
+Depth 0 is the root reactor, 1 the top-level modules, 2 `modules/*`, 3
+`modules/*/*`. Every project matches exactly one; the scanner accepts a
+comma-separated list and imports coverage as long as **one** entry resolves, so
+the other three are harmlessly absent. **Adding a fourth nesting level means
+adding a fifth entry** — that is the cost of this approach, and it is the reason
+to keep the module tree shallow.
 
-Every module in this build declares the root pom as its **direct** parent, at
-every depth, so the first entry is correct everywhere except the root itself —
-which the second entry covers. The scanner accepts a comma-separated list and is
-satisfied when one entry resolves, so each project silently uses whichever
-applies. Nothing counts directories, so a module added at any depth inherits a
-correct path.
+Keep it on one line. The value is split on commas and a multi-line value has been
+a source of stray whitespace in entries here before.
+
+### Why not one depth-independent expression
+
+`${project.parent.basedir}` looks like it removes the counting — every module here
+declares the root pom as its direct parent, so it would name the Maven root from
+any depth. **It does not work, and it fails silently.** Maven's *model*
+interpolator, which produces the property value the scanner reads, resolves
+`${project.basedir}` as a special case but has no `basedir` for `project.parent`,
+which is a `Parent` element rather than a project. The expression survives
+uninterpolated into the effective POM, and Sonar receives the literal string:
+
+```
+No coverage report can be found with sonar.coverage.jacoco.xmlReportPaths=
+'${project.parent.basedir}/sonar/target/site/jacoco-aggregate/jacoco.xml,…'
+```
+
+`${maven.multiModuleProjectDirectory}` is a second tempting answer with a
+different flaw: it is set by the `mvn` launcher by walking **up** from the
+working directory looking for `.mvn/`, so it is correct when the build is started
+from the Maven root and wrong when started from the repository root with `-f`.
+
+### Verifying a change to this property
+
+Use `help:effective-pom`, never `help:evaluate`. They resolve expressions through
+different mechanisms — `help:evaluate` uses the plugin parameter evaluator, which
+resolves `${project.parent.basedir}` quite happily — and only the effective POM
+shows what the scanner will actually see:
+
+```bash
+./mvnw -B -pl <module> help:effective-pom -Doutput=/tmp/eff.xml
+grep -o '<sonar.coverage.jacoco.xmlReportPaths>[^<]*' /tmp/eff.xml
+```
+
+Check both that no entry still contains a `${...}` and that exactly one names a
+file that exists. Do this for one project at each depth.
 
 ## Where it lives
 
