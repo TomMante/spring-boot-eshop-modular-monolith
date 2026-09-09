@@ -49,6 +49,20 @@ After adding a module, check that
 `sonar/target/site/jacoco-aggregate/` contains one directory per code-bearing
 module. There are ten.
 
+## The two coverage numbers are not the same measurement
+
+The local aggregate and SonarCloud will not agree, and the difference is not a
+fault. JaCoCo's own report is easiest to read as **instruction** coverage;
+SonarCloud's `Coverage` metric combines **line and condition** coverage, so
+uncovered branches pull it down in a way instruction coverage does not. A spread
+of a point or two is normal — 97.0% locally against 95.2% on SonarCloud, for
+example.
+
+Compare like for like before concluding that a module is missing: read the
+per-module list at *Measures → Coverage → view as List*, which shows every
+top-level directory. `sonar` correctly shows no value there, since it has no
+source files.
+
 ## Constraint 2: the report path must resolve in every project
 
 `sonar.coverage.jacoco.xmlReportPaths` is resolved per project, so a path written
