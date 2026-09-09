@@ -35,12 +35,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** A redelivered checkout event creates a duplicate order. The `eventId` reads as if this were handled; it is not.
 - **Action Required:** Dedup on `eventId` at the consumer — a processed-message table or collection checked before handling. This is the counterpart to Known Bug 2: that one decides what happens to an event that never succeeds, this one what happens to an event that succeeds twice.
 
-### 9. Actuator Health Probes Are Rejected by the Security Filter Chain
-- **Locations:** `SecurityFilterChainConfig.filterChain`, `Kubernetes/simple-deployment/backend/deployment.yaml`, `starter/pom.xml`
-- **Issue:** `spring-boot-starter-actuator` is a dependency, and the Kubernetes deployment's liveness and readiness probes both `httpGet` `/actuator/health`. The security chain permits only `/v3/api-docs/**`, `/swagger-ui/**` and `/swagger-ui.html`, and requires authentication for `anyRequest()` — so both probes receive 401. There is additionally no `management.endpoints.web.exposure` configuration anywhere, so which endpoints are even exposed is left to defaults rather than stated.
-- **Impact:** The manifests as written would never pass readiness, and the pod would be killed by the liveness probe on a loop. Invisible today because nothing deploys them.
-- **Action Required:** Permit the health endpoint explicitly (`/actuator/health/**`, and `/actuator/info` if wanted) in `SecurityFilterChainConfig`, and state the exposed management endpoints in configuration rather than relying on defaults. Decide deliberately whether liveness and readiness should use the separate `health/liveness` and `health/readiness` groups; anything beyond health should stay authenticated.
-
 ## 🧪 Testing Considerations & Gaps
 
 ### 2. Missing Failure Path in `UpdateProductHandler`

@@ -11,9 +11,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
@@ -23,8 +25,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 @Testcontainers
 class ApplicationWiringTest {
 
@@ -48,6 +53,9 @@ class ApplicationWiringTest {
 
     @Autowired
     ProductRepository productRepository;
+
+    @Autowired
+    MockMvc mockMvc;
 
     @DisplayName("Given all modules assembled, when context loads, then no exception is thrown")
     @Test
@@ -77,5 +85,12 @@ class ApplicationWiringTest {
         var stored = productRepository.findProductById(productId);
         assertThat(stored).isPresent();
         assertThat(stored.get().name()).isEqualTo(command.name());
+    }
+
+    @Test
+    @DisplayName("Given all modules assembled, when the Kubernetes probes call the health groups, then both answer without authentication")
+    void givenAllModulesAssembled_whenProbesCallTheHealthGroups_thenBothAnswerWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
     }
 }
