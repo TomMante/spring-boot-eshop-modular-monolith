@@ -35,12 +35,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Impact:** A redelivered checkout event creates a duplicate order. The `eventId` reads as if this were handled; it is not.
 - **Action Required:** Dedup on `eventId` at the consumer — a processed-message table or collection checked before handling. This is the counterpart to Known Bug 2: that one decides what happens to an event that never succeeds, this one what happens to an event that succeeds twice.
 
-### 7. Order Sort Has No Tie-Breaker
-- **Location:** `GetOrdersHandler.handle`
-- **Issue:** The read path sorts on `placedAt` DESC alone. Orders sharing an instant compare equal, so their relative order is unspecified — and because the sort is applied per page, a row can appear on two pages or on none while paginating.
-- **Impact:** Non-deterministic pagination. Rare with millisecond precision and organic traffic; reliable in tests and bulk inserts, where it presents as flakiness rather than as a read-model bug.
-- **Action Required:** Add a secondary key — `placedAt` DESC, `id` ASC. More clock precision is not a fix; it only makes collisions rarer.
-
 ### 9. Actuator Health Probes Are Rejected by the Security Filter Chain
 - **Locations:** `SecurityFilterChainConfig.filterChain`, `Kubernetes/simple-deployment/backend/deployment.yaml`, `starter/pom.xml`
 - **Issue:** `spring-boot-starter-actuator` is a dependency, and the Kubernetes deployment's liveness and readiness probes both `httpGet` `/actuator/health`. The security chain permits only `/v3/api-docs/**`, `/swagger-ui/**` and `/swagger-ui.html`, and requires authentication for `anyRequest()` — so both probes receive 401. There is additionally no `management.endpoints.web.exposure` configuration anywhere, so which endpoints are even exposed is left to defaults rather than stated.
@@ -80,3 +74,9 @@ The `UpdateProductHandler` handles the "happy path" (product exists and is updat
 - **Locations:** every `@DataJpaTest`/`@DataMongoTest`-based test's local `@Configuration`, versus the module configs in `main`
 - **Issue:** [assembled-context-wiring-test](../ai-coding-tools/plans/assembled-context-wiring-test/assembled-context-wiring-test.md) closed the gap in one direction — nothing previously loaded the real assembled context — but it cannot see drift in the other direction. A slice test's hand-built `@Configuration` declaring a bean under the wrong name, missing a bean production has, or configuring one differently is invisible to a test of production config, by construction: production is what it loads, so it has nothing to compare against. This was one of the three original failures the new test set out to close (catalog's slice-declared transaction-manager names had drifted from production's) and it remains open.
 - **Improvement:** No single test closes this; it needs slice test configuration to stop being reinvented per test class, or a comparison that isn't itself another hand-built config. Not scoped here.
+
+### 8. `FakeOrderQueryRepository` Orders UUIDs Differently From Mongo
+- **Locations:** `FakeOrderQueryRepository.COMPARATORS_BY_PROPERTY` (`"id"`), `MongoOrderQueryRepository.paginatedOrders`
+- **Issue:** `GetOrdersHandler` now sorts `placedAt` DESC then `id` ASC, and both the fake and Mongo honour the second key — but not in the same order. The fake compares with `UUID.compareTo`, which is **signed** comparison of the two longs; Mongo compares the stored UUID binary **unsigned**, byte by byte. The two disagree for any id whose leading byte is `0x80` or above, which is roughly half of what `UUID.randomUUID()` produces. Found while closing the tie-breaker bug, and worked around there by choosing ids that differ only in their trailing digits — for which both schemes agree by construction.
+- **Impact:** None on production behaviour: the tie-breaker's job is to make the ordering *total and stable*, which it does under either scheme, and the two never run against the same data. The risk is to tests. A future test that seeds arbitrary or random ids and asserts an exact order will pass at one seam and fail at the other, and will read as flakiness in the sort rather than as a difference between the double and the real thing.
+- **Improvement:** Either make the fake's `id` comparator match Mongo's byte order, or state in `FakeOrderQueryRepository` that id order is not modelled faithfully so no test relies on it. Recorded so it is not rediscovered as a surprise; nothing is owed until a test needs id ordering it cannot pick.

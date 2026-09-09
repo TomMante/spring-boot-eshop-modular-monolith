@@ -18,6 +18,10 @@ public class OrderMother {
         return new Builder().withPlacedAt(placedAt).build();
     }
 
+    public static Order order(UUID id, Instant placedAt) {
+        return new Builder().withId(id).withPlacedAt(placedAt).build();
+    }
+
 
     public static class Builder {
         private UUID id = UUID.randomUUID();
@@ -27,6 +31,11 @@ public class OrderMother {
         private Address billingAddress = AddressMother.billing();
         private Payment payment = PaymentMother.payment();
         private Address shippingAddress = AddressMother.shipping();
+
+        public Builder withId(UUID id) {
+            this.id = id;
+            return this;
+        }
 
         public Builder withPlacedAt(Instant placedAt) {
             this.placedAt = placedAt;
