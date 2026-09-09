@@ -15,6 +15,8 @@ Detailed documentation is located in the `docs/` directory:
 - **[Design Notes (options and open questions, not decisions)](docs/DESIGN_NOTES.md)**
 - **[Known Issues (defects & testing gaps)](docs/KNOWN_ISSUES.md)**
 - **[Backlog (work deliberately postponed)](docs/BACKLOG.md)**
+- **[Testing Conventions (what to test, where, and what to call it)](docs/TESTING_CONVENTIONS.md)**
+- **[Coverage Aggregation (how the coverage number is produced)](docs/COVERAGE.md)**
 - **[Setup Instructions](docs/SETUP.md)**
 
 ## Repository Structure

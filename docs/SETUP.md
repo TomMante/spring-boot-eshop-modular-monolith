@@ -2,18 +2,18 @@
 
 ## Prerequisites
 - Java 25+
-- Maven
 - Docker & Docker Compose (for running dependencies like databases and Keycloak)
 
 ## Running the Application
 1. Ensure your local infrastructure (e.g., PostgreSQL, MongoDB, Keycloak) is running.
-2. Build the project:
+2. Build the project (the Maven wrapper pins the Maven version, so no local Maven install is needed):
    ```bash
-   mvn clean install
+   cd SpringBoot-EshopModularMonolith
+   ./mvnw clean install
    ```
 3. Run the application:
    ```bash
-   mvn spring-boot:run
+   ./mvnw spring-boot:run
    ```
 
 ## Keycloak Setup

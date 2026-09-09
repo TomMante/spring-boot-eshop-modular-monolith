@@ -13,13 +13,26 @@ Before making architectural decisions, refactoring, or writing tests, consult th
 Use the [open-points](../skills/open-points/SKILL.md) skill to turn those two files into a prioritized checklist on demand, rather than re-deriving priority by hand each time.
 
 ## 🛠️ Build & Test Commands
-The main Java application is in the `SpringBoot-EshopModularMonolith` directory.
-You must execute all Maven commands from within that directory OR use the `-f` flag.
+The main Java application is in the `SpringBoot-EshopModularMonolith` directory,
+which is also where the Maven wrapper lives. Run commands from there — the wrapper
+pins the Maven version, so use `./mvnw`, not whatever `mvn` is on the PATH.
 
-- **Build:** `mvn clean install -f SpringBoot-EshopModularMonolith/pom.xml`
-- **Test All:** `mvn test -f SpringBoot-EshopModularMonolith/pom.xml`
-- **Test Single:** `mvn test -Dtest=TestClassName -f SpringBoot-EshopModularMonolith/pom.xml`
-- **Coverage:** `mvn clean verify -f SpringBoot-EshopModularMonolith/pom.xml` (Generates Jacoco aggregate report).
+```bash
+cd SpringBoot-EshopModularMonolith
+```
+
+- **Build:** `./mvnw clean install`
+- **Test All:** `./mvnw test`
+- **Test Single:** `./mvnw test -Dtest=TestClassName`
+- **Coverage:** `./mvnw clean verify` (Generates Jacoco aggregate report).
+
+From the repository root, add `-f SpringBoot-EshopModularMonolith/pom.xml` and call the
+wrapper by path: `SpringBoot-EshopModularMonolith/mvnw clean verify -f SpringBoot-EshopModularMonolith/pom.xml`.
+
+**When regenerating the wrapper** (`./mvnw wrapper:wrapper -Dtype=only-script -Dmaven=<version>`),
+check `.mvn/wrapper/maven-wrapper.properties` afterwards: the plugin writes whatever mirror
+the local `settings.xml` defines into `distributionUrl`, and that file is committed. It must
+point at `https://repo.maven.apache.org/maven2/`.
 
 ## 🏗️ Core Constraints (Quick Reference)
 - **Strict Module Isolation:** Modules act like independent microservices. They DO NOT share databases.

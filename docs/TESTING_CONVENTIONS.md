@@ -3,6 +3,9 @@
 Two separate questions: **what to test and where** (below), and **what to call it**
 ([Naming & organization](#naming--organization)).
 
+How coverage is measured across modules is plumbing, not convention, and lives in
+[COVERAGE.md](COVERAGE.md).
+
 ## What to test, and where
 
 ### Test at the behavior seam

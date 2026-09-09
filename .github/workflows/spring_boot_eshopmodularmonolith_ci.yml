@@ -45,4 +45,4 @@ jobs:
         working-directory: SpringBoot-EshopModularMonolith
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify sonar:sonar
+        run: ./mvnw -B verify sonar:sonar

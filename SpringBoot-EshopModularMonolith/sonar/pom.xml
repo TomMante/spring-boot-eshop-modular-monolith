@@ -13,8 +13,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <sonar.coverage.jacoco.xmlReportPaths>${basedir}/../${aggregate.report.dir}
-        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencies>
@@ -46,6 +44,11 @@
         <dependency>
             <groupId>com.github</groupId>
             <artifactId>outbox-jpa</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>outbox-mongo</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

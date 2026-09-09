@@ -43,4 +43,4 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Build and analyze
         working-directory: SpringBoot-EshopModularMonolith
-        run: mvn -B verify
+        run: ./mvnw -B verify
