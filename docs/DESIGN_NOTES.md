@@ -32,3 +32,26 @@ A fuller separation would give the read side its own persisted or derived shape,
 - [TESTING_CONVENTIONS.md](TESTING_CONVENTIONS.md) already reserves Cucumber/`.feature` files for acceptance tests "if this project ever grows that far." Bruno covers the manual version of this today, outside `mvn test`, and caught real bugs the last time checkout changed shape.
 
 **Open question:** whether an automated end-to-end test is ever worth its cost here, or whether the manual Bruno pass stays sufficient for a project this size. Not decided; nothing currently blocks on it.
+
+## Making the JDK Requirement Fail Legibly
+
+A clean checkout built with an older JDK fails at `catalog-contract` with:
+
+```
+Fatal error compiling: error: invalid target release: 25
+```
+
+The message never mentions Java 25, an installation, or what to do. The pin that makes it work on
+the author's machine is `.java-version`, which is deliberately gitignored — it names a locally
+installed jenv alias, so committing it would break anyone using a different version manager. That
+exclusion is right; the unhelpful failure is the cost of it.
+
+[SETUP.md](SETUP.md) now states the prerequisite first and quotes the error, which is the cheap half
+of the fix. The other half would be making the build say it: `maven-enforcer-plugin`'s
+`requireJavaVersion` with a custom message fails before the compiler does and can name the actual
+requirement.
+
+**Open question, and why this stays a note:** whether a study project wants an enforcer plugin in
+the build for one error message a reader hits once. Documented-and-loud may be enough. Worth
+revisiting if anyone actually reports the confusing failure, or if the project ever gains a
+toolchains-based build.

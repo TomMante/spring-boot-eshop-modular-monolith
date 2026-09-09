@@ -1,3 +1,7 @@
+eshop:
+  catalog:
+    seed-demo-data: true
+
 spring:
   application:
     name: eshopmodularmonolith
@@ -11,14 +15,15 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/EShopDb
     username: postgres
-    password: password
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: validate
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   mongodb:
+    uri: mongodb://localhost:27020
     representation:
-      uuid: java_legacy
+      uuid: standard
   data:
     mongodb:
       representation:

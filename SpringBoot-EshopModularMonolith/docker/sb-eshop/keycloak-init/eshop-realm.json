@@ -99,6 +99,30 @@
   "webAuthnPolicyPasswordlessExtraOrigins": [],
   "users": [
     {
+      "id": "b6d3f0a1-4c22-4d7e-9f83-1a5b7c9e0d24",
+      "username": "john",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "totp": false,
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "password"
+        }
+      ],
+      "realmRoles": [
+        "default-roles-eshop"
+      ],
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "groups": []
+    },
+    {
       "id": "ce6112fb-26b3-4d45-ab16-9230e93ea019",
       "username": "service-account-eshop-app",
       "emailVerified": false,
@@ -333,7 +357,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "local-demo-secret",
       "redirectUris": [
         "/*"
       ],

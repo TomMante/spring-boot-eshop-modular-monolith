@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataMongoTest
 @ContextConfiguration(classes = MongoOutboxEventStoreTest.Config.class)
 @TestPropertySource(properties = {
-        "spring.mongodb.representation.uuid=java_legacy",
+        "spring.mongodb.representation.uuid=standard",
         "spring.data.mongodb.representation.big-decimal=decimal128"
 })
 class MongoOutboxEventStoreTest {

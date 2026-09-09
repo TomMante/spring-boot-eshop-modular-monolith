@@ -12,11 +12,13 @@ import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationInitializer;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -76,6 +78,29 @@ public class CatalogModuleConfig {
     @Bean
     FlywayMigrationInitializer catalogFlywayInitializer(@Qualifier("catalogFlyway") Flyway catalogFlyway) {
         return new FlywayMigrationInitializer(catalogFlyway);
+    }
+
+    // Demo data is not schema, so it gets its own history table: the schema's history never records
+    // it, and switching the property off later is a no-op rather than a "migration not resolved
+    // locally" validation failure. baselineOnMigrate is required, not stylistic — by the time this
+    // runs the catalog schema is already non-empty while flyway_seed_history does not yet exist.
+    @Bean
+    @ConditionalOnProperty(name = "eshop.catalog.seed-demo-data", havingValue = "true")
+    Flyway catalogSeedFlyway(DataSource dataSource) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .schemas("catalog")
+                .locations("classpath:db/catalog-seed")
+                .table("flyway_seed_history")
+                .baselineOnMigrate(true)
+                .load();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "eshop.catalog.seed-demo-data", havingValue = "true")
+    @DependsOn("catalogFlywayInitializer")
+    FlywayMigrationInitializer catalogSeedFlywayInitializer(@Qualifier("catalogSeedFlyway") Flyway catalogSeedFlyway) {
+        return new FlywayMigrationInitializer(catalogSeedFlyway);
     }
 
     @Bean("catalogOutboxEventMapper")

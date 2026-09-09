@@ -9,11 +9,18 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      # -h forces TCP: during first-boot init the entrypoint runs a temporary server on the
+      # unix socket only, so a socket check would report ready before postgres-init has run.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d EShopDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   mongodb:
     image: mongo:8.2.5-noble
     command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     ports:
-      - 27020:27017
+      - "27020:27017"
     healthcheck:
       test: mongosh --port 27017 --quiet --eval "try { rs.status().ok } catch(e) { 0 }"
       interval: 5s
@@ -28,14 +35,11 @@ services:
     entrypoint: >
       mongosh --host mongodb:27017 --eval
       'rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]})'
-#  sb-eshop:
-#    image: sb-eshop:test
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=local
-#      - SPRING_DATASOURCE_URL=jdbc:postgresql://eshopdb:5432/EShopDb
-#      - SPRING_DATASOURCE_PASSWORD=postgres
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.4
+    depends_on:
+      eshopdb:
+        condition: service_healthy
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin

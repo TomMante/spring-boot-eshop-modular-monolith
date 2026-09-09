@@ -16,7 +16,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 @Testcontainers
 @EnableMongoAuditing
 @TestPropertySource(properties = {
-        "spring.mongodb.representation.uuid=java_legacy",
+        "spring.mongodb.representation.uuid=standard",
         "spring.data.mongodb.representation.big-decimal=decimal128"
 })
 public abstract class OrderingDatabaseTest {
