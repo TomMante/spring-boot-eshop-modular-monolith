@@ -57,6 +57,12 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Action:** fail the build when the aggregator's dependencies don't match the reactor's code-bearing modules. Options: a `maven-enforcer-plugin` custom rule, or a small script in the existing GitHub Actions workflows comparing the two lists. `jacoco:report-aggregate` offers nothing here — its scope comes from dependencies by design, so the duplication cannot simply be deleted.
 - **Why deferred:** the list is correct as of 2026-09-09 (verified: ten directories in `sonar/target/site/jacoco-aggregate/`, one per code-bearing module), so this buys protection against the next omission rather than fixing a current one.
 
+### 11. `FakeOutboxEventStore` Is Copied Into Two Modules
+- `OutboxEventStore` is a port in `shared.infrastructure`, but its test fake exists twice: `basket-core`'s `basket.infrastructure.messaging.fake.FakeOutboxEventStore` and `catalog-core`'s `products.infrastructure.messaging.fake.FakeOutboxEventStore`. The two are byte-identical apart from the package declaration and two fields that lost their `final` in the copy. The second appeared on 2026-09-08 when catalog's messaging folder structure was aligned with basket's, and it is the largest duplicated block in the codebase.
+- **Action:** keep one fake next to the port it implements — in `shared`, published as a test-jar and depended on from both modules. `basket-core` already consumes `security`'s test-jar, so the pattern exists in the repository. Note that `shared` does **not** currently build a test-jar: the `maven-jar-plugin` `test-jar` execution lives only in `security/pom.xml`, and the same four lines would need adding to `shared/pom.xml`.
+- **Do not "fix" the other duplicates SonarCloud reports.** `OutboxEventEntity` against `OutboxEventDocument` is two adapters over two database engines, which is the architecture this project exists to demonstrate. `Product` against `ProductDB` is a domain model against its persistence projection, which the ports split requires. `PaymentMother`/`AddressMother` across basket and ordering mirror the deliberately per-module `Payment` and `Address` value objects, and sharing them would couple the two modules.
+- **Why deferred:** duplication sits at 2.9%, below the 3% quality gate threshold, and the gate passes. This is tidiness, not a defect, and the copy is confined to test code.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.
