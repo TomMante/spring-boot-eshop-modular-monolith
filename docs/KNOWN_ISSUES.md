@@ -37,12 +37,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 
 ## 🧪 Testing Considerations & Gaps
 
-### 2. Missing Failure Path in `UpdateProductHandler`
-The `UpdateProductHandler` handles the "happy path" (product exists and is updated) but the failure path is untested.
-- **Location:** `UpdateProductHandler.java`
-- **Issue:** The `ProductNotFound` exception thrown inside `.ifPresentOrElse(...)` is never reached in tests.
-- **Improvement:** Add a test scenario in `UpdateProductHandlerTest` ensuring that attempting to update a non-existent product properly aborts and triggers a `ProductNotFound` exception.
-
 ### 3. Untested Application Domain Event Listeners
 - **Locations:** `BasketCheckedOutHandler`, `ProductCreatedHandler`
 - **Issue:** These classes currently report 0 lines covered. Although they might only be logging right now, missing tests mean there is no guarantee that a `ProductCreated` or `BasketCheckedOut` domain event is actually being picked up and routed by the Spring context.
