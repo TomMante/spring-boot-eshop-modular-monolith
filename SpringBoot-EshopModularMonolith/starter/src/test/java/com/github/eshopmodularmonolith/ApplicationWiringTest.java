@@ -88,8 +88,9 @@ class ApplicationWiringTest {
     }
 
     @Test
-    @DisplayName("Given all modules assembled, when the Kubernetes probes call the health groups, then both answer without authentication")
-    void givenAllModulesAssembled_whenProbesCallTheHealthGroups_thenBothAnswerWithoutAuthentication() throws Exception {
+    @DisplayName("Given all modules assembled, when health and its probe groups are called, then all answer without authentication")
+    void givenAllModulesAssembled_whenHealthAndItsProbeGroupsAreCalled_thenAllAnswerWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
     }
