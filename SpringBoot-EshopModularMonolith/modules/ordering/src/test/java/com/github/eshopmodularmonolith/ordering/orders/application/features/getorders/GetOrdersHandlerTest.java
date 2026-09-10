@@ -55,10 +55,12 @@ class GetOrdersHandlerTest {
     @Test
     @DisplayName("Given orders sharing a placedAt instant, when consecutive pages are requested, then each order appears on exactly one page")
     void givenOrdersSharingPlacedAtInstant_whenConsecutivePagesAreRequested_thenEachOrderAppearsOnExactlyOnePage() {
+        // Leading bytes straddle 0x80, where unsigned byte order and UUID.compareTo disagree. The same three
+        // ids are asserted against real Mongo in MongoOrderQueryRepositoryTest.
         var sameInstant = Instant.parse("2025-01-01T00:00:00Z");
-        var firstById = DTOMapper.toDto(OrderMother.order(UUID.fromString("a1000000-0000-4000-8000-000000000001"), sameInstant));
-        var secondById = DTOMapper.toDto(OrderMother.order(UUID.fromString("a1000000-0000-4000-8000-000000000002"), sameInstant));
-        var thirdById = DTOMapper.toDto(OrderMother.order(UUID.fromString("a1000000-0000-4000-8000-000000000003"), sameInstant));
+        var firstById = DTOMapper.toDto(OrderMother.order(UUID.fromString("7f000000-0000-4000-8000-000000000001"), sameInstant));
+        var secondById = DTOMapper.toDto(OrderMother.order(UUID.fromString("80000000-0000-4000-8000-000000000002"), sameInstant));
+        var thirdById = DTOMapper.toDto(OrderMother.order(UUID.fromString("ff000000-0000-4000-8000-000000000003"), sameInstant));
 
         repository.addOrder(thirdById);
         repository.addOrder(firstById);

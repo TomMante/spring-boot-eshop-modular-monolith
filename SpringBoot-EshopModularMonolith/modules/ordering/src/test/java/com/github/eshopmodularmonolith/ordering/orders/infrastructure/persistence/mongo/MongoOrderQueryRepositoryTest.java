@@ -135,13 +135,13 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
         private static final Instant SAME_INSTANT = Instant.parse("2025-01-01T00:00:00Z");
         private static final int PAGE_SIZE = 2;
 
-        // Ids that differ only in their last digit. Mongo compares the stored UUID binary unsigned
-        // byte by byte while the in-memory fake compares with UUID.compareTo, which is signed —
-        // identical leading bytes are what makes the two agree on the order asserted here.
+        // Leading bytes chosen to straddle 0x80, where unsigned byte order and UUID.compareTo's signed
+        // comparison disagree: signed, this list would sort 0x80, 0xff, 0x7f. GetOrdersHandlerTest asserts
+        // the same three ids against the in-memory fake, so the two seams are pinned to one order.
         private static final List<UUID> IDS_IN_ASCENDING_ORDER = List.of(
-                UUID.fromString("a1000000-0000-4000-8000-000000000001"),
-                UUID.fromString("a1000000-0000-4000-8000-000000000002"),
-                UUID.fromString("a1000000-0000-4000-8000-000000000003"));
+                UUID.fromString("7f000000-0000-4000-8000-000000000001"),
+                UUID.fromString("80000000-0000-4000-8000-000000000002"),
+                UUID.fromString("ff000000-0000-4000-8000-000000000003"));
 
         private List<Order> ordersInExpectedOrder;
 
