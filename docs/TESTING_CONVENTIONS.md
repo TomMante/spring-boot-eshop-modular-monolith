@@ -83,6 +83,30 @@ round-trip.
 
 ## Naming & organization
 
+### Class names Surefire will actually run
+
+A test **class** name must end in `Test`, `Tests` or `TestCase`. Those are the
+three patterns `maven-surefire-plugin` is configured with in the root pom, and a
+class outside them is compiled, reported as uncovered, and **silently never
+executed** — the build stays green and the test count simply comes out lower.
+Every class in the suite today ends in `Test`; the other two patterns are
+configured so that the obvious alternative spellings do not vanish.
+
+Two things deliberately left out of that list:
+
+- **`Test*` as a prefix.** It is one of Surefire's own defaults, but it would
+  also match helpers like `security`'s `TestUsersUtils`, which are not tests.
+- **`*IT`.** By convention an `*IT` class belongs to `maven-failsafe-plugin` at
+  the `integration-test` phase, not to Surefire at `test`. This project has no
+  `*IT` class and no Failsafe, and every Testcontainers test runs under Surefire
+  as an ordinary `*Test`. **If you introduce the first `*IT`, settle the Failsafe
+  question before naming it that** — otherwise it will not run, and nothing will
+  say so.
+
+Helper types — fakes, object mothers, test configuration — must **not** end in
+any of the three, which is why the suite uses `FakeOrderRepository`,
+`OrderMother` and `SecurityTestConfig`.
+
 ### Current convention
 
 Tests in this repository name methods with Given / When / Then:
