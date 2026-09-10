@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductMapper.toReadModel;
+import static com.github.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductMapper.updateReadModel;
 
 @Repository
 public class JpaProductRepository implements ProductRepository {
@@ -31,7 +32,11 @@ public class JpaProductRepository implements ProductRepository {
     @Transactional(transactionManager = "catalogTransactionManager")
     @Override
     public void save(Product product) {
-        repository.save(toReadModel(product));
+        // An existing row is loaded and mutated rather than overwritten with a projection built from the domain:
+        // ProductDB does not carry every column, so merging one would write nulls over the columns it omits.
+        repository.findById(product.id()).ifPresentOrElse(
+                storedProduct -> updateReadModel(storedProduct, product),
+                () -> repository.save(toReadModel(product)));
         var events = product.clearDomainEvents();
 
 

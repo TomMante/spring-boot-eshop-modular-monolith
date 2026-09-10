@@ -4,7 +4,9 @@ package com.github.eshopmodularmonolith.catalog.products.infrastructure.persiste
 import com.github.eshopmodularmonolith.catalog.products.domain.ProductMother;
 import com.github.eshopmodularmonolith.catalog.products.domain.model.Product;
 import com.github.eshopmodularmonolith.shared.domain.DomainEventPublisher;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,8 +23,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +36,8 @@ import static org.mockito.Mockito.verify;
 @ContextConfiguration(classes = JpaProductRepositoryTest.Config.class)
 @Import(JpaProductRepository.class)
 class JpaProductRepositoryTest extends CatalogDatabaseTest {
+
+    private static final String CONFIGURED_AUDITOR = "test-auditor";
 
     @Configuration
     @EnableAutoConfiguration
@@ -42,6 +49,12 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
         PlatformTransactionManager catalogTransactionManager(EntityManagerFactory emf) {
             return new JpaTransactionManager(emf);
         }
+
+        // Without an auditor, @CreatedBy is null on every row and any assertion about it holds vacuously.
+        @Bean
+        AuditorAware<String> auditorProvider() {
+            return () -> Optional.of(CONFIGURED_AUDITOR);
+        }
     }
 
     @MockitoBean
@@ -49,6 +62,9 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
 
     @Autowired
     private JpaProductRepository repository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
 
     @Test
@@ -90,5 +106,37 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
         repository.save(product);
 
         verify(domainEventPublisher, times(1)).publish(events);
+    }
+
+    @Test
+    @DisplayName("Given existing product in database, when saving an updated product, then the creation audit columns are preserved")
+    void givenExistingProductInDatabase_whenSavingAnUpdatedProduct_thenTheCreationAuditColumnsArePreserved() {
+        var product = ProductMother.product();
+        repository.save(product);
+        var rowAfterInsert = storedRowFor(product.id());
+
+        var updatedProduct = product.update("Galaxy Ultra", product.categories(), product.description(),
+                product.imageFile(), product.price());
+        repository.save(updatedProduct);
+        var rowAfterUpdate = storedRowFor(product.id());
+
+        assertThat(rowAfterInsert.createdBy()).isEqualTo(CONFIGURED_AUDITOR);
+        assertThat(rowAfterUpdate.name()).isEqualTo("Galaxy Ultra");
+        assertThat(rowAfterUpdate.createdAt()).isEqualTo(rowAfterInsert.createdAt());
+        assertThat(rowAfterUpdate.createdBy()).isEqualTo(rowAfterInsert.createdBy());
+    }
+
+    // Reads the stored columns rather than the entity: merge copies the detached projection's null audit
+    // fields onto the managed instance, so the persistence context reports nulls the database never took.
+    private StoredProductRow storedRowFor(UUID productId) {
+        entityManager.flush();
+        var columns = (Object[]) entityManager
+                .createNativeQuery("select created_at, created_by, name from catalog.products where id = :productId")
+                .setParameter("productId", productId)
+                .getSingleResult();
+        return new StoredProductRow((LocalDateTime) columns[0], (String) columns[1], (String) columns[2]);
+    }
+
+    private record StoredProductRow(LocalDateTime createdAt, String createdBy, String name) {
     }
 }

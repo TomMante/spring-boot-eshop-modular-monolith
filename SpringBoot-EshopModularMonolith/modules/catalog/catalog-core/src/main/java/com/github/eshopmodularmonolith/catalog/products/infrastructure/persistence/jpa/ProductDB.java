@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,14 @@ public class ProductDB {
         this.id = id;
         this.name = name;
         this.categories = categories;
+        this.description = description;
+        this.imageFile = imageFile;
+        this.price = price;
+    }
+
+    void update(String name, List<String> categories, String description, String imageFile, BigDecimal price) {
+        this.name = name;
+        this.categories = new ArrayList<>(categories);
         this.description = description;
         this.imageFile = imageFile;
         this.price = price;

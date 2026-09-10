@@ -53,12 +53,6 @@ The `UpdateProductHandler` handles the "happy path" (product exists and is updat
 - **Issue:** The class is completely empty and misses test coverage.
 - **Improvement:** Implement the error handler to provide a proper Contract DTO error response (instead of an unhandled 500 Server Error) if order creation fails, and add corresponding tests.
 
-### 5. No Test Exercises an Update Through the JPA Adapter
-- **Locations:** `JpaProductRepository.save`, `JpaAuditMetadata`
-- **Issue:** `CreateProductHandlerTransactionalTest` covers creation only, and `UpdateProductHandlerTest` fakes at the port — so nothing runs an update through real JPA. That hid a real defect: `save` reconstructs `ProductDB` from the domain object, whose fresh `JpaAuditMetadata` is all nulls, and `merge` copies those over the stored row. `created_at` failed loudly against its NOT NULL constraint; `created_by` is nullable, so it was silently wiped on every update and survived for a further increment before being noticed by reading the class rather than by a failure. Both now carry `@Column(updatable = false)` — **the defect is fixed, the gap is not.** No test would catch its reintroduction.
-- **Related:** the deeper cause is that `save` blind-overwrites a whole row from a projection that does not carry every column. The structural fix is load-and-mutate — fetch the managed entity and copy the mutable fields onto it. Ordering's Mongo path will meet the same shape when a `MongoAuditMetadata` counterpart arrives ([BACKLOG.md](BACKLOG.md) item 3).
-- **Improvement:** Add an update case to `JpaProductRepositoryTest` asserting that `createdAt` and `createdBy` survive, and extend Gap 2 above beyond its failure-path scope.
-
 ### 6. Transactional Semantics of Order Creation Are Unverified
 - **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
 - **Issue:** `CreateOrderHandler` carries no `@Transactional` on either of its two entry points — the HTTP controller and the integration-event listener, which runs on the outbox dispatcher's scheduler thread. One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.

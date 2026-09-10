@@ -17,6 +17,11 @@ public final class ProductMapper {
         return new ProductDB(product.id(), product.name(), product.categories(), product.description(), product.imageFile(), product.price());
     }
 
+    public static void updateReadModel(ProductDB storedProduct, Product product) {
+        storedProduct.update(product.name(), product.categories(), product.description(), product.imageFile(),
+                product.price());
+    }
+
     public static ProductDTO toDto(ProductDB productDB){
         return new ProductDTO(productDB.id(), productDB.name(), productDB.categories(), productDB.description(), productDB.imageFile(), productDB.price());
     }
