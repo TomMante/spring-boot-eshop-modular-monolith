@@ -33,6 +33,36 @@ A fuller separation would give the read side its own persisted or derived shape,
 
 **Open question:** whether an automated end-to-end test is ever worth its cost here, or whether the manual Bruno pass stays sufficient for a project this size. Not decided; nothing currently blocks on it.
 
+## Whether the Coverage Aggregator Needs a Guard
+
+`sonar/pom.xml` decides which modules appear in the Jacoco aggregate report, and therefore in SonarCloud, by
+listing them as dependencies. That list is a hand-maintained duplicate of the root pom's `<modules>`, and nothing
+compares the two. `outbox-mongo` was missing from it for as long as the module existed; the build stayed green and
+the coverage badge simply reported a smaller project than the one that exists. It was found by reading the file,
+not by anything failing.
+
+The failure is silent and it flatters: a module omitted here is not reported as uncovered, it is excluded from the
+ratio, so the number goes *up* when a module goes missing. `jacoco:report-aggregate` offers no way out — its scope
+comes from dependencies by design, so the duplication cannot simply be deleted.
+
+Both mechanical guards cost more than they save:
+
+- A `maven-enforcer-plugin` custom rule needs its own plugin artifact to live in. The in-process alternative,
+  `evaluateBeanshell`, would have to read every module's pom from BeanShell — and this build has already been
+  bitten by a plugin's bundled library not coping with Java 25 bytecode (see [BACKLOG.md](BACKLOG.md), the
+  test-scope guard).
+- A script in the GitHub Actions workflow only fails in CI, and shell-plus-grep over XML stops matching the
+  moment a pom is reformatted.
+- A JUnit test comparing the two poms would fail locally as well as in CI, but means test code reaching across
+  module boundaries by relative path to parse XML — a construct every later reader has to justify to themselves,
+  and one that breaks on legitimate restructures.
+
+**Open question, and why this stays a note:** this protects the accuracy of a metric, not the correctness of the
+system. Forgetting the next module costs a wrong percentage on a badge until someone notices — against roughly
+sixty lines of machinery, on a project that gains a module perhaps twice a year. The list is correct as of
+2026-09-09 (verified: ten directories in `sonar/target/site/jacoco-aggregate/`, one per code-bearing module).
+Worth revisiting if modules start arriving often, or if the coverage number ever gates something that matters.
+
 ## Making the JDK Requirement Fail Legibly
 
 A clean checkout built with an older JDK fails at `catalog-contract` with:
