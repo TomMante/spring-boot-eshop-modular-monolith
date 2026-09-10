@@ -29,3 +29,12 @@ spring:
       representation:
         big-decimal: decimal128
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
