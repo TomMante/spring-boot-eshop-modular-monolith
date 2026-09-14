@@ -5,6 +5,9 @@ piece of work (e.g. "let's do this as a feature" / "start the feature
 workflow for X"). Absent that request, work continues directly on `main` as
 before. Entering plan mode by itself does not imply this workflow.
 
+For a small, already-understood change that does not warrant a plan
+document, use the lighter [quick-fix.md](quick-fix.md) instead.
+
 ## Steps
 
 1. **Start in plan mode.** Draft the plan following the planning conventions

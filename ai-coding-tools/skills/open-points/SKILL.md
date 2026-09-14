@@ -35,6 +35,6 @@ A checklist grouped by section header (`## 🔴 High`, `## 🟠 Medium`, `## �
 - [ ] **[Known Bug N](docs/KNOWN_ISSUES.md) — one-line title.** One sentence on why this rank.
 ```
 
-End with a one- or two-sentence **Suggestion** naming the single best item to start with and why (usually: the highest-ranked item that doesn't first need an unmade decision).
+End with a one- or two-sentence **Suggestion** naming the single best item to start with and why (usually: the highest-ranked item that doesn't first need an unmade decision). Say which workflow fits it: ⚡ [quick-fix](../../processes/quick-fix.md) when the fix is small and already clear from reading the code, or [feature](../../processes/feature-workflow.md) when it spans several modules, needs a design decision recorded, or has steps that need ordering — the same test as quick-fix's *When it fits* section. Base that on having read the code the item points at, not on the entry's wording alone.
 
 Match the checklist-not-prose style this project's owner prefers — no narrative paragraphs between items.

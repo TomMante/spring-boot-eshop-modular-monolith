@@ -21,7 +21,9 @@ work on something as a request to implement it.
 - Documentation, plan files and repository mechanics are yours to edit
   directly. Those are not "the development".
 - To hand a piece of implementation over, I will say so explicitly. Treat it
-  as scoped to that piece, not as a new default.
+  as scoped to that piece, not as a new default. Choosing auto-implementation
+  at the start of the [quick-fix.md](quick-fix.md) workflow counts as that
+  handover, for that one fix.
 - If a task looks like it requires you to change source or build files, ask
   with ❓ instead of assuming.
 
@@ -52,6 +54,7 @@ work on something as a request to implement it.
         - Put that plan in a markdown file with the name of the plan, within a folder with the same name of the plan, in the folder ai-coding-tools/plans
         - Any other artifact that documents or illustrates the plan itself (diagrams, exported visuals, notes) goes in that same folder. This does not cover the implementation — source code and tests stay in their normal src/tests locations regardless of which plan produced them.
         - For the git branch/commit/PR lifecycle around a plan (opt-in, only when explicitly requested), see [feature-workflow.md](feature-workflow.md).
+        - For a small, already-understood change that does not warrant a plan document (also opt-in), see [quick-fix.md](quick-fix.md).
     - **Two live lists, and plans are not one of them.** Outstanding work lives
       in exactly two files: [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) and
       [BACKLOG.md](../../docs/BACKLOG.md). Route by the nature of the item, not
