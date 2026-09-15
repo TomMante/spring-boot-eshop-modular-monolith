@@ -6,6 +6,7 @@ import com.github.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import com.github.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
 import com.github.eshopmodularmonolith.ordering.orders.domain.AddressMother;
+import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.PaymentMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 @SpringJUnitConfig(BasketCheckoutIntegrationEventListenerTest.Config.class)
 class BasketCheckoutIntegrationEventListenerTest {
@@ -68,6 +70,12 @@ class BasketCheckoutIntegrationEventListenerTest {
         orderRepository.clear();
     }
 
+    private BasketCheckoutIntegrationEvent checkoutEvent(UUID eventId, String userName) {
+        var item = new ItemDTO(UUID.randomUUID(), UUID.randomUUID(), 2, BigDecimal.valueOf(12.50), "Boba");
+        return new BasketCheckoutIntegrationEvent(eventId, userName, List.of(item), BigDecimal.valueOf(25.00),
+                toDto(AddressMother.address()), toDto(PaymentMother.payment()), toDto(AddressMother.address("Midgard")));
+    }
+
     @Test
     @DisplayName("Given a basket checkout integration event, when it is published, then an order is created")
     void givenBasketCheckoutIntegrationEvent_whenPublished_thenOrderIsCreated() {
@@ -101,7 +109,32 @@ class BasketCheckoutIntegrationEventListenerTest {
             assertThat(order.billingAddress()).isEqualTo(billingAddress);
             assertThat(order.payment()).isEqualTo(payment);
             assertThat(order.placedAt()).isEqualTo(fixedInstant);
+            assertThat(order.checkoutId()).isEqualTo(event.eventId());
         });
+    }
+
+    @Test
+    @DisplayName("Given a checkout event already handled, when it is published again, then no second order is created")
+    void givenCheckoutEventAlreadyHandled_whenPublishedAgain_thenNoSecondOrderIsCreated() {
+        var event = checkoutEvent(UUID.randomUUID(), "john");
+        publisher.publishEvent(event);
+
+        assertThatCode(() -> publisher.publishEvent(event)).doesNotThrowAnyException();
+        assertThat(orderRepository.orders()).singleElement()
+                .satisfies(order -> assertThat(order.checkoutId()).isEqualTo(event.eventId()));
+    }
+
+    @Test
+    @DisplayName("Given two checkout events from the same user, when both are published, then two orders are created")
+    void givenTwoCheckoutEventsFromTheSameUser_whenBothArePublished_thenTwoOrdersAreCreated() {
+        var event1 = checkoutEvent(UUID.randomUUID(), "john");
+        var event2 = checkoutEvent(UUID.randomUUID(), "john");
+        publisher.publishEvent(event1);
+        publisher.publishEvent(event2);
+
+        assertThat(orderRepository.orders())
+                .extracting(Order::checkoutId)
+                .containsExactlyInAnyOrder(event1.eventId(), event2.eventId());
     }
 
     private AddressDTO toDto(Address address) {

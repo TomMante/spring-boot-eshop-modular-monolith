@@ -78,7 +78,8 @@ round-trip.
 | `ShoppingCart.checkout` | Domain (`ShoppingCartTest`) | Calculation over a collection — quantity, missing prices, duplicate products. More cases than a handler test would ever enumerate. |
 | `Order`, `Product`, `Address`, `Payment` | None of their own | Constructors, getters, and factories that shuffle arguments. Covered incidentally by the seams above them. |
 | Basket checkout → order creation | `BasketCheckoutIntegrationEventListener` | No dedicated handler exists for this path; the listener is the module's stable entry point for the integration contract. A Spring context is justified because `@EventListener` wiring is part of what is being proven. |
-| `CreateOrderHandler` | The handler | Stable entry point for the manual `POST /order` path; the persisted order is the complete outcome. |
+| `Order.placeFromCheckout` guards | `CreateOrderHandler` | Invariants (billing address, shipping address, payment, items, checkout id) that must hold however the handler is reached. The checkout listener is its only caller, but enumerating every rejection there would cost a Spring context per case; the handler proves them against a fake repository. |
+| One order per checkout | `MongoOrderRepositoryTest` for enforcement, `BasketCheckoutIntegrationEventListenerTest` for the skip | The guarantee is a unique index on `checkoutId`, which only real Mongo can prove — the fake merely mirrors it, so enforcement gets its own adapter test. The listener tests prove what a redelivery must look like to the outbox: no exception escapes, one order exists, and distinct checkouts from the same user still produce distinct orders. |
 | `DBMapper` / `DTOMapper` | The adapter tests (`MongoOrderRepositoryTest`) | Exercised through the real adapter, since a fake repository never touches them. Test data must include the shapes production actually produces, not only fully populated ones. |
 
 ## Naming & organization

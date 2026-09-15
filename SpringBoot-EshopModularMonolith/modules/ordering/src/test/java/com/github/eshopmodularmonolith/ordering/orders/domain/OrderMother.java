@@ -25,6 +25,7 @@ public class OrderMother {
 
     public static class Builder {
         private UUID id = UUID.randomUUID();
+        private UUID checkoutId = UUID.randomUUID();
         private List<Item> items = new ArrayList<>(List.of(ItemMother.item()));
         private String customer = "john_doe";
         private Instant placedAt = Instant.parse("2023-01-01T00:00:00Z");
@@ -42,8 +43,13 @@ public class OrderMother {
             return this;
         }
 
+        public Builder withCheckoutId(UUID checkoutId){
+            this.checkoutId = checkoutId;
+            return this;
+        }
+
         public Order build() {
-            return Order.reconstitute(id, customer, placedAt, billingAddress, payment, shippingAddress, items);
+            return Order.reconstitute(id, checkoutId, customer, placedAt, billingAddress, payment, shippingAddress, items);
         }
     }
 }

@@ -50,7 +50,7 @@ decision belong past it.
 | Shipping defaults to billing when absent | `ShoppingCart.checkout` | Pure function of its arguments |
 | Loading the cart / `BasketNotFound` | handler | Repository lookup |
 | Deleting the basket after checkout | handler | A lifecycle decision *about* the aggregate, not *by* it |
-| `placedAt` on an order | handler holds the `Clock`, `Order.create` receives the `Instant` | An aggregate must not read ambient time |
+| `placedAt` on an order | handler holds the `Clock`, `Order.placeFromCheckout` receives the `Instant` | An aggregate must not read ambient time |
 
 That last row is the pattern at its purest: the handler owns the *dependency*, the
 aggregate owns the *fact*.

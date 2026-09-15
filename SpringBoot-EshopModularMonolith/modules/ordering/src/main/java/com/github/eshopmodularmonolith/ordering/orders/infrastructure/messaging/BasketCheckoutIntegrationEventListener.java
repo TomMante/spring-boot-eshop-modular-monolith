@@ -7,6 +7,7 @@ import com.github.eshopmodularmonolith.basket.basket.contract.integrationevents.
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderCommand;
 import com.github.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
 import com.github.eshopmodularmonolith.ordering.orders.domain.Item;
+import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderAlreadyExists;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
 import com.github.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 import org.slf4j.Logger;
@@ -27,9 +28,13 @@ public class BasketCheckoutIntegrationEventListener {
 
     @EventListener
     public void handle(BasketCheckoutIntegrationEvent event) {
-        var cmd = new CreateOrderCommand(event.userName(), toDomain(event.billingAddress()), toDomain(event.payment()), toDomain(event.shippingAddress()), event.items().stream().map(this::toDomain).toList());
-        createOrderHandler.handle(cmd);
-        log.info("Received BasketCheckoutIntegrationEvent for user: {}", event.userName());
+        var cmd = new CreateOrderCommand(event.eventId(), event.userName(), toDomain(event.billingAddress()), toDomain(event.payment()), toDomain(event.shippingAddress()), event.items().stream().map(this::toDomain).toList());
+        try {
+            createOrderHandler.handle(cmd);
+            log.info("placed order for checkout {}.", event.eventId());
+        }catch (OrderAlreadyExists alreadyPlaced){
+            log.info("Checkout {} was already placed as an order; skipping redelivery", alreadyPlaced.checkoutId());
+        }
     }
 
 

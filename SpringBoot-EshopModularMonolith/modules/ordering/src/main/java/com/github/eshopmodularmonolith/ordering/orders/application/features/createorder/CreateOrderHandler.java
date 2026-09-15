@@ -20,7 +20,7 @@ public class CreateOrderHandler {
     }
 
     public UUID handle(CreateOrderCommand cmd){
-        var order = Order.create(cmd.customer(), clock.instant(), cmd.billingAddress(), cmd.payment(), cmd.shippingAddress(), cmd.items());
+        var order = Order.placeFromCheckout(cmd.checkoutId(), cmd.customer(), clock.instant(), cmd.billingAddress(), cmd.payment(), cmd.shippingAddress(), cmd.items());
         repository.save(order);
         return order.id();
     }
