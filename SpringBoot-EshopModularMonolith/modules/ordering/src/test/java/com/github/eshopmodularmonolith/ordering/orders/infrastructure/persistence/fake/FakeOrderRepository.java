@@ -1,6 +1,7 @@
 package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake;
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
+import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderAlreadyExists;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 
 import java.util.HashMap;
@@ -28,7 +29,15 @@ public class FakeOrderRepository implements OrderRepository {
 
     @Override
     public void save(Order order) {
+        if (isCheckoutAlreadyPlaced(order.checkoutId())) {
+            throw new OrderAlreadyExists(order.checkoutId(), null);
+        }
         repository.put(order.id(), order);
+    }
+
+    private boolean isCheckoutAlreadyPlaced(UUID checkoutId) {
+        return repository.values().stream()
+                .anyMatch(stored -> stored.checkoutId().equals(checkoutId));
     }
 
     @Override

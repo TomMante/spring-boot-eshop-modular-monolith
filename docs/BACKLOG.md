@@ -21,13 +21,13 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 
 ### 1. `Order.totalPrice` Doesn't Exist
 - **Resolved by [basket-quantity-fix](../ai-coding-tools/plans/basket-quantity-fix/basket-quantity-fix.md):** the pricing-basis question this item used to gate on is settled — checkout-time pricing, `Σ(current catalog price × quantity)`, fetched via `ProductService` at checkout. That plan also fixed `ShoppingCart.checkout`'s defects (closed Known Bug 1) and added `ShoppingCartTest` (closed Testing Gap 1).
-- **What's still missing:** `CreateOrderCommand`/`Order.create` never receive or compute a total at all. Basket now computes a correct, current-price `totalPrice` on `BasketCheckedOut`, but `BasketCheckoutIntegrationEventListener` still never reads it — the value is computed and still never used downstream.
-- **Decision needed:** should `Order` trust the value carried on the integration event, or re-derive its own from the items it received? Trusting a caller-computed number repeats the shape of the bug this item used to describe — an aggregate should generally own its own invariant rather than believe one handed to it. Settle this before adding `totalPrice` to `Order`, `OrderDB`, `OrderDTO`, both mappers, and (if the event's value isn't trusted) `CreateOrderCommand`/`Request`/`Controller`.
+- **What's still missing:** `CreateOrderCommand`/`Order.placeFromCheckout` never receive or compute a total at all. Basket now computes a correct, current-price `totalPrice` on `BasketCheckedOut`, but `BasketCheckoutIntegrationEventListener` still never reads it — the value is computed and still never used downstream.
+- **Decision needed:** should `Order` trust the value carried on the integration event, or re-derive its own from the items it received? Trusting a caller-computed number repeats the shape of the bug this item used to describe — an aggregate should generally own its own invariant rather than believe one handed to it. Settle this before adding `totalPrice` to `Order`, `OrderDB`, `OrderDTO` and both mappers — and, only if the event's value is trusted, to `CreateOrderCommand` and `BasketCheckoutIntegrationEventListener`, which would have to carry it; a re-derived total needs neither.
 - **Why still deferred:** demonstrating the current-price-at-checkout mechanism was that plan's priority; wiring the result into `Order` is separate, smaller work once the trust-vs-derive question is answered.
 
 ### 2. Nested Validation on Address and Payment Contents
-- Neither `CreateOrderRequest` nor `CheckoutBasketRequest` validates the fields *inside* an address or payment — only that the object itself is present. An address of all-blank strings is accepted by both entry points.
-- **Why deferred:** kept at parity between the two requests deliberately, rather than making one stricter than the other in an increment that was about something else.
+- `CheckoutBasketRequest` does not validate the fields *inside* an address or payment — only that the object itself is present. An address of all-blank strings is accepted at checkout and carried through to the order.
+- **Why deferred:** originally kept at parity with ordering's `CreateOrderRequest` rather than making one request stricter than the other in an increment that was about something else. [one-order-per-checkout](../ai-coding-tools/plans/one-order-per-checkout/one-order-per-checkout.md) removed that request along with `POST /order`, so the parity reason no longer applies — checkout is now the only entry point to validate.
 
 ### 3. `MongoAuditMetadata`
 - Ordering has no counterpart to `shared.infrastructure.JpaAuditMetadata`, so Mongo-backed documents carry no created/modified audit fields.
@@ -76,11 +76,12 @@ Nothing to do until the stated condition holds. Deliberate, not neglected.
 
 ### 4. Distinguishing an Incomplete Order
 - Nothing in the read model marks an order as pending or incomplete.
-- **Trigger:** a "complete your order" step, or any flow that can produce a partially specified order. Checkout currently produces complete orders and `Order.create` rejects missing address or payment, so there is no incomplete state to represent.
+- **Trigger:** a "complete your order" step, or any flow that can produce a partially specified order. Checkout currently produces complete orders and `Order.placeFromCheckout` rejects missing address or payment, so there is no incomplete state to represent.
 
 ### 5. `OrderCreated` Domain Event and Outbox Wiring
 - `Order` never calls `addDomainEvent`, and `OrderingModuleConfig` has no outbox wiring — unlike basket and catalog.
 - **Trigger:** another module actually needing to react to order creation. Deliberate YAGNI; a speculative event plus outbox is real infrastructure to maintain in exchange for nothing.
+- **When the trigger fires:** checkout deduplication relies on order creation being a single write — a redelivered checkout is rejected by the unique index on `checkoutId` ([one-order-per-checkout](../ai-coding-tools/plans/one-order-per-checkout/one-order-per-checkout.md)). An outbox write added to the same handling is not covered by that index: it has to commit or roll back together with the order insert, as basket's and catalog's do through `OutboxEventSubscriber` writing inside the module's transaction. `CreateOrderHandler` opens no transaction today (Testing Gap 6), and Mongo transactions need a replica set. Also check what the listener catches once inserts are transactional: two concurrent inserts for the same checkout may fail with a write conflict rather than a duplicate key, which the listener would not recognise as "already placed".
 
 ### 6. Test Naming Pass — GWT as Structure
 - Move the suite from `givenX_whenY_thenZ` method names to GWT-as-structure (`@Nested` for a shared given, method name = outcome only). Full reasoning and steps in [gwt-test-naming-later-refactor](../ai-coding-tools/plans/gwt-test-naming-later-refactor/gwt-test-naming-later-refactor.md), and the target style in [TESTING_CONVENTIONS.md](TESTING_CONVENTIONS.md).

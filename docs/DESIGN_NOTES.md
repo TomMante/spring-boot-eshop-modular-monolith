@@ -85,3 +85,21 @@ requirement.
 the build for one error message a reader hits once. Documented-and-loud may be enough. Worth
 revisiting if anyone actually reports the confusing failure, or if the project ever gains a
 toolchains-based build.
+
+## A Checkout Identity Owned by Basket
+
+Ordering deduplicates redelivered checkout events with a unique `checkoutId` on `Order`: a redelivery collides on a unique sparse index and is skipped. As decided on 2026-09-14 in [one-order-per-checkout](../ai-coding-tools/plans/one-order-per-checkout/one-order-per-checkout.md), the ordering listener fills `checkoutId` from the integration event's `eventId`. That is sound as long as its premises hold: one checkout emits exactly one `BasketCheckedOut`, and its id is never regenerated — it is the outbox document's `_id`, and `BasketOutboxDispatcher` copies it into `BasketCheckoutIntegrationEvent` (pinned by `BasketOutboxDispatcherTest`). The decision "a checkout is identified by its event" is made in one place only, the listener.
+
+The fuller shape: basket mints its own `checkoutId` in `ShoppingCart.checkout`, carries it on `BasketCheckedOut` and `BasketCheckoutIntegrationEvent`, and the listener reads that field instead. `Order`, `OrderDB`, the index and the dedup logic would not change.
+
+What it would cost:
+
+- `ShoppingCart`, `BasketCheckedOut`, `BasketCheckoutIntegrationEvent` and `BasketOutboxDispatcher`, plus their tests — three modules, and a change to the public contract between basket and ordering.
+- A change to `BasketCheckedOut`'s shape, which outbox payloads already at rest do not have (the outbox has no schema versioning). They deserialize with `checkoutId` null: if `Order` accepts the null, dedup is silently off for every event in flight at deploy time; if it rejects it, the event is retried indefinitely. A listener fallback — `checkoutId != null ? checkoutId : eventId` — bridges the drain, which means the current shape survives as the compatibility path either way.
+
+**Open question, and why this stays a note:** nothing would read the id today. `CheckoutBasketHandler` deletes the cart straight after checkout and `POST /basket/checkout` returns `202` with no body, so a basket-minted `checkoutId` would exist only on the event — a second random UUID, distinguishable from `eventId` only by its name. Worth revisiting when any of these appear:
+
+- a second event about the same checkout (e.g. `CheckoutCancelled`), whose own `eventId` identifies nothing ordering can look up;
+- basket keeping a checkout history;
+- the customer receiving a checkout reference;
+- anything that re-mints event ids for existing checkouts — a replay tool, or integration events getting ids of their own.

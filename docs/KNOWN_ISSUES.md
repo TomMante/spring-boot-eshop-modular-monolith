@@ -18,7 +18,7 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 
 ### 3. Outbox Payloads Have No Schema Versioning
 - **Location:** `OutboxDocumentMapper`, `DomainEventRegistry`, every persisted `DomainEvent`
-- **Issue:** A domain event's JSON payload is persisted in the outbox and deserialized later by a registry keyed on a bare type name (`"BasketCheckedOut"`). Changing the event's shape is therefore a backward-incompatible change to data already at rest: documents written before the change deserialize with the new fields null, and consumers built for the new shape reject them. Adding address and payment to `BasketCheckedOut` had exactly this effect — pre-existing unprocessed documents would deserialize with nulls and be rejected by `Order.create` with an `IllegalArgumentException`. It was handled by manually clearing the local `outbox` collection, which is adequate for local development and not for anything deployed.
+- **Issue:** A domain event's JSON payload is persisted in the outbox and deserialized later by a registry keyed on a bare type name (`"BasketCheckedOut"`). Changing the event's shape is therefore a backward-incompatible change to data already at rest: documents written before the change deserialize with the new fields null, and consumers built for the new shape reject them. Adding address and payment to `BasketCheckedOut` had exactly this effect — pre-existing unprocessed documents would deserialize with nulls and be rejected by `Order.create` (since renamed `Order.placeFromCheckout`) with an `IllegalArgumentException`. It was handled by manually clearing the local `outbox` collection, which is adequate for local development and not for anything deployed.
 - **Compounds Known Bug 2:** without a dead-letter path, a single undeserializable or rejected payload does not merely fail — it wedges the whole outbox behind it. Versioning without dead-lettering only narrows the window.
 - **Action Required:** Decide a compatibility policy before the next event-shape change. Options: a versioned type key (`BasketCheckedOutV2`) with the old key kept readable; tolerant deserialization plus an explicit policy for events that cannot be satisfied; or a documented drain-before-deploy step. Any of the three is fine — having none is the issue.
 
@@ -29,11 +29,17 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Mitigated so far:** `InMemoryMessageBus` no longer logs message payloads, so the data does not reach application logs.
 - **Action Required:** Out of reach of a refactor — it needs a payment provider integration, so that checkout carries a provider token instead of card details and no module ever sees a PAN. Until then, do not add further copies, and keep payloads out of logs.
 
-### 6. No Consumer-Side Idempotency
-- **Locations:** `BasketCheckoutIntegrationEvent.eventId`, `BasketCheckoutIntegrationEventListener.handle`
-- **Issue:** The integration event carries an `eventId`, but nothing consults it. The outbox is at-least-once by construction — `BasketOutboxDispatcher` publishes and only then calls `markAsProcessed`, so a crash or failure between the two republishes an event that was already handled. The listener creates an order unconditionally.
-- **Impact:** A redelivered checkout event creates a duplicate order. The `eventId` reads as if this were handled; it is not.
-- **Action Required:** Dedup on `eventId` at the consumer — a processed-message table or collection checked before handling. This is the counterpart to Known Bug 2: that one decides what happens to an event that never succeeds, this one what happens to an event that succeeds twice.
+### 11. Only One Module's Validation Messages Resolve
+- **Locations:** `src/main/resources/messages.properties` in `basket-core` and `catalog-core` (ordering's copy was removed with `POST /order` on 2026-09-15), both at the classpath root; Boot 4.0.2's `MessageSourceAutoConfiguration`, which backs the default basename `messages` with a `ResourceBundleMessageSource`.
+- **Issue:** Files sharing a bundle name are not merged. `ResourceBundleMessageSource` loads the first `messages.properties` on the classpath and ignores the others; Boot's auto-configuration scans `classpath*:` for all of them, but only to decide whether to create the bean. Reproduced on 2026-09-15 with Spring Framework 7.0.3's `ResourceBundleMessageSource` over the modules' compiled resources: in the packaged starter's `classpath.idx` order (`catalog-core`, `ordering`, `basket-core`), `catalog.product.name.notBlank` resolves and `basket.checkout.billingAddress.notNull` does not; with `basket-core` first, the reverse; with an empty file first, neither.
+- **Impact:** In the assembled application, basket's validation messages (`basket.basket.userName.notBlank`, `basket.basketItem.productId.notNull`, `basket.checkout.*`) most likely do not resolve. Module tests cannot notice, because each module's test classpath contains only its own file. Not yet observed against a running application — what a caller actually receives for an unresolved key has not been checked.
+- **Action Required:** Stop sharing the basename: give each module its own bundle name (e.g. `basket-messages`, `catalog-messages`) and list them all in `spring.messages.basename`. Prove it on the assembled context — `ApplicationWiringTest` resolving one key per module — since no module-level test can see the collision.
+
+### 12. Order Endpoints Do Not Check Who Is Asking
+- **Locations:** `GetOrdersController` (`GET /orders`), `GetOrderByIdController` (`GET /order/{id}`) and `DeleteOrderController` (`DELETE /order/{id}`), with their handlers; `SecurityFilterChainConfig`
+- **Issue:** Security only requires a valid token (`anyRequest().authenticated()`), there is no method-level security anywhere in the codebase, and none of the three endpoints takes the current user — unlike every basket controller, which takes `@AuthenticatedUser`. `GET /orders` pages through every customer's orders, `GET /order/{id}` returns any order by id, and `DELETE /order/{id}` hard-deletes any order and answers `204` whether or not it existed. Found on 2026-09-15 while closing out [one-order-per-checkout](../ai-coding-tools/plans/one-order-per-checkout/one-order-per-checkout.md), which removed `POST /order` for the same kind of reason; the delete feature's git history leads back to catalog's `DeleteProduct` feature (2026-02-02) — early scaffolding, not a designed customer capability.
+- **Impact:** Any logged-in user can read every other customer's orders — shipping and billing addresses and, through Known Bug 4, full card number, expiry and CVV — and delete them.
+- **Action Required:** Decide what ordering's HTTP surface is for. Customers reading their own orders means scoping both reads to the authenticated username, which `Order.customer` already stores. Deleting an order is unlikely to be a customer capability at all — cancelling would be a state change, not a delete — so `DELETE /order/{id}` is a removal candidate, as `POST /order` was. Anything kept for back-office use needs a role check, and none exists in this codebase yet.
 
 ## 🧪 Testing Considerations & Gaps
 
@@ -42,14 +48,9 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Issue:** These classes currently report 0 lines covered. Although they might only be logging right now, missing tests mean there is no guarantee that a `ProductCreated` or `BasketCheckedOut` domain event is actually being picked up and routed by the Spring context.
 - **Improvement:** Add integration/unit tests verifying that the `ApplicationEventPublisher` successfully triggers these event handlers.
 
-### 4. Empty / Unimplemented Error Handler
-- **Location:** `CreateOrderErrorHandler`
-- **Issue:** The class is completely empty and misses test coverage.
-- **Improvement:** Implement the error handler to provide a proper Contract DTO error response (instead of an unhandled 500 Server Error) if order creation fails, and add corresponding tests.
-
 ### 6. Transactional Semantics of Order Creation Are Unverified
 - **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
-- **Issue:** `CreateOrderHandler` carries no `@Transactional` on either of its two entry points — the HTTP controller and the integration-event listener, which runs on the outbox dispatcher's scheduler thread. One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
+- **Issue:** `CreateOrderHandler` carries no `@Transactional`, and its only entry point is the integration-event listener, which runs on the outbox dispatcher's scheduler thread (the HTTP entry point, `POST /order`, was removed on 2026-09-15). One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
 - **Improvement:** Recorded so it is not rediscovered as a surprise rather than because a test is owed right now. It becomes a real gap the moment order creation writes more than once, which Backlog item 1 (`totalPrice`) and item 5 (`OrderCreated` outbox) both approach.
 
 ### 7. Slice Test Configs Can Still Drift From Production

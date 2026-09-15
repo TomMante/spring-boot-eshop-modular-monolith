@@ -11,6 +11,7 @@ import java.util.UUID;
 public class Order extends AggregateRoot<UUID> {
 
     private UUID id;
+    private UUID checkoutId;
     private List<Item> items;
     private String customer;
     private Instant placedAt;
@@ -24,9 +25,10 @@ public class Order extends AggregateRoot<UUID> {
     }
 
 
-    private Order(UUID id, List<Item> items, String customer, Instant placedAt,
-                  Address billingAddress, Payment payment,Address shippingAddress) {
+    private Order(UUID id, UUID checkoutId, List<Item> items, String customer, Instant placedAt,
+                  Address billingAddress, Payment payment, Address shippingAddress) {
         this.id = id;
+        this.checkoutId = checkoutId;
         this.items = items;
         this.customer = customer;
         this.placedAt = placedAt;
@@ -35,18 +37,21 @@ public class Order extends AggregateRoot<UUID> {
         this.payment = payment;
     }
 
-    public static Order create(String customer, Instant placedAt, Address billingAddress,
-                               Payment payment, Address shippingAddress, List<Item> items) {
+    public static Order placeFromCheckout(UUID checkoutId, String customer, Instant placedAt, Address billingAddress,
+                                          Payment payment, Address shippingAddress, List<Item> items) {
         if (billingAddress == null) throw new IllegalArgumentException("Billing address is required");
         if (payment == null) throw new IllegalArgumentException("Payment info is required");
         if (shippingAddress == null) throw new IllegalArgumentException("Shipping address is required");
-        if (items == null || items.isEmpty()) throw new IllegalArgumentException("Order must contain at least one item");
-        return new Order(UUID.randomUUID(), items, customer, placedAt, billingAddress, payment, shippingAddress);
+        if (items == null || items.isEmpty())
+            throw new IllegalArgumentException("Order must contain at least one item");
+        if (checkoutId == null) throw new IllegalArgumentException("Order requires a checkout id");
+        return new Order(UUID.randomUUID(), checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
-    public static Order reconstitute(UUID id, String customer, Instant placedAt,
-                                     Address billingAddress, Payment payment, Address shippingAddress, List<Item> items) {
-        return new Order(id, items, customer, placedAt, billingAddress, payment, shippingAddress);
+    public static Order reconstitute(UUID id, UUID checkoutId, String customer, Instant placedAt,
+                                     Address billingAddress, Payment payment, Address shippingAddress,
+                                     List<Item> items) {
+        return new Order(id, checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
 
@@ -72,5 +77,9 @@ public class Order extends AggregateRoot<UUID> {
 
     public Instant placedAt() {
         return placedAt;
+    }
+
+    public UUID checkoutId() {
+        return checkoutId;
     }
 }

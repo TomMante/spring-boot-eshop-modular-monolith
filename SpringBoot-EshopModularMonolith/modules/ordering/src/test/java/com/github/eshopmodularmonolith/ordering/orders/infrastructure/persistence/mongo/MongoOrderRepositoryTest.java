@@ -1,8 +1,10 @@
 package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo;
 
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
+import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderAlreadyExists;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
 import com.mongodb.client.MongoClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +14,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.test.context.ContextConfiguration;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 @ContextConfiguration(classes = MongoOrderRepositoryTest.Config.class)
@@ -39,6 +45,12 @@ class MongoOrderRepositoryTest extends OrderingDatabaseTest {
     @Autowired
     private MongoOrderRepository repository;
 
+    @BeforeEach
+    @Override
+    void setUp() {
+        super.setUp();
+        repository.createIndexes();
+    }
 
     @Test
     @DisplayName("Given existing database, when saving order, then order is saved")
@@ -58,6 +70,18 @@ class MongoOrderRepositoryTest extends OrderingDatabaseTest {
         assertThat(repository.findById(order.id())).isPresent();
         repository.delete(order.id());
         assertThat(repository.findById(order.id())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Given an order for a checkout is stored, when saving another order for the same checkout, then OrderAlreadyExists is thrown")
+    void givenOrderForCheckoutStored_whenSavingAnotherOrderForSameCheckout_thenOrderAlreadyExistsIsThrown() {
+        var checkoutId = UUID.randomUUID();
+        repository.save(new OrderMother.Builder().withCheckoutId(checkoutId).build());
+
+        assertThatThrownBy(() -> repository.save(new OrderMother.Builder().withCheckoutId(checkoutId).build()))
+                .isInstanceOfSatisfying(OrderAlreadyExists.class,
+                        alreadyExists -> assertThat(alreadyExists.checkoutId()).isEqualTo(checkoutId));
+        assertThat(mongoTemplate.count(new Query(), OrderDB.class)).isEqualTo(1);
     }
 
 }

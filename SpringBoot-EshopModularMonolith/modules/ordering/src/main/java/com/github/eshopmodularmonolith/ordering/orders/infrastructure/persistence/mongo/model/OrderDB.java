@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.UUID;
 @TypeAlias(OrderDB.TYPE_ALIAS) //Better to provide a type alias, this makes the collection not dependent on a class.
 public record OrderDB(
         @Id UUID id,
+        @Indexed(unique = true, name = "orders_checkoutId_unique") UUID checkoutId,
         List<ItemDB> items,
         String customer,
         Instant placedAt,
