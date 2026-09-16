@@ -1,0 +1,14 @@
+package io.github.tommante.eshopmodularmonolith.catalog.products.domain.port;
+
+import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.Product;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface ProductRepository {
+
+    Optional<Product> findProductById(UUID id);
+    boolean existsByName(String name);
+    void save(Product product);
+    void delete(UUID productId);
+}

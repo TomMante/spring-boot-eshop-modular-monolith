@@ -38,7 +38,8 @@ halfway through implementation costs much more.
      [feature-workflow.md](feature-workflow.md) — `fix/` for a
      [Known Bug](../../docs/KNOWN_ISSUES.md), `test/` for a Testing Gap in the
      same file, `feature/` for a [Backlog](../../docs/BACKLOG.md) item or any
-     new capability. The slug describes the fix, not a plan, since there is no
+     new capability, `refactor/` for a behavior-preserving restructure or
+     rename that closes nothing in either file. The slug describes the fix, not a plan, since there is no
      plan folder to line it up with. Create it from the latest `main`.
 
 2. **Analyse, then explain.** Read the relevant code before saying anything

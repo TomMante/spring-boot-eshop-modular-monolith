@@ -22,6 +22,8 @@ document, use the lighter [quick-fix.md](quick-fix.md) instead.
    - `test/` — closes a Testing Gap in the same file
    - `feature/` — implements a [Backlog](../../docs/BACKLOG.md) item, or any
      new capability not tracked in either file
+   - `refactor/` — restructures or renames without changing behavior, and
+     closes nothing in either file
    A plan spanning more than one still gets one branch; pick the prefix for
    what it primarily closes.
 3. **Commit the plan.** Commit the initial plan draft to the branch. As the

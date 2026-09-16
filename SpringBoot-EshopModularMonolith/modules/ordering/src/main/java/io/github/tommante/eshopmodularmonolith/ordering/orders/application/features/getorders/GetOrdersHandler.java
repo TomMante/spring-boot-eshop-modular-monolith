@@ -1,0 +1,26 @@
+package io.github.tommante.eshopmodularmonolith.ordering.orders.application.features.getorders;
+
+import io.github.tommante.eshopmodularmonolith.ordering.orders.application.query.OrderQueryRepository;
+import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.PageRequest;
+import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.SortOrder;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+public class GetOrdersHandler {
+
+    private OrderQueryRepository repository;
+
+    public GetOrdersHandler(OrderQueryRepository repository) {
+        this.repository = repository;
+    }
+
+    public GetOrdersResult handle(GetOrdersQuery query){
+        var pageRequest = new PageRequest(query.pageIndex(), query.pageSize(),
+                List.of(new SortOrder("placedAt", SortOrder.Direction.DESC),
+                        new SortOrder("id", SortOrder.Direction.ASC)));
+        var pageResult = repository.ordersVisibleTo(query.viewer(), pageRequest);
+        return new GetOrdersResult(pageResult.items(), pageResult.pageIndex(), pageResult.pageSize(), pageResult.totalItems(), pageResult.totalPages());
+    }
+}

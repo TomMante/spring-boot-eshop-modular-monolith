@@ -31,7 +31,7 @@ To point the collection somewhere else, create an additional environment in Brun
 
 Run **Auth → Get Token (Password Grant)** first. It calls Keycloak's token endpoint with the `password` grant using `username`/`password`, authenticated as the confidential `eshop-app` client (`client_id`/`client_secret`). A post-response script stores the result in the `access_token` environment variable. Every other request inherits a Bearer auth header from the collection root, so nothing else needs to be configured. Re-run this request whenever the token expires (access tokens on this realm live 300s).
 
-`CurrentUser` on the Basket and Ordering endpoints is resolved from the JWT's `preferred_username` claim ([CurrentUserArgumentResolver.java](../SpringBoot-EshopModularMonolith/security/src/main/java/com/github/eshopmodularmonolith/security/CurrentUserArgumentResolver.java)), so authenticating as `john` means basket requests act as that user and order requests see only his orders — another user's order answers `404`.
+`CurrentUser` on the Basket and Ordering endpoints is resolved from the JWT's `preferred_username` claim ([CurrentUserArgumentResolver.java](../SpringBoot-EshopModularMonolith/security/src/main/java/io/github/tommante/eshopmodularmonolith/security/CurrentUserArgumentResolver.java)), so authenticating as `john` means basket requests act as that user and order requests see only his orders — another user's order answers `404`.
 
 ## Structure
 
