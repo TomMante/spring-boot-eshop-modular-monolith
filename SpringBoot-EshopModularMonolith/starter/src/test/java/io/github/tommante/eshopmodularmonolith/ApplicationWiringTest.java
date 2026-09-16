@@ -1,11 +1,15 @@
 package io.github.tommante.eshopmodularmonolith;
 
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket.CheckoutBasketRequest;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductCommand;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductHandler;
+import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductRequest;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,6 +61,9 @@ class ApplicationWiringTest {
     @Autowired
     MockMvc mockMvc;
 
+    @Autowired
+    Validator validator;
+
     @DisplayName("Given all modules assembled, when context loads, then no exception is thrown")
     @Test
     void givenAllModulesAssembled_whenContextLoads_thenNoExceptionIsThrown() {
@@ -93,5 +100,18 @@ class ApplicationWiringTest {
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Given all modules assembled, when validating each module's request, then its messages resolve")
+    void givenAllModulesAssembled_whenValidatingEachModulesRequest_thenItsMessagesResolve() {
+        assertThat(messagesFor(new CheckoutBasketRequest(null, null, null)))
+                .containsExactlyInAnyOrder("Billing address is required.", "Payment method is required.");
+        assertThat(messagesFor(new CreateProductRequest(null, null, null, null, null)))
+                .containsExactlyInAnyOrder("Product name is required.", "Product price is required.");
+    }
+
+    private List<String> messagesFor(Object request) {
+        return validator.validate(request).stream().map(ConstraintViolation::getMessage).toList();
     }
 }
