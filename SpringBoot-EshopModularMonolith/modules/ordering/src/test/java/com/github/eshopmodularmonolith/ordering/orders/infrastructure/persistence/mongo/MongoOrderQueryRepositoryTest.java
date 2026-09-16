@@ -6,6 +6,7 @@ import com.github.eshopmodularmonolith.ordering.orders.domain.Order;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model.OrderDB;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
 import com.mongodb.client.MongoClient;
@@ -69,12 +70,21 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
         var order2 = OrderMother.order();
         writeRepository.save(order1);
         writeRepository.save(order2);
-        assertThat(queryRepository.findById(order1.id())).isPresent()
+        assertThat(queryRepository.findVisibleTo(new CurrentUser("john_doe"), order1.id())).isPresent()
                 .get().usingRecursiveComparison()
                 .isEqualTo(DTOMapper.toDto(order1));
-        assertThat(queryRepository.findById(order2.id())).isPresent()
+        assertThat(queryRepository.findVisibleTo(new CurrentUser("john_doe"), order2.id())).isPresent()
                 .get().usingRecursiveComparison()
                 .isEqualTo(DTOMapper.toDto(order2));
+    }
+
+    @Test
+    @DisplayName("Given an order placed by another customer, when querying by id, then returns empty")
+    void givenAnOrderPlacedByAnotherCustomer_whenQueryingById_thenReturnsEmpty() {
+        var order1 = OrderMother.instance().withCustomer("jane_roe").build();
+        writeRepository.save(order1);
+        assertThat(queryRepository.findVisibleTo(new CurrentUser("john_doe"), order1.id())).isEmpty();
+        assertThat(queryRepository.findVisibleTo(new CurrentUser("jane_roe"), order1.id())).isPresent();
     }
 
     @Nested
@@ -110,7 +120,8 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
         void givenDatabaseWithOrders_whenPageIsRequested_thenPageIsReturnedInSortOrder(
                 int pageIndex, SortOrder.Direction direction, List<Integer> expectedSeededOrderIndexes) {
 
-            var page = queryRepository.paginatedOrders(
+            var page = queryRepository.ordersVisibleTo(
+                    new CurrentUser("john_doe"),
                     new PageRequest(pageIndex, PAGE_SIZE, List.of(new SortOrder("placedAt", direction))));
 
             var expectedOrders = expectedSeededOrderIndexes.stream()
@@ -161,7 +172,7 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
         }
 
         private void assertThatPageContains(int pageIndex, int... expectedOrderIndexes) {
-            var page = queryRepository.paginatedOrders(new PageRequest(pageIndex, PAGE_SIZE,
+            var page = queryRepository.ordersVisibleTo(new CurrentUser("john_doe"), new PageRequest(pageIndex, PAGE_SIZE,
                     List.of(new SortOrder("placedAt", DESC), new SortOrder("id", ASC))));
 
             var expectedOrders = Arrays.stream(expectedOrderIndexes)
@@ -174,4 +185,45 @@ class MongoOrderQueryRepositoryTest extends OrderingDatabaseTest {
                     .containsExactlyElementsOf(expectedOrders);
         }
     }
+
+    @Nested
+    @DisplayName("Paginated orders visible for customer")
+    class PaginatedOrdersVisibleForCustomer {
+
+        @Test
+        @DisplayName("Given orders with different customers, when querying orders visible to customer, then return only that customer's orders")
+        void givenOrdersWithDifferentCustomers_whenQueryingOrdersVisibleToCustomer_thenReturnOnlyThatCustomerOrders() {
+            var johnOldest = OrderMother.instance().withPlacedAt(Instant.parse("2021-01-01T00:00:00Z")).withCustomer("john_doe").build();
+            var johnsMiddle = OrderMother.instance().withPlacedAt(Instant.parse("2023-01-01T00:00:00Z")).withCustomer("john_doe").build();
+            var johnsNewest = OrderMother.instance().withPlacedAt(Instant.parse("2024-01-01T00:00:00Z")).withCustomer("john_doe").build();
+            var seededOrders = List.of(
+                    johnOldest,
+                    johnsNewest,
+                    johnsMiddle,
+                    OrderMother.instance().withPlacedAt(Instant.parse("2022-01-01T00:00:00Z")).withCustomer("jane_roe").build(),
+                    OrderMother.instance().withPlacedAt(Instant.parse("2025-01-01T00:00:00Z")).withCustomer("jane_roe").build()
+            );
+            seededOrders.forEach(writeRepository::save);
+            var firstPage = queryRepository.ordersVisibleTo(
+                    new CurrentUser("john_doe"),
+                    new PageRequest(0, 2, List.of(new SortOrder("placedAt", DESC))));
+
+            Assertions.assertThat(firstPage.items())
+                    .usingRecursiveFieldByFieldElementComparator()
+                    .containsExactly(DTOMapper.toDto(johnsNewest), DTOMapper.toDto(johnsMiddle));
+            Assertions.assertThat(firstPage.totalItems()).isEqualTo(3);
+            Assertions.assertThat(firstPage.totalPages()).isEqualTo(2);
+
+            var secondPage = queryRepository.ordersVisibleTo(
+                    new CurrentUser("john_doe"),
+                    new PageRequest(1, 2, List.of(new SortOrder("placedAt", DESC))));
+
+            Assertions.assertThat(secondPage.items())
+                    .usingRecursiveFieldByFieldElementComparator()
+                    .containsExactly(DTOMapper.toDto(johnOldest));
+        }
+
+
+    }
+
 }

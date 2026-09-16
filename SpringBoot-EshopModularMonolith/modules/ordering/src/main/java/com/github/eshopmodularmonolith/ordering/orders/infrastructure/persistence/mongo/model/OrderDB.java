@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 @Document(OrderDB.COLLECTION_NAME)
 @TypeAlias(OrderDB.TYPE_ALIAS) //Better to provide a type alias, this makes the collection not dependent on a class.
+@CompoundIndex(name = "orders_customer_placedAt_id", def = "{'customer': 1, 'placedAt': -1, '_id': 1}")
 public record OrderDB(
         @Id UUID id,
         @Indexed(unique = true, name = "orders_checkoutId_unique") UUID checkoutId,

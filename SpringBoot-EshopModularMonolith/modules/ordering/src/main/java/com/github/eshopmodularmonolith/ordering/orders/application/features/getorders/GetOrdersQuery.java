@@ -1,4 +1,6 @@
 package com.github.eshopmodularmonolith.ordering.orders.application.features.getorders;
 
-public record GetOrdersQuery(int pageIndex, int pageSize) {
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
+
+public record GetOrdersQuery(CurrentUser viewer, int pageIndex, int pageSize) {
 }

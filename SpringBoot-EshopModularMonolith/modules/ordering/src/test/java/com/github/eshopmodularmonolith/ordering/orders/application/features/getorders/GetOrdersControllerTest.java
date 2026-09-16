@@ -2,7 +2,9 @@ package com.github.eshopmodularmonolith.ordering.orders.application.features.get
 
 import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import com.github.eshopmodularmonolith.shared.contract.pagination.PaginatedResults;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,6 +35,7 @@ class GetOrdersControllerTest {
 
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
@@ -50,10 +54,10 @@ class GetOrdersControllerTest {
 
 
     @Test
-    @DisplayName("Given endpoint is available, when create product endpoint is called, then controller forwards to handler")
-    void givenEndpointIsAvailable_whenCreateProductEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
+    @DisplayName("Given endpoint is available, when get orders endpoint is called, then controller forwards to handler")
+    void givenEndpointIsAvailable_whenGetOrdersEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var order = DTOMapper.toDto(OrderMother.order());
-        var query = new GetOrdersQuery(0, 10);
+        var query = new GetOrdersQuery(new CurrentUser("john_doe"), 0, 10);
         var result = new GetOrdersResult(List.of(order), 0, 10, 1, 1);
 
         when(handler.handle(query)).thenReturn(result);
@@ -65,6 +69,7 @@ class GetOrdersControllerTest {
         var expectedResponse = new GetOrdersResponse(paginatedResults);
 
         mockMvc.perform(get("/orders")
+                        .with(user("john_doe"))
                         .param("pageIndex", "0")
                         .param("pageSize", "10")
                         .contentType(MediaType.APPLICATION_JSON))

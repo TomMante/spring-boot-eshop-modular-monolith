@@ -8,7 +8,6 @@ import com.github.eshopmodularmonolith.basket.basket.domain.events.BasketChecked
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import com.github.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import com.github.eshopmodularmonolith.basket.basket.domain.model.Item;
-import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 import com.github.eshopmodularmonolith.basket.basket.domain.port.ProductService;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.adapters.CatalogProductACL;
 import com.github.eshopmodularmonolith.basket.basket.infrastructure.adapters.fake.FakeProductQueryService;

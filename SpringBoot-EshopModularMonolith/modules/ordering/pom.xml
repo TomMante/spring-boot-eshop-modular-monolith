@@ -71,6 +71,24 @@
             <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-oauth2-resource-server-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>security</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github</groupId>
+            <artifactId>security</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

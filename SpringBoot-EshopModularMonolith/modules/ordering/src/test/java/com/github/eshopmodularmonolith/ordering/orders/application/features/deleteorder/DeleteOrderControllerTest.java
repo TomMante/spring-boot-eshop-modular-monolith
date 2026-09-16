@@ -1,7 +1,10 @@
 package com.github.eshopmodularmonolith.ordering.orders.application.features.deleteorder;
 
 
+import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderNotFound;
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,22 +16,25 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = DeleteOrderController.class)
 @ContextConfiguration(classes = DeleteOrderControllerTest.Config.class)
-@Import(value = {ValidationExceptionHandler.class})
+@Import(value = {ValidationExceptionHandler.class, DeleteOrderErrorHandler.class})
 class DeleteOrderControllerTest {
 
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
@@ -39,23 +45,35 @@ class DeleteOrderControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private DeleteOrderHandler handler;
-
 
     @Test
     @DisplayName("Given endpoint is available, when delete order endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenDeleteOrderEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var orderId = UUID.randomUUID();
-        var cmd = new DeleteOrderCommand(orderId);
+        var cmd = new DeleteOrderCommand(new CurrentUser("john_doe"), orderId);
 
-        mockMvc.perform(delete("/order/{id}", orderId.toString()))
+        mockMvc.perform(delete("/order/{id}", orderId.toString())
+                        .with(user("john_doe"))
+                )
                 .andExpect(status().isNoContent());
 
         verify(handler, times(1)).handle(cmd);
     }
 
+    @Test
+    @DisplayName("Given order is not visible to current user, when delete order endpoint is called, then not found error is returned")
+    void givenOrderIsNotVisibleToCurrentUser_whenDeleteOrderEndpointIsCalled_thenNotFoundErrorIsReturned() throws Exception {
+        var orderId = UUID.randomUUID();
+        doThrow(new OrderNotFound(orderId)).when(handler)
+                .handle(new DeleteOrderCommand(new CurrentUser("john_doe"), orderId));
+
+        mockMvc.perform(delete("/order/{id}", orderId.toString())
+                        .with(user("john_doe")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("order.not-found"))
+                .andExpect(jsonPath("$.message").value("Order with id [" + orderId + "] not found."));
+    }
 }

@@ -14,6 +14,10 @@ public class OrderMother {
         return new Builder().build();
     }
 
+    public static Builder instance() {
+        return new Builder();
+    }
+
     public static Order order(Instant placedAt) {
         return new Builder().withPlacedAt(placedAt).build();
     }
@@ -45,6 +49,11 @@ public class OrderMother {
 
         public Builder withCheckoutId(UUID checkoutId){
             this.checkoutId = checkoutId;
+            return this;
+        }
+
+        public Builder withCustomer(String customer) {
+            this.customer = customer;
             return this;
         }
 

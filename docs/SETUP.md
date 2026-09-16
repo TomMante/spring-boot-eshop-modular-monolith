@@ -54,13 +54,13 @@ application listens on `8080` and logs `Started EshopModularMonolithStarter` whe
 
 ## 4. Get a token
 
-The realm ships with a demo user. These credentials are committed on purpose — they are local-only
-values that exist in `docker/sb-eshop/keycloak-init/eshop-realm.json`, which likewise commits
-`admin`/`admin` for the Keycloak container itself.
+The realm ships with two demo users. These credentials are committed on purpose — they are
+local-only values that exist in `docker/sb-eshop/keycloak-init/eshop-realm.json`, which likewise
+commits `admin`/`admin` for the Keycloak container itself.
 
 | | |
 | --- | --- |
-| User | `john` / `password` |
+| Users | `john` / `password`, `jane` / `password` |
 | Client | `eshop-app` / `local-demo-secret` |
 
 ```bash
@@ -70,6 +70,15 @@ TOKEN=$(curl -s -X POST http://localhost:9090/realms/eshop/protocol/openid-conne
 ```
 
 Access tokens live 300 seconds; re-run this when requests start returning `401`.
+
+`-d username=` picks the user. Baskets and orders belong to whoever the token names — each user
+sees only their own — so a second token is what you need to check that isolation by hand:
+
+```bash
+TOKEN_JANE=$(curl -s -X POST http://localhost:9090/realms/eshop/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=eshop-app -d client_secret=local-demo-secret \
+  -d username=jane -d password=password | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+```
 
 ## 5. Walk the checkout flow
 
@@ -109,6 +118,10 @@ creates the order in its own database. `GET /orders` is empty until that complet
 about 10 seconds. That delay is the architecture working, not a fault: the two modules share no
 database and communicate only through events.
 
+Orders belong to the user who checked out. `GET /orders` lists only the caller's own, and another
+user's order id answers `404` on both `GET /order/{id}` and `DELETE /order/{id}` — the same
+`TOKEN_JANE` from step 4 sees an empty list until jane checks out herself.
+
 ## Seed data
 
 Seeding is controlled by `eshop.catalog.seed-demo-data` in `application.yaml`. It is applied by a
@@ -139,12 +152,24 @@ Those paths are exempt from authentication, but the documented endpoints still r
 token — obtain one as in step 4 and paste it into Swagger UI's **Authorize** button.
 
 A [Bruno](https://www.usebruno.com/) collection covering every endpoint lives in `bruno/` at the
-repository root. Open that folder as a collection, select the committed **default** environment,
-and run **Auth → Get Token (Password Grant)** first; every other request inherits the bearer token
-from it. See [bruno/README.md](../bruno/README.md).
+repository root. Open that folder as a collection, select the committed **default - john** (or
+**default - jane**) environment, and run **Auth → Get Token (Password Grant)** first; every other
+request inherits the bearer token from it. See [bruno/README.md](../bruno/README.md).
 
 ## Keycloak administration
 
 The admin console is at `http://localhost:9090` (`admin` / `admin`). The `eshop` realm, the
-`eshop-app` client, its audience mapper and the `john` user are all created by `--import-realm`
-from `docker/sb-eshop/keycloak-init/eshop-realm.json` — there is no manual realm setup to do.
+`eshop-app` client, its audience mapper and the `john` and `jane` users are all created by
+`--import-realm` from `docker/sb-eshop/keycloak-init/eshop-realm.json` — there is no manual realm
+setup to do.
+
+**Editing that file only takes effect on a fresh realm.** `--import-realm` skips a realm that
+already exists, and Keycloak stores its data in Postgres' `identity` schema. No named volumes are
+declared in `compose.yaml`, so the way to re-import is:
+
+```bash
+docker compose down && docker compose up -d
+```
+
+That drops the databases along with the realm — catalog re-seeds itself on the next application
+start, while baskets and orders start empty.

@@ -3,7 +3,9 @@ package com.github.eshopmodularmonolith.ordering.orders.application.features.get
 import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderNotFound;
+import com.github.eshopmodularmonolith.security.SecurityTestConfig;
 import com.github.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+import static com.github.eshopmodularmonolith.security.TestUsersUtils.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,6 +36,7 @@ class GetOrderByIdControllerTest {
 
     @Configuration
     @EnableAutoConfiguration
+    @Import(SecurityTestConfig.class)
     static class Config {
 
         @Bean
@@ -53,12 +57,13 @@ class GetOrderByIdControllerTest {
     @DisplayName("Given endpoint is available, when get order by id endpoint is called, then controller forwards to handler")
     void givenEndpointIsAvailable_whenGetOrderByIdEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var product = DTOMapper.toDto(OrderMother.order());
-        var query = new GetOrderByIdQuery(product.id());
+        var query = new GetOrderByIdQuery(new CurrentUser("john_doe"), product.id());
         var result = new GetOrderByIdResult(product);
 
         when(handler.handle(query)).thenReturn(result);
 
         mockMvc.perform(get("/order/{id}", product.id().toString())
+                        .with(user("john_doe"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(r ->
@@ -70,10 +75,11 @@ class GetOrderByIdControllerTest {
     @DisplayName("When product with provided id does not exist, then not found error is returned")
     void whenProductWithProvidedIdDoesNotExist_thenNotFoundErrorIsReturned() throws Exception {
         var orderId = UUID.randomUUID();
-        var query = new GetOrderByIdQuery(orderId);
+        var query = new GetOrderByIdQuery(new CurrentUser("john_doe"), orderId);
         when(handler.handle(query)).thenThrow(new OrderNotFound(orderId));
 
         mockMvc.perform(get("/order/{id}", orderId.toString())
+                        .with(user("john_doe"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("order.not-found"))

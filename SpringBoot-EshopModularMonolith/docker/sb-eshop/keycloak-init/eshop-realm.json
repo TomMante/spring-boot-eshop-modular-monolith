@@ -123,6 +123,30 @@
       "groups": []
     },
     {
+      "id": "c3f1a8d2-7b45-4e19-9a26-5d8e0c4b7f31",
+      "username": "jane",
+      "firstName": "Jane",
+      "lastName": "Roe",
+      "email": "jane@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "totp": false,
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "password"
+        }
+      ],
+      "realmRoles": [
+        "default-roles-eshop"
+      ],
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "groups": []
+    },
+    {
       "id": "ce6112fb-26b3-4d45-ab16-9230e93ea019",
       "username": "service-account-eshop-app",
       "emailVerified": false,

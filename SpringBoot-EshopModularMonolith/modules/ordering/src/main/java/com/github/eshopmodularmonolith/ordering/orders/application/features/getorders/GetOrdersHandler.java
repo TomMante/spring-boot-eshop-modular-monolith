@@ -20,7 +20,7 @@ public class GetOrdersHandler {
         var pageRequest = new PageRequest(query.pageIndex(), query.pageSize(),
                 List.of(new SortOrder("placedAt", SortOrder.Direction.DESC),
                         new SortOrder("id", SortOrder.Direction.ASC)));
-        var pageResult = repository.paginatedOrders(pageRequest);
+        var pageResult = repository.ordersVisibleTo(query.viewer(), pageRequest);
         return new GetOrdersResult(pageResult.items(), pageResult.pageIndex(), pageResult.pageSize(), pageResult.totalItems(), pageResult.totalPages());
     }
 }

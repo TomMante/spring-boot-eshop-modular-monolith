@@ -3,6 +3,7 @@ package com.github.eshopmodularmonolith.ordering.orders.application.features.get
 import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderQueryRepository;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,14 +37,14 @@ class GetOrdersHandlerTest {
         repository.addOrder(newest);
         repository.addOrder(oldest);
 
-        var page1 = handler.handle(new GetOrdersQuery(0, 2));
+        var page1 = handler.handle(new GetOrdersQuery(new CurrentUser("john_doe"), 0, 2));
         assertThat(page1.orders()).containsExactlyElementsOf(List.of(newest, middle));
         assertThat(page1.pageIndex()).isZero();
         assertThat(page1.pageSize()).isEqualTo(2);
         assertThat(page1.totalItems()).isEqualTo(3);
         assertThat(page1.totalPages()).isEqualTo(2);
 
-        var page2 = handler.handle(new GetOrdersQuery(1, 2));
+        var page2 = handler.handle(new GetOrdersQuery(new CurrentUser("john_doe"), 1, 2));
         assertThat(page2.orders()).containsExactlyElementsOf(List.of(oldest));
         assertThat(page2.pageIndex()).isOne();
         assertThat(page2.pageSize()).isEqualTo(2);
@@ -66,10 +67,32 @@ class GetOrdersHandlerTest {
         repository.addOrder(firstById);
         repository.addOrder(secondById);
 
-        var page1 = handler.handle(new GetOrdersQuery(0, 2));
+        var page1 = handler.handle(new GetOrdersQuery(new CurrentUser("john_doe"), 0, 2));
         assertThat(page1.orders()).containsExactly(firstById, secondById);
 
-        var page2 = handler.handle(new GetOrdersQuery(1, 2));
+        var page2 = handler.handle(new GetOrdersQuery(new CurrentUser("john_doe"), 1, 2));
         assertThat(page2.orders()).containsExactly(thirdById);
+    }
+
+    @Test
+    @DisplayName("Given get orders query, when handler is called, then get orders result for correct viewer is returned")
+    void givenGetOrdersQuery_whenHandlerIsCalled_thenGetOrdersResultForCorrectViewerIsReturned() {
+        var oldest = DTOMapper.toDto(OrderMother.order(Instant.parse("2023-01-01T00:00:00Z")));
+        var middle = DTOMapper.toDto(OrderMother.order(Instant.parse("2024-01-01T00:00:00Z")));
+        var newest = DTOMapper.toDto(OrderMother.order(Instant.parse("2025-01-01T00:00:00Z")));
+        var rightUserOrder = DTOMapper.toDto(OrderMother.instance().withCustomer("right_user").withPlacedAt(Instant.parse("2022-01-01T00:00:00Z")).build());
+
+        repository.addOrder(middle);
+        repository.addOrder(newest);
+        repository.addOrder(rightUserOrder);
+        repository.addOrder(oldest);
+
+        var page = handler.handle(new GetOrdersQuery(new CurrentUser("right_user"), 0, 2));
+        assertThat(page.orders()).containsExactlyElementsOf(List.of(rightUserOrder));
+        assertThat(page.pageIndex()).isZero();
+        assertThat(page.pageSize()).isEqualTo(2);
+        assertThat(page.totalItems()).isEqualTo(1);
+        assertThat(page.totalPages()).isEqualTo(1);
+
     }
 }

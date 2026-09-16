@@ -14,7 +14,7 @@ public class GetOrderByIdHandler {
     }
 
     public GetOrderByIdResult handle(GetOrderByIdQuery query){
-        var orderDto = repository.findById(query.id())
+        var orderDto = repository.findVisibleTo(query.viewer(), query.id())
                 .orElseThrow(() -> new OrderNotFound(query.id()));
         return new GetOrderByIdResult(orderDto);
     }

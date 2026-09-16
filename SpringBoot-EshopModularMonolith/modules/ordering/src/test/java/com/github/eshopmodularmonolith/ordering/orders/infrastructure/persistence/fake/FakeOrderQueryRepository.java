@@ -2,6 +2,7 @@ package com.github.eshopmodularmonolith.ordering.orders.infrastructure.persisten
 
 import com.github.eshopmodularmonolith.ordering.orders.application.query.OrderQueryRepository;
 import com.github.eshopmodularmonolith.ordering.orders.contract.OrderDTO;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import com.github.eshopmodularmonolith.shared.domain.pagination.PageResult;
 import com.github.eshopmodularmonolith.shared.domain.pagination.SortOrder;
@@ -34,13 +35,14 @@ public class FakeOrderQueryRepository implements OrderQueryRepository {
     }
 
     @Override
-    public Optional<OrderDTO> findById(UUID id) {
-        return Optional.ofNullable(orders.get(id));
+    public Optional<OrderDTO> findVisibleTo(CurrentUser viewer, UUID id) {
+        return Optional.ofNullable(orders.get(id))
+                .filter(order -> viewer.username().equals(order.customer()));
     }
 
     @Override
-    public PageResult<OrderDTO> paginatedOrders(PageRequest pageRequest) {
-        var sortedOrders = sortedBy(pageRequest.sortOrders());
+    public PageResult<OrderDTO> ordersVisibleTo(CurrentUser viewer, PageRequest pageRequest) {
+        var sortedOrders = visibleAndSortedBy(viewer, pageRequest.sortOrders());
 
         var fromIndex = Math.min(pageRequest.skip(), sortedOrders.size());
         var toIndex = Math.min(fromIndex + pageRequest.pageSize(), sortedOrders.size());
@@ -49,8 +51,10 @@ public class FakeOrderQueryRepository implements OrderQueryRepository {
                 pageRequest.pageSize(), sortedOrders.size());
     }
 
-    private List<OrderDTO> sortedBy(List<SortOrder> sortOrders) {
-        var sortedOrders = new ArrayList<>(orders.values());
+    private List<OrderDTO> visibleAndSortedBy(CurrentUser viewer, List<SortOrder> sortOrders) {
+        var sortedOrders = orders.values().stream()
+                .filter(orderDTO -> viewer.username().equals(orderDTO.customer()))
+                .collect(Collectors.toCollection(ArrayList::new));
         sortOrders.stream()
                 .map(this::toComparator)
                 .reduce((first, next) -> first.thenComparing(next))

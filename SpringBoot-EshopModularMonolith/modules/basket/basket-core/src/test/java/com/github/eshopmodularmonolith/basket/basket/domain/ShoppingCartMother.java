@@ -5,7 +5,6 @@ import com.github.eshopmodularmonolith.basket.basket.domain.model.ShoppingCart;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class ShoppingCartMother {
 
