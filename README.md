@@ -5,8 +5,10 @@
 
 This project serves as a study/blueprint for a Spring Boot modular monolith. It also deliberately pushes microservice-readiness to an extreme, both to explore its complexity and to play around with some ideas.
 
-The core idea stems from a course I took on .NET: https://learning.oreilly.com/course/net-8-backend/9781837028757/
-where it showed how to implement a modular monolith using DDD, CQRS and VSA.
+The core idea stems from Packt's *.NET 8 Backend Bootcamp: Modulith, VSA, DDD, CQRS and Outbox*
+([course on O'Reilly](https://learning.oreilly.com/course/net-8-backend/9781837028757/),
+[original .NET source code](https://github.com/PacktPublishing/.NET-8-Backend-Bootcamp---Modulith-VSA-DDD-CQRS-and-Outbox)),
+which shows how to implement a modular monolith using DDD, CQRS and VSA.
 
 ## 📖 Documentation Index
 
@@ -58,3 +60,9 @@ The basis is to deploy on a local Minikube.
 - [ ] Add some k8s deployment files to demonstrate how it can be deployed.
 - [ ] Use of Kustomize to show samples of deployment.
 - [ ] Add example on how to use ArgoCD to deploy using GitOps.
+
+## License
+
+[MIT](LICENSE). The original .NET course code this project is based on is also
+MIT-licensed, © 2024 Packt; this repository is an independent Java/Spring Boot
+rewrite of its design, not a copy of its code.
