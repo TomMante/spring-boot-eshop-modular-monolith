@@ -24,6 +24,22 @@ Better solutions:
 2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
+## 💬 Validation messages — one bundle per module
+
+Each module owns the texts for its own validation messages (`@NotNull(message = "{basket.checkout.payment.notNull}")`), but the assembled application has exactly one `MessageSource`. Spring does not merge bundles that share a name: with several `messages.properties` on the classpath, only the first is read and every other module's keys come back to the caller as the raw `{…}` placeholder.
+
+**Rule:**
+> Every module ships its own uniquely named bundle, and `starter` lists them all.
+
+When a module adds validation messages:
+
+1. Name the bundle after the module, at its resource root: `<module>-messages.properties` (e.g. `basket-messages.properties`). Never `messages.properties`.
+2. Add it to `spring.messages.basename` in `starter/src/main/resources/application.yaml`, as a **comma-separated string** — `basename: basket-messages, catalog-messages`. Do not write it as a YAML list: Boot's check that decides whether to create the `MessageSource` at all reads the property as one string, doesn't see a list, falls back to `messages`, finds nothing and creates no `MessageSource` — so no module's messages resolve, silently.
+3. Give the module's own tests the bundle name in `src/test/resources/application.yaml` (`spring.messages.basename: <module>-messages`). Slice tests such as `@WebMvcTest` don't see `starter`'s configuration, and without it they fall back to `messages` too.
+4. Add one of the module's requests to `ApplicationWiringTest`'s message-resolution test. Only the assembled context can see a missing or colliding bundle; module tests, each with just its own file on the classpath, pass either way.
+
+---
+
 ## ⚖️ Controller, handler, aggregate — who owns what
 
 "Domain logic belongs in the aggregate" is only useful once you can decide what

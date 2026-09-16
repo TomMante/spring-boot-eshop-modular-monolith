@@ -5,6 +5,8 @@ eshop:
 spring:
   application:
     name: eshopmodularmonolith
+  messages:
+    basename: basket-messages, catalog-messages
   security:
     oauth2:
       resourceserver:
