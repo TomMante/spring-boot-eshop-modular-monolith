@@ -77,6 +77,18 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Watch for:** that branch is authorization policy living in infrastructure, implemented twice — the kind of drift item 11 already shows between two fakes. The alternative, if it starts to hurt: the handler turns the viewer into a visibility value (e.g. a sealed `OrderVisibility` with `OnlyPlacedBy(customer)` and `AllOrders`) and the adapters only translate it into criteria, keeping the decision in the application layer.
 - **Why deferred:** closing the cross-customer exposure was the priority, and doing it did not require choosing a role model.
 
+### 14. Start the Compose Stack With the Application
+- **Priority: low.** A local-development convenience: running `docker compose up -d` by hand, as [SETUP.md](SETUP.md) describes, works today.
+- **Goal:** starting the application brings the compose stack up only as far as needed — running stack: nothing happens; stopped: started; down: created and started. That is `docker compose up`'s own behaviour.
+- **Shape:** Spring Boot's Docker Compose support. Add `spring-boot-docker-compose` to `starter/pom.xml` as `<optional>true</optional>`, which keeps it out of the repackaged jar; it is skipped in tests by default, so `ApplicationWiringTest` keeps its Testcontainers. Configure `spring.docker.compose.file` to point at `docker/sb-eshop/compose.yaml`, and `spring.docker.compose.lifecycle-management: start-only` — the default, `start-and-stop`, stops the stack every time the application exits. A stack that was already running before the application started is never stopped either way.
+- **Keep `application.yaml` authoritative.** For images it recognizes — Postgres and MongoDB here — Boot creates connection details from the running containers, and those take precedence over `spring.datasource.url` and `spring.mongodb.uri`, silently. There is no setting that keeps the connection details but lets the properties win; the opt-out is the `org.springframework.boot.ignore: true` label, per service. MongoDB is the one that matters: the replica set is initiated with the internal host name `mongodb:27017`, and the current `mongodb://localhost:27020` works because a single-host URI connects directly. A Boot-derived URI may trigger member discovery, which cannot resolve `mongodb:27017` from the host. Label `mongo-init` as ignored regardless — it is a one-shot job with nothing to wire. Keycloak is not a recognized image, so `issuer-uri` is never rewired.
+- **Verify before relying on it:**
+    - whether readiness checks also skip ignored services. If they do, the application can start before Postgres or MongoDB accept connections; `docker compose up --wait` waits on the healthchecks both services already declare, passed through what should be `spring.docker.compose.start.arguments` — confirm the property exists in Boot 4.0.
+    - whether `spring.docker.compose.file` resolves from both `./mvnw spring-boot:run` and an IntelliJ run configuration, which can use different working directories.
+- **Alternative considered:** an IntelliJ Docker Compose run configuration under the application's *Before launch*. It works, but only in IntelliJ and only for whoever has the configuration, unless it is committed under `.run/`. Boot's support also covers `spring-boot:run` and a fresh clone.
+- **When done:** update [SETUP.md](SETUP.md)'s start-infrastructure step, and the Prerequisites in [bruno/README.md](../bruno/README.md).
+- **Why deferred:** convenience, not a defect. Raised on 2026-09-16 while working on order visibility, and kept out of that change.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.
