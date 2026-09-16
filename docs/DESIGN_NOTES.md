@@ -103,3 +103,28 @@ What it would cost:
 - basket keeping a checkout history;
 - the customer receiving a checkout reference;
 - anything that re-mints event ids for existing checkouts — a replay tool, or integration events getting ids of their own.
+
+## Ownership Filtering as Infrastructure
+
+Ordering scopes every read to the caller explicitly: `OrderQueryRepository` offers only `ordersVisibleTo(CurrentUser viewer, ...)` and `findVisibleTo(CurrentUser viewer, ...)`, so a handler that forgets the viewer does not compile. Decided on 2026-09-16 in [order-endpoints-scoped-to-customer](../ai-coding-tools/plans/order-endpoints-scoped-to-customer/order-endpoints-scoped-to-customer.md), with orders as the only owned resource — basket is keyed by username as its `@Id`, and catalog has no owner.
+
+The alternative is to make ownership a property of the data and enforce it in one place, so no individual query can forget it. The shape worth growing into:
+
+- A shared owned-resource type in `shared.infrastructure` carrying an `owner` field, with a common query fragment appended to each query — the same pattern `JpaAuditMetadata` already follows for audit fields.
+- **Composition, not inheritance.** `OrderDB` and `ShoppingCartDB` are records, and a record cannot extend a class. Use an embedded component (the way `ProductDB` attaches `JpaAuditMetadata` with `@Embedded`) or an interface a record can implement, such as `interface OwnedResource { String owner(); }`.
+
+What building it would run into:
+
+- **The shared field is the cheap half.** Appending the filter does not generalize across this project's two engines. Hibernate's `@Filter` rewrites JPA queries automatically once enabled per session; Spring Data MongoDB has no equivalent hook, which leaves either a helper each query must remember to call — the forgetting problem again — or a custom repository base class. One shared field, two unrelated enforcement mechanisms.
+- **`owner` is not `customer`.** `Order.customer` is domain vocabulary: who placed the order. `owner` is access control: whose data it is. Equal today, free to diverge — an agent placing an order on a customer's behalf, a household account. The domain should keep its own word.
+- **Ambient identity has its own costs.** Reading the current user inside the repository, rather than passing it in, needs a `SecurityContext` in every adapter test and a fake that imitates it, plus a bypass for anything without one — the outbox dispatcher's scheduler thread, and back-office access.
+- **A shared kernel is a coupling point.** It would be the one thing modules share beyond contracts, so a change to ownership semantics ripples through every module at once.
+- **Multi-tenancy is a different problem.** If isolation ever means separate clients on shared infrastructure rather than per-user ownership, push it below the application — Postgres row-level security, Hibernate `@TenantId` — rather than hand-rolling this.
+
+A related, smaller question is where the policy sits once roles exist. With the viewer passed to the port, a back-office role would add a branch inside `MongoOrderQueryRepository` and again inside `FakeOrderQueryRepository`: authorization policy in infrastructure, twice. A sealed `OrderVisibility` (`OnlyPlacedBy(customer)` / `AllOrders`) computed by the handler would keep the decision in the application layer and leave the adapters translating a data description.
+
+**Open question, and why this stays a note:** with one owned resource and one kind of rule ("equals the caller"), explicit scoped ports already give the "cannot be forgotten" property without any of the above. Worth revisiting when:
+
+- a second module gains data owned by a user;
+- visibility stops meaning "equals the caller" — sharing, delegated access, roles;
+- the back-office branch lands in the adapters and the two implementations start to drift.

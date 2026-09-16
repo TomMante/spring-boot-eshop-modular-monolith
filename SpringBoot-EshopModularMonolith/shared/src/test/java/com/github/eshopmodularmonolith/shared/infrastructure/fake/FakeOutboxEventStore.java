@@ -3,7 +3,6 @@ package com.github.eshopmodularmonolith.shared.infrastructure.fake;
 import com.github.eshopmodularmonolith.shared.domain.DomainEvent;
 import com.github.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

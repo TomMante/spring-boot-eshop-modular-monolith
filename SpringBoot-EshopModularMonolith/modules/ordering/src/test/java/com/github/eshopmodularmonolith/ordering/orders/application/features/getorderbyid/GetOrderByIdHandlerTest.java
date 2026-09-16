@@ -4,6 +4,7 @@ import com.github.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import com.github.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import com.github.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderNotFound;
 import com.github.eshopmodularmonolith.ordering.orders.infrastructure.persistence.fake.FakeOrderQueryRepository;
+import com.github.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,8 @@ class GetOrderByIdHandlerTest {
     @DisplayName("Given order in database, when query by id is called, then correct order is retrieved")
     void givenOrderInDatabase_whenQueryByIdIsCalled_thenCorrectOrderIsRetrieved(){
         var orderDTO = DTOMapper.toDto(OrderMother.order());
-        var query = new GetOrderByIdQuery(orderDTO.id());
-        assertThat(repository.findById(orderDTO.id())).isEmpty();
+        var query = new GetOrderByIdQuery(new CurrentUser("john_doe"), orderDTO.id());
+        assertThat(repository.findVisibleTo(new CurrentUser("john_doe"), orderDTO.id())).isEmpty();
         repository.addOrder(orderDTO);
         var order = handler.handle(query);
         var expectedResult = new GetOrderByIdResult(orderDTO);
@@ -39,7 +40,18 @@ class GetOrderByIdHandlerTest {
     @Test
     @DisplayName("Given GetOrderByIdQuery, when specified id is not present, then should throw an exception")
     void givenGetProductByIdQuery_whenSpecifiedIdIsNotPresent_thenShouldThrowAnException() {
-        var query = new GetOrderByIdQuery(UUID.randomUUID());
+        var query = new GetOrderByIdQuery(new CurrentUser("john_doe"), UUID.randomUUID());
+        assertThatExceptionOfType(OrderNotFound.class).isThrownBy(() -> handler.handle(query));
+    }
+
+    @Test
+    @DisplayName("Given order placed by another customer, when query by id is called, then should throw an exception")
+    void givenOrderPlacedByAnotherCustomer_whenQueryByIdIsCalled_thenShouldThrowAnException() {
+        var janesOrder = DTOMapper.toDto(OrderMother.instance().withCustomer("jane_roe").build());
+        repository.addOrder(janesOrder);
+
+        var query = new GetOrderByIdQuery(new CurrentUser("john_doe"), janesOrder.id());
+
         assertThatExceptionOfType(OrderNotFound.class).isThrownBy(() -> handler.handle(query));
     }
 }

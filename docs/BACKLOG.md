@@ -70,6 +70,13 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Structurally the same shape as the coverage-aggregator question**, now a note in [DESIGN_NOTES.md](DESIGN_NOTES.md): a hand-maintained fact about the build with no check behind it, where the failure is silent and flatters. That one was demoted because it only protects a reported number; this one keeps test infrastructure off the production classpath, so it stays committed work.
 - **Why deferred:** the six scopes are correct as of 2026-09-10, so this buys protection against the next declaration rather than fixing a current defect. The `failOnWarning` noise above is its own configuration decision, which is why it was not bundled into the scope fix.
 
+### 13. Back-Office Access to Orders
+- Every ordering endpoint acts only on the calling user's own orders since 2026-09-16: `GET /orders`, `GET /order/{id}` and `DELETE /order/{id}`, with another customer's order answering `404`. Nothing can see across customers — no role exists in the realm or the application, and there is no back-office endpoint.
+- **Decision needed first:** where roles live — Keycloak realm or client roles carried in the token, or roles owned by the application. This is also on the README roadmap, unchecked ("Consider Roles in Keycloak vs Roles in application"). Then what a back-office actually needs across customers: listing and reading are clear; deleting is doubtful, since cancelling an order is a state change rather than a removal (see Known Bug 13).
+- **The seam that already exists:** `OrderQueryRepository` takes the viewer — `ordersVisibleTo(CurrentUser viewer, PageRequest)` and `findVisibleTo(CurrentUser viewer, UUID id)` — and `CurrentUser` is built by `CurrentUserArgumentResolver` from the JWT. The work is roles on `CurrentUser` (read from `realm_access.roles`, if they come from Keycloak), then one branch in `MongoOrderQueryRepository` that drops the `customer` criteria for a back-office viewer, and the same branch in `FakeOrderQueryRepository`.
+- **Watch for:** that branch is authorization policy living in infrastructure, implemented twice — the kind of drift item 11 already shows between two fakes. The alternative, if it starts to hurt: the handler turns the viewer into a visibility value (e.g. a sealed `OrderVisibility` with `OnlyPlacedBy(customer)` and `AllOrders`) and the adapters only translate it into criteria, keeping the decision in the application layer.
+- **Why deferred:** closing the cross-customer exposure was the priority, and doing it did not require choosing a role model.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.
