@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.github</groupId>
+        <groupId>io.github.tommante</groupId>
         <artifactId>eshopmodularmonolith</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
@@ -26,32 +26,32 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>catalog-contract</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>catalog-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>ordering</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>basket-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>basket-contract</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>security</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

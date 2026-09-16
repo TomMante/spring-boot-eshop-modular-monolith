@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.github</groupId>
+        <groupId>io.github.tommante</groupId>
         <artifactId>eshopmodularmonolith</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
@@ -14,13 +14,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>shared</artifactId>
             <version>${project.parent.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>basket-contract</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
@@ -77,14 +77,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>security</artifactId>
             <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github</groupId>
+            <groupId>io.github.tommante</groupId>
             <artifactId>security</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
