@@ -128,3 +128,22 @@ A related, smaller question is where the policy sits once roles exist. With the 
 - a second module gains data owned by a user;
 - visibility stops meaning "equals the caller" — sharing, delegated access, roles;
 - the back-office branch lands in the adapters and the two implementations start to drift.
+
+## Directions Worth Exploring
+
+Ideas carried over from the README's former "Extending the project" checklist. Each is a direction, not a question worked through yet; one that gets thought through earns its own section above.
+
+- **Spring AI:** examples of how Spring AI could be used within this application.
+- **RAG:** a retrieval-augmented generation example on top of the application's data.
+- **API-level acceptance tests with Cucumber/Serenity:** executable scenarios against the HTTP API only.
+- **Contract testing:** verifying the shapes modules exchange, so a change on one side cannot silently break the other.
+- **Extract a module into a separate service:** one module moved out of the monolith, communicating over RabbitMQ.
+- **Kafka as the communication layer:** replacing in-process events with Kafka topics.
+- **Event sourcing with AxonFramework or KurrentDB:** persisting aggregates as event streams rather than current state.
+- **Performance testing:** exercising the application at scale.
+- **Keycloak policy enforcer:** moving authorization decisions into Keycloak.
+- **Roles in Keycloak vs. roles in the application:** where role definitions and checks should live.
+- **[Mongock](https://mongock.io/) for MongoDB:** data migrations for the Mongo modules, as the counterpart to Flyway's schema migrations on Postgres.
+- **Immutable aggregates:** making every aggregate immutable, for thread safety at the domain level.
+- **Kustomize:** sample deployments of the `Kubernetes/` manifests built with Kustomize overlays.
+- **GitOps with ArgoCD:** an example of deploying the application through ArgoCD.

@@ -10,6 +10,22 @@ The core idea stems from Packt's *.NET 8 Backend Bootcamp: Modulith, VSA, DDD, C
 [original .NET source code](https://github.com/PacktPublishing/.NET-8-Backend-Bootcamp---Modulith-VSA-DDD-CQRS-and-Outbox)),
 which shows how to implement a modular monolith using DDD, CQRS and VSA.
 
+## What's in here
+
+- **Per-module datastores:** Catalog on PostgreSQL via JPA; Basket and Ordering on MongoDB.
+- **Container image:** a multi-stage, layered Dockerfile that runs as a non-root user.
+- **Security:** endpoints protected as an OAuth2 resource server against Keycloak, with a realm imported by the compose stack.
+
+## Changes from original .NET course
+
+I took that base and ported it over to the Spring Boot/Java world and added my own ideas. The main concepts I added are:
+1. **Transactional outbox on two engines.** One `OutboxEventStore` port in `shared.infrastructure` with a JPA adapter (`outbox-jpa`, used by Catalog) and a MongoDB adapter (`outbox-mongo`, used by Basket), both driven by the same dispatch logic.
+2. **Per-module database isolation, on purpose.** Each module owns its database instead of sharing a schema, to push microservice-readiness as far as it goes. What that costs (no cross-module transactions, dual writes, eventual consistency) and what I'd choose in production is set out in [Architecture](docs/ARCHITECTURE.md#architectural-trade-offs).
+3. Used TDD, borrowing the given-when-then convention from BDD. Where tests sit and how they are named is set out in [Testing Conventions](docs/TESTING_CONVENTIONS.md).
+4. Split the domain from the infrastructure using ports, so the domain does not depend on the persistence technology. This is put to use: Basket and Ordering run on MongoDB while Catalog stays on JPA/PostgreSQL, behind the same kind of ports.
+5. Used separate repositories for write and read. Commands go through the aggregate and its repository; queries go through their own query port and return contract DTOs straight from the store, bypassing the domain. Coming from an event-sourcing project, I see the value of a separate read database; both sides share one store today, and how a dedicated read model could grow from this split is explored in [Design Notes](docs/DESIGN_NOTES.md).
+6. Leveraged Spring Auditables to add auditing to objects.
+
 ## 📖 Documentation Index
 
 Detailed documentation is located in the `docs/` directory:
@@ -23,43 +39,14 @@ Detailed documentation is located in the `docs/` directory:
 
 ## Repository Structure
 
-### SpringBoot-EshopModularMonolith
-This contains a Spring Boot 4 application, which is the main adaptation of the .NET course.
-
-### Changes from original .NET course
-
-I took that base and ported it over to the Spring Boot/Java world and added my own ideas. The main concepts I added are:
-1. Used TDD, trying to borrow from the BDD world, using the given-when-then convention (which doesn't always seem to port well to unit tests).
-2. Tried to add more abstraction so that the domain is completely split from the infrastructure using ports. This should allow for a simpler switch to a different database model, for example switching to MongoDB, should that ever prove beneficial.
-3. Used two different repositories for write and read, to allow more flexibility. Coming from an event-sourcing project, I saw the value of having different databases for write and read. With CQRS, the query side interacts directly with the read model.
-4. Leveraged Spring Auditables to add auditing to objects.
-
-### Extending the project
-Some of the next steps will be:
-- [ ] Leverage Spring AI to add some examples on how Spring AI can be used.
-- [ ] Add Cucumber/Serenity tests (API only)
-- [ ] Add contract testing
-- [x] Make one module work with MongoDB instead of JPA
-- [ ] Make one of the modules become a separate microservice and use RabbitMQ to communicate.
-- [x] Add Dockerfile
-- [ ] Try out Kafka as a communication layer
-- [ ] AxonFramework / KurrentDB
-- [ ] Add performance testing to test application at scale.
-- [ ] RAG.
-- [x] Secure application with Keycloak.
-- [ ] Explore Keycloak policy enforcer
-- [ ] Consider Roles in Keycloak vs Roles in application
-- [ ] Investigate Mongock (https://mongock.io/) as an alternative to Flyway for Mongo (data migration instead of schema migration)
-- [ ] Consider making all aggregates immutable, to ensure thread safety at the domain level.
-
-## Kubernetes deployment files
-This part provides a set of k8s manifests to deploy the various components of the application.
-The basis is to deploy on a local Minikube.
-
-### Extending the project
-- [ ] Add some k8s deployment files to demonstrate how it can be deployed.
-- [ ] Use of Kustomize to show samples of deployment.
-- [ ] Add example on how to use ArgoCD to deploy using GitOps.
+| Path | Contents |
+| --- | --- |
+| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, Dockerfile, and the local compose stack in `docker/sb-eshop/`. It sits one level down so the root can hold the material below alongside it. |
+| `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup. |
+| `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
+| `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |
+| `.github/workflows/` | CI and PR builds; `main` is also analysed on SonarCloud. |
+| `ai-coding-tools/` | How this project is built with a coding agent: process docs, and one plan per increment recording what was decided and why. |
 
 ## License
 
