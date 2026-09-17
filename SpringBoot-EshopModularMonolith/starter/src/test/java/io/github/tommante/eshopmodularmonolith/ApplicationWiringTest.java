@@ -1,12 +1,22 @@
 package io.github.tommante.eshopmodularmonolith;
 
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.additemintobasket.AddItemIntoBasketCommand;
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.additemintobasket.AddItemIntoBasketHandler;
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket.CheckoutBasketCommand;
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket.CheckoutBasketHandler;
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket.CheckoutBasketRequest;
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.createbasket.CreateBasketCommand;
+import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.createbasket.CreateBasketHandler;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductCommand;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductHandler;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductRequest;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -14,9 +24,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,7 +56,7 @@ class ApplicationWiringTest {
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.1-alpine3.23");
 
     @Container
-    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble");
+    static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble").withReplicaSet();
 
     @DynamicPropertySource
     static void mongoProperties(DynamicPropertyRegistry registry) {
@@ -57,6 +71,22 @@ class ApplicationWiringTest {
 
     @Autowired
     ProductRepository productRepository;
+
+    @Autowired
+    CreateBasketHandler createBasketHandler;
+
+    @Autowired
+    AddItemIntoBasketHandler addItemIntoBasketHandler;
+
+    @Autowired
+    CheckoutBasketHandler checkoutBasketHandler;
+
+    @Autowired
+    BasketRepository basketRepository;
+
+    @Autowired
+    @Qualifier("basketMongoTemplate")
+    MongoTemplate basketMongoTemplate;
 
     @Autowired
     MockMvc mockMvc;
@@ -92,6 +122,30 @@ class ApplicationWiringTest {
         var stored = productRepository.findProductById(productId);
         assertThat(stored).isPresent();
         assertThat(stored.get().name()).isEqualTo(command.name());
+    }
+
+    @Test
+    @DisplayName("Given all modules assembled, when checking out a basket, then the basket is removed and its checkout event is in the outbox")
+    void givenAllModulesAssembled_whenCheckingOutABasket_thenTheWriteCommitsWithItsOutboxEvent() {
+        var userName = "wiring-test-user";
+        var productId = createProductHandler.handle(new CreateProductCommand(
+                "Wiring Test Basket Product",
+                List.of("Test"),
+                "Checked out by the assembled-context wiring test",
+                "wiring-test.png",
+                BigDecimal.valueOf(9.99)
+        ));
+        createBasketHandler.handle(new CreateBasketCommand(userName));
+        addItemIntoBasketHandler.handle(new AddItemIntoBasketCommand(userName, productId, 2));
+        var address = new Address("John", "Doe", "john.doe@example.com", "1 Wiring Street", "Testland", null, "10001");
+        var payment = new Payment("John Doe", "4111111111111111", "12/29", "123");
+
+        checkoutBasketHandler.handle(new CheckoutBasketCommand(userName, address, payment, null));
+
+        assertThat(basketRepository.findByUsername(userName)).isEmpty();
+        var checkoutEvents = basketMongoTemplate.find(
+                Query.query(Criteria.where("eventType").is("BasketCheckedOut")), OutboxEventDocument.class);
+        assertThat(checkoutEvents).hasSize(1);
     }
 
     @Test
