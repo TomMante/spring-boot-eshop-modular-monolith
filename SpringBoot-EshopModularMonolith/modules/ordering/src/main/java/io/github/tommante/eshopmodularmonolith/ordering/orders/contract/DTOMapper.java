@@ -21,11 +21,11 @@ public class DTOMapper {
     }
 
     public static PaymentDTO toDto(Payment payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static Payment toDomain(PaymentDTO payment) {
-        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static ItemDTO toDto(Item item){

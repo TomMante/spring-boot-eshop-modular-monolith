@@ -13,11 +13,10 @@ public class PaymentMother {
         private String cardNumber = "1232-4342-32113";
         private String expiration = "30-08";
         private String cvv = "564";
-        private int paymentMethod = 1;
 
 
         public Payment build(){
-            return new Payment(cardName, cardNumber, expiration, cvv, paymentMethod);
+            return new Payment(cardName, cardNumber, expiration, cvv);
         }
     }
 

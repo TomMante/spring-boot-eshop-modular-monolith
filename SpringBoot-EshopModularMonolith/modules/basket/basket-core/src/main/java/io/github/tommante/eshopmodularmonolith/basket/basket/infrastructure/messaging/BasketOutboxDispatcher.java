@@ -52,6 +52,6 @@ public class BasketOutboxDispatcher {
     }
 
     private static PaymentDTO toDto(Payment payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 }
