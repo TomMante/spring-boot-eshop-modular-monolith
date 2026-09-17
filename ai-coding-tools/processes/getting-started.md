@@ -36,7 +36,7 @@ point at `https://repo.maven.apache.org/maven2/`.
 
 ## 🏗️ Core Constraints (Quick Reference)
 - **Strict Module Isolation:** Modules act like independent microservices. They DO NOT share databases.
-- **Cross-Module Communication:** Exclusively via Spring `ApplicationEvents`. No direct method calls between modules.
+- **Cross-Module Communication:** State changes cross modules only as Spring `ApplicationEvents` through an outbox. Reading another module's current data goes through a query interface in that module's `contract` package, reached via a domain port and an adapter in the caller's infrastructure (e.g. basket's `CatalogProductACL`). Never call another module to change its state. See [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#-cross-module-communication).
 - **CQRS Separation:**
     - **Write:** Rich DDD aggregates.
     - **Read:** Return Contract DTOs directly from the DB. Bypasses the domain entirely.

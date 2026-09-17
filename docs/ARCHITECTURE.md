@@ -4,14 +4,14 @@
 
 - Modules are isolated as if they were microservices-in-waiting
 - Each module can own its own database rather than sharing a schema (JPA/Postgres for some, MongoDB for others)
-- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
+- Modules never share tables. State changes cross a module boundary as Spring ApplicationEvents, sent through an outbox; a module that needs another module's current data calls a query interface in that module's `contract` package (see [Cross-module communication](#-cross-module-communication))
 - Domain is fully decoupled from infrastructure via ports/adapters
 
 ## Architectural Trade-offs
 
 This project deliberately pushes module isolation further than most production systems would need:
 - Each module can own its own database (JPA/Postgres for some, MongoDB for others) rather than sharing a schema
-- Cross-module communication happens only through Spring ApplicationEvents, not direct calls or shared tables
+- State changes cross a module boundary only as events through an outbox, never as a call into another module's write side
 
 This buys near-mechanical extraction into microservices later, at the cost of losing cross-module transactions and taking on real distributed-systems problems (e.g. dual writes, eventual consistency) inside what is still a single deployable.
 
@@ -23,6 +23,27 @@ Better solutions:
 1. Leverage the @DomainEvents annotation from Spring boot: this would require the outbox logic to be moved to the domain event lister.
 2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
+
+## 🔀 Cross-module communication
+
+Modules cross their boundaries in two ways, depending on what they need.
+
+| Need | Channel | Example |
+|---|---|---|
+| Tell another module that something happened | Domain event written to the module's outbox in the same transaction as the change, dispatched later as a Spring ApplicationEvent. Asynchronous and eventually consistent. | Basket's checkout writes `BasketCheckedOut`; Ordering's `BasketCheckoutIntegrationEventListener` places the order. |
+| Read another module's current data | Synchronous in-process call to a query interface in the owning module's `contract` package, which returns contract DTOs. Read-only. | Basket's `AddItemIntoBasketHandler` and `CheckoutBasketHandler` look up a product's name and current price through catalog's `ProductQueryService`. |
+
+The read path follows the same ports-and-adapters split as persistence. Basket's domain declares the port it needs (`ProductService`, returning basket's own `ProductInfo`); `CatalogProductACL` in basket's infrastructure is the adapter, and translates catalog's `ProductDTO` into basket's type. That keeps catalog's contract out of basket's domain and application layers, and makes the adapter the only class that changes if the lookup changes.
+
+**Why a synchronous read here.** Basket needs the price *now*: add-to-basket records it, and checkout totals at the current catalog price. A local copy of the catalog, fed by catalog's events, would give basket a price that may be stale, and would need a projection, a backfill and a catch-up story to keep it correct. A direct query gives the current value for none of that.
+
+**What it costs.** Basket depends on catalog at runtime: in-process today, so the call cannot fail independently, but after extraction into separate services it becomes a network call. At that point basket's availability and latency would depend on catalog's, and the choice would be revisited — an HTTP client behind the same `ProductService` port, or a local read model fed by catalog's events.
+
+**Rules.**
+- Only query interfaces go in a `contract` package. A module never changes another module's state by calling it; that goes through an event.
+- The caller reaches the query through its own domain port and an adapter in its infrastructure, never by injecting the other module's interface into a handler.
+
+`ArchitectureTest` enforces that a module reaches another module only through its `contract` package. It does not check that what it calls there is read-only; that rule is upheld by review.
 
 ## 💬 Validation messages — one bundle per module
 

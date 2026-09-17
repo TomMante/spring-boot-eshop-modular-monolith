@@ -116,7 +116,7 @@ curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8080/orders?pageInde
 and returns; a dispatcher polls every 5 seconds, publishes the integration event, and ordering
 creates the order in its own database. `GET /orders` is empty until that completes — usually within
 about 10 seconds. That delay is the architecture working, not a fault: the two modules share no
-database and communicate only through events.
+database, and a checkout reaches ordering only as an event.
 
 Orders belong to the user who checked out. `GET /orders` lists only the caller's own, and another
 user's order id answers `404` on both `GET /order/{id}` and `DELETE /order/{id}` — the same

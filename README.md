@@ -1,7 +1,60 @@
 [![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=TomMante_SpringBoot-EshopModularMonolith&metric=alert_status&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_SpringBoot-EshopModularMonolith)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TomMante_SpringBoot-EshopModularMonolith&metric=coverage&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_SpringBoot-EshopModularMonolith)
 
-# Project Objective
+# EShop Modular Monolith
+
+An e-shop backend in Spring Boot 4 and Java 25, built as a modular monolith whose modules are kept
+as separable as microservices: each owns its own database, cross-module writes go through a
+transactional outbox on two storage engines, and the module boundaries are checked by an ArchUnit
+test on every build.
+
+**Run it locally** (JDK 25 and Docker):
+
+```bash
+docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d
+cd SpringBoot-EshopModularMonolith && ./mvnw install -DskipTests
+./mvnw -pl starter spring-boot:run
+```
+
+Every endpoint needs a token. [SETUP.md](docs/SETUP.md) walks from here to a placed order, and
+the [Bruno collection](bruno/README.md) covers every endpoint.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+    client([Client]) -- "bearer token" --> api
+    keycloak[Keycloak] -. "issues token" .-> client
+
+    subgraph api["One deployable (starter)"]
+        catalog[Catalog]
+        basket[Basket]
+        ordering[Ordering]
+    end
+
+    catalog --- catalogDb[("PostgreSQL")]
+    basket --- basketDb[("MongoDB<br/>eshop-basket-db")]
+    ordering --- orderDb[("MongoDB<br/>eshop-order-db")]
+
+    basket -- "product price lookup<br/>(sync, catalog-contract)" --> catalog
+    basket -- "BasketCheckedOut<br/>(async, outbox)" --> ordering
+```
+
+- **Separate databases.** No module reads another's tables or collections, and there are no
+  cross-module transactions. State changes cross modules as events; reads of another module's
+  current data go through its contract. [Cross-module communication](docs/ARCHITECTURE.md#-cross-module-communication)
+  and [trade-offs](docs/ARCHITECTURE.md#architectural-trade-offs).
+- **Outbox on two engines.** Basket writes `BasketCheckedOut` to its outbox in the same Mongo
+  transaction as the checkout; a dispatcher publishes it and Ordering creates the order. Catalog
+  runs the same mechanism on JPA.
+- **Enforced boundaries.** An ArchUnit test fails the build if a module reaches past another's
+  `contract` package, or if domain code depends on Spring or infrastructure — see *Enforced by
+  `ArchitectureTest`* in [Architecture](docs/ARCHITECTURE.md).
+- **CQRS read side.** Queries skip the aggregates and return contract DTOs straight from the store.
+- **Secured.** Endpoints are an OAuth2 resource server against Keycloak; the compose stack imports
+  the realm and two demo users.
+
+## Background
 
 This project serves as a study/blueprint for a Spring Boot modular monolith. It also deliberately pushes microservice-readiness to an extreme, both to explore its complexity and to play around with some ideas.
 
@@ -9,12 +62,6 @@ The core idea stems from Packt's *.NET 8 Backend Bootcamp: Modulith, VSA, DDD, C
 ([course on O'Reilly](https://learning.oreilly.com/course/net-8-backend/9781837028757/),
 [original .NET source code](https://github.com/PacktPublishing/.NET-8-Backend-Bootcamp---Modulith-VSA-DDD-CQRS-and-Outbox)),
 which shows how to implement a modular monolith using DDD, CQRS and VSA.
-
-## What's in here
-
-- **Per-module datastores:** Catalog on PostgreSQL via JPA; Basket and Ordering on MongoDB.
-- **Container image:** a multi-stage, layered Dockerfile that runs as a non-root user.
-- **Security:** endpoints protected as an OAuth2 resource server against Keycloak, with a realm imported by the compose stack.
 
 ## Changes from original .NET course
 
@@ -41,7 +88,7 @@ Detailed documentation is located in the `docs/` directory:
 
 | Path | Contents |
 | --- | --- |
-| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, Dockerfile, and the local compose stack in `docker/sb-eshop/`. It sits one level down so the root can hold the material below alongside it. |
+| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, a multi-stage layered Dockerfile running as a non-root user, and the local compose stack in `docker/sb-eshop/`. It sits one level down so the root can hold the material below alongside it. |
 | `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup. |
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |
