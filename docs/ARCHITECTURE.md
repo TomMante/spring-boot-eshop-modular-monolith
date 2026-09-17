@@ -93,6 +93,29 @@ domain model, arrived at one ternary at a time.
 
 ---
 
+## 📨 Request shapes vs. module contracts
+
+A module's `-contract` artifact and an endpoint's request are both "contracts", but with
+different parties, and they change for different reasons.
+
+| Type | Lives in | Party | Example |
+|---|---|---|---|
+| Module contract | `<module>-contract` | other modules, which compile against it | `BasketCheckoutIntegrationEvent`, its `AddressDTO`/`PaymentDTO` |
+| Request shape | `<module>-core/…/application/features/<feature>/` | an HTTP client, which only ever sees JSON | `CheckoutBasketRequest`, `CheckoutAddress`, `CheckoutPayment` |
+
+**Rule:**
+> An endpoint accepts its own request records, even when their fields coincide with a contract DTO. Bean-validation annotations go on those records, never on `-contract` types.
+
+Why the duplication is not duplicated knowledge:
+- **Different audiences.** No module calls another module's endpoint, so a request type in `-contract` would be visible to exactly the modules that must never use it.
+- **Different change clocks.** Integration events are persisted in an outbox; changing their shape changes data already at rest (see Known Issues). A request can gain or lose a field without touching that.
+- **They already have reasons to diverge.** Checkout must accept card details from the client, while the published event should eventually carry a provider token instead (see Known Issues, raw card data).
+- **Annotations would lie on the event.** `@NotBlank` on an event field reads as a guarantee to the consuming module, and nothing on its side enforces it.
+
+The controller maps the request records into domain value objects (`CheckoutAddress.toDomain()`); the domain value object stays the pivot between the request and the published event, so neither knows about the other.
+
+---
+
 ## 🧩 Shared module structure
 
 The `shared` module contains reusable building blocks that are used across bounded contexts and vertical slices.  

@@ -104,7 +104,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/basket
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{
     "billingAddress":{"firstName":"John","lastName":"Doe","emailAddress":"john.doe@example.com","addressLine":"1 Billing Street","country":"USA","state":"Billing State","zipCode":"10001"},
-    "payment":{"cardName":"John Doe","cardNumber":"4111111111111111","expiration":"12/29","cvv":"123","paymentMethod":1},
+    "payment":{"cardName":"John Doe","cardNumber":"4111111111111111","expiration":"12/29","cvv":"123"},
     "shippingAddress":{"firstName":"Jane","lastName":"Roe","emailAddress":"jane.roe@example.com","addressLine":"2 Shipping Avenue","country":"USA","state":"Shipping State","zipCode":"90210"}
   }' http://localhost:8080/basket/checkout
 

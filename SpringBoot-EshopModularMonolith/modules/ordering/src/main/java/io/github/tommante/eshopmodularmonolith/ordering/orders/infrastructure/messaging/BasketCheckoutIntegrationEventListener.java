@@ -47,6 +47,6 @@ public class BasketCheckoutIntegrationEventListener {
     }
 
     private Payment toDomain(PaymentDTO payment) {
-        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 }

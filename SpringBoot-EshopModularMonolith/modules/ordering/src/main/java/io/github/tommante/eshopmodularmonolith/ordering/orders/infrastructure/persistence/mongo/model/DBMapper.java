@@ -21,11 +21,11 @@ public class DBMapper {
     }
 
     public static PaymentDB toDb(Payment payment) {
-        return new PaymentDB(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new PaymentDB(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static Payment toDomain(PaymentDB payment) {
-        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static ItemDB toDb(Item item){
@@ -49,7 +49,7 @@ public class DBMapper {
     }
 
     public static PaymentDTO toDto(PaymentDB payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv(), payment.paymentMethod());
+        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static ItemDTO toDto(ItemDB item){

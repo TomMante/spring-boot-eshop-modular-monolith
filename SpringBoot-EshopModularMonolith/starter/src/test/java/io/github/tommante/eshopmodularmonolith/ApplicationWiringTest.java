@@ -106,7 +106,7 @@ class ApplicationWiringTest {
     @DisplayName("Given all modules assembled, when validating each module's request, then its messages resolve")
     void givenAllModulesAssembled_whenValidatingEachModulesRequest_thenItsMessagesResolve() {
         assertThat(messagesFor(new CheckoutBasketRequest(null, null, null)))
-                .containsExactlyInAnyOrder("Billing address is required.", "Payment method is required.");
+                .containsExactlyInAnyOrder("Billing address is required.", "Payment details are required.");
         assertThat(messagesFor(new CreateProductRequest(null, null, null, null, null)))
                 .containsExactlyInAnyOrder("Product name is required.", "Product price is required.");
     }

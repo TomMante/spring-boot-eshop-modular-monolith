@@ -25,10 +25,6 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Decision needed:** should `Order` trust the value carried on the integration event, or re-derive its own from the items it received? Trusting a caller-computed number repeats the shape of the bug this item used to describe — an aggregate should generally own its own invariant rather than believe one handed to it. Settle this before adding `totalPrice` to `Order`, `OrderDB`, `OrderDTO` and both mappers — and, only if the event's value is trusted, to `CreateOrderCommand` and `BasketCheckoutIntegrationEventListener`, which would have to carry it; a re-derived total needs neither.
 - **Why still deferred:** demonstrating the current-price-at-checkout mechanism was that plan's priority; wiring the result into `Order` is separate, smaller work once the trust-vs-derive question is answered.
 
-### 2. Nested Validation on Address and Payment Contents
-- `CheckoutBasketRequest` does not validate the fields *inside* an address or payment — only that the object itself is present. An address of all-blank strings is accepted at checkout and carried through to the order.
-- **Why deferred:** originally kept at parity with ordering's `CreateOrderRequest` rather than making one request stricter than the other in an increment that was about something else. [one-order-per-checkout](../ai-coding-tools/plans/one-order-per-checkout/one-order-per-checkout.md) removed that request along with `POST /order`, so the parity reason no longer applies — checkout is now the only entry point to validate.
-
 ### 3. `MongoAuditMetadata`
 - Ordering has no counterpart to `shared.infrastructure.JpaAuditMetadata`, so Mongo-backed documents carry no created/modified audit fields.
 - **Blocked on:** adding `@Version` to the documents. Mongo auditing decides created-vs-modified purely from `isNew`, which is id-based, and every document in this codebase assigns its id up front — so without a version field auditing cannot distinguish the two cases at all.

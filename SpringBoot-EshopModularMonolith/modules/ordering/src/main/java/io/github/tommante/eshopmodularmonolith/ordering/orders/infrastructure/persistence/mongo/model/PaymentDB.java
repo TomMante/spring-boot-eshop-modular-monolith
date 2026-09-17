@@ -7,8 +7,7 @@ public record PaymentDB(
         String cardName,
         String cardNumber,
         String expiration,
-        String cvv,
-        int paymentMethod
+        String cvv
 ) {
 
     public static final String TYPE_ALIAS = "Payment";

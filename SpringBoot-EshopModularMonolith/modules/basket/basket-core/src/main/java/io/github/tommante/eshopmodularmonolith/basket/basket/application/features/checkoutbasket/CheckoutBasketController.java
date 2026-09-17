@@ -1,6 +1,5 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
-import io.github.tommante.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
 import io.github.tommante.eshopmodularmonolith.shared.contract.identity.AuthenticatedUser;
 import io.github.tommante.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +23,9 @@ public class CheckoutBasketController {
             @Validated @RequestBody CheckoutBasketRequest request) {
         var cmd = new CheckoutBasketCommand(
                 currentUser.username(),
-                DTOMapper.toDomain(request.billingAddress()),
-                DTOMapper.toDomain(request.payment()),
-                request.shippingAddress() == null? null : DTOMapper.toDomain(request.shippingAddress()));
+                request.billingAddress().toDomain(),
+                request.payment().toDomain(),
+                request.shippingAddress() == null? null : request.shippingAddress().toDomain());
         handler.handle(cmd);
         return ResponseEntity.accepted().build();
     }

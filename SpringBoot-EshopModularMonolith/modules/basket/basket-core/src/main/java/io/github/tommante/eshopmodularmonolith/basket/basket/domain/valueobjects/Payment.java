@@ -4,7 +4,6 @@ public record Payment(
         String cardName,
         String cardNumber,
         String expiration,
-        String cvv,
-        int paymentMethod
+        String cvv
 ) {
 }
