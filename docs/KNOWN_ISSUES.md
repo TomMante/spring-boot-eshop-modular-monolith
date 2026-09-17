@@ -38,11 +38,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 
 ## 🧪 Testing Considerations & Gaps
 
-### 3. Untested Application Domain Event Listeners
-- **Locations:** `BasketCheckedOutHandler`, `ProductCreatedHandler`
-- **Issue:** These classes currently report 0 lines covered. Although they might only be logging right now, missing tests mean there is no guarantee that a `ProductCreated` or `BasketCheckedOut` domain event is actually being picked up and routed by the Spring context.
-- **Improvement:** Add integration/unit tests verifying that the `ApplicationEventPublisher` successfully triggers these event handlers.
-
 ### 6. Transactional Semantics of Order Creation Are Unverified
 - **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
 - **Issue:** `CreateOrderHandler` carries no `@Transactional`, and its only entry point is the integration-event listener, which runs on the outbox dispatcher's scheduler thread (the HTTP entry point, `POST /order`, was removed on 2026-09-15). One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
