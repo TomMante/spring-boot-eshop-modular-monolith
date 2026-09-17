@@ -40,8 +40,8 @@ point at `https://repo.maven.apache.org/maven2/`.
 - **CQRS Separation:**
     - **Write:** Rich DDD aggregates.
     - **Read:** Return Contract DTOs directly from the DB. Bypasses the domain entirely.
-- **Dependency Rules (`shared` module):** `Infrastructure` → `Domain` → `Contract`.
-    - `shared.ddd`: Pure, framework-agnostic. No infra/contract dependencies.
+- **Dependency Rules (`shared` module):** Domain and Contract are independent of each other and of Infrastructure. Enforced by `ArchitectureTest` in `starter`.
+    - `shared.domain`: Pure, framework-agnostic. No infra/contract dependencies.
     - `shared.contract`: Public shapes (DTOs). No domain/infra dependencies.
     - `shared.infrastructure`: Spring/JPA concerns. Never depended on by domain/contract.
 

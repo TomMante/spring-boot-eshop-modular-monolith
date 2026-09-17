@@ -1,5 +1,6 @@
-package io.github.tommante.eshopmodularmonolith.shared.contract.error;
+package io.github.tommante.eshopmodularmonolith.shared.infrastructure.error;
 
+import io.github.tommante.eshopmodularmonolith.shared.contract.error.ApiError;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;

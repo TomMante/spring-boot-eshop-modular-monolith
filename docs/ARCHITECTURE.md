@@ -123,7 +123,7 @@ It is divided into clear conceptual packages that reflect architectural responsi
 
 ---
 
-## 📦 shared.ddd
+## 📦 shared.domain
 
 **Purpose:**  
 Contains **Domain-Driven Design building blocks** that are shared across all bounded contexts and vertical slices.
@@ -146,7 +146,7 @@ This package exists to:
 - `Aggregate` marker interfaces
 
 **Rule:**
-> Code in `shared.ddd` must not depend on infrastructure or contract code.
+> Code in `shared.domain` must not depend on infrastructure or contract code.
 
 It may only depend on:
 - The Java standard library
@@ -172,7 +172,7 @@ These classes:
 - `ProductDto`
 - `GetProductsResponse`
 - `PaginationRequest`
-- Error/Problem response models
+- `ApiError`, the error response shape. The Spring code that builds and sends it — `ApiErrors` and `ValidationExceptionHandler` — is infrastructure and lives in `shared.infrastructure.error`.
 
 **Rule:**
 > Classes in `shared.contract` must not depend on domain entities or infrastructure concerns.
@@ -219,6 +219,8 @@ These classes:
 **Rule:**
 > Code in `shared.infrastructure` must NOT be depended on by domain or contract code.
 
+A module's **application** layer may depend on `shared.infrastructure`, even though it must never depend on its *own* infrastructure. Controllers and their `@RestControllerAdvice` error handlers live under `application/features/…` but are adapters by role (see *Controller, handler, aggregate*), so shared web plumbing such as `ApiErrors` is theirs to use.
+
 ---
 
 ## 🧭 Architectural intent
@@ -226,8 +228,8 @@ These classes:
 This separation enforces:
 
 - **Dependency direction:**  
-  Infrastructure → Domain → Contract  
-  (never the reverse)
+  Infrastructure → Application → Domain, and outer layers may use Contract;  
+  Domain and Contract never depend on each other, on outer layers, or on Spring/Jakarta
 
 - **Framework isolation:**  
   Spring and JPA are implementation details, not part of the model
@@ -243,11 +245,26 @@ This separation enforces:
 
 ---
 
+## 🛡️ Enforced by `ArchitectureTest`
+
+The dependency rules above are checked on every build by `starter/src/test/…/ArchitectureTest.java` (ArchUnit, production classes only). It lives in `starter` because that is the only module whose classpath holds every module.
+
+| Rule | Why Maven alone doesn't enforce it |
+|---|---|
+| `..domain..` depends on no Spring, Jakarta, application, infrastructure or contract code | Same Maven module as the layers it must not reach |
+| `..contract..` depends on no Spring, Jakarta, domain, application or infrastructure code | Same — and `ordering` and `shared` have no separate contract artifact |
+| A module's application layer never depends on its own infrastructure | Same Maven module |
+| A module reaches another module only through that module's `contract` package | Maven only limits *which* artifacts are visible; a wrong pom dependency would open a module's internals |
+
+Maven's module split already guarantees the rest: a `-core` module cannot import anything its pom does not declare. When a rule fails, fix the dependency or change the rule *and this document* together — a rule that no longer matches the prose is the drift this test exists to catch.
+
+---
+
 ## 🧠 Mental model
 
 | Layer | Think of it as | Example |
 |-------|----------------|---------|
-| shared.ddd | Domain primitives | `AggregateRoot`, `DomainEvent` |
+| shared.domain | Domain primitives | `AggregateRoot`, `DomainEvent` |
 | Domain | Business rules | `Product`, `Order`, `Money` |
 | Contract | System boundary | `ProductDto`, `PaginatedResult`, `GetProductsResponse` |
 | Infrastructure | Technical plumbing | `ProductEntity`, `AuditMetadata`, `JpaRepository` |

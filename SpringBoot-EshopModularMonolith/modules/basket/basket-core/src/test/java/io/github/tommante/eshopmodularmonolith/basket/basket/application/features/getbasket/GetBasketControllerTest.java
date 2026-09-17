@@ -3,7 +3,7 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.application.featur
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ShoppingCartDTO;
 import io.github.tommante.eshopmodularmonolith.security.SecurityTestConfig;
-import io.github.tommante.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
