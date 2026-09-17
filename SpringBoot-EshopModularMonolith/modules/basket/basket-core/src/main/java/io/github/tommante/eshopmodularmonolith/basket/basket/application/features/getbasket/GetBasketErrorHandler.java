@@ -2,7 +2,7 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.application.featur
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
 import io.github.tommante.eshopmodularmonolith.shared.contract.error.ApiError;
-import io.github.tommante.eshopmodularmonolith.shared.contract.error.ApiErrors;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ApiErrors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

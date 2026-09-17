@@ -9,7 +9,7 @@ Work this project has decided to do later, recorded with the reasoning that put 
 | broken, or behaving correctly with nothing proving it | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 | fine as far as it goes, but a capability is missing or a decision is unmade | here |
 
-Route by **nature, not by origin**. Something surfaced while deferring a plan step can still be a defect — most of this project's deferrals have been. "A plan deferred it" is not a category.
+Route by **nature, not by origin**. Something surfaced while deferring a plan step canok, o still be a defect — most of this project's deferrals have been. "A plan deferred it" is not a category.
 
 **Entry bar:** work actually decided on and deliberately postponed. Not ideas, not "would be nice". A backlog that accepts those stops being read, which is the only way a backlog fails.
 
@@ -35,12 +35,6 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Why it matters:** there's no way for a consumer of this event to show a customer the add-time-vs-current-price delta ("price dropped since you added it"), and the event is internally inconsistent for anyone reading it later, e.g. as an audit trail.
 - **Action:** needs a dedicated shape carrying both prices per item (e.g. `CheckedOutItem(id, productId, quantity, priceWhenAdded, currentPrice, productName)`) — deliberately not a change to `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field.
 - **Why deferred:** proving the current-price-at-checkout mechanism exists at all was the priority; representing both prices together, and any delta view built on it, is separate follow-up work.
-
-### 9. Module Isolation Is Asserted but Not Enforced
-- The central architectural claim — modules do not share a database and communicate only through Spring `ApplicationEvents`, never direct calls — is stated in [ARCHITECTURE.md](ARCHITECTURE.md) and in the project instructions, and nothing fails when it is broken. A direct call from one module's handler into another's, or a repository reaching across schemas, compiles and passes the suite today.
-- **What this would take:** an ArchUnit test asserting the rules that already exist in prose — no package under one module depends on another module's `core`/internal packages, only its `-contract`; `shared.ddd` depends on neither infrastructure nor contract; `shared.contract` depends on no domain or infrastructure type; nothing outside a module's own package touches its persistence classes. Spring Modulith is the alternative, and would replace hand-written rules with its own model plus documentation generation — a larger adoption decision, not a drop-in.
-- **Why deferred:** the rules have held so far by discipline and review, so this buys regression safety rather than a fix. It becomes urgent as soon as anyone other than the author writes a module, or the codebase grows past what one person keeps in their head.
-- **Note:** whichever route is chosen, the payoff is only real if the check runs in CI — the existing GitHub Actions workflows already run `./mvnw verify`, so an ArchUnit test in the normal suite needs no pipeline change.
 
 ### 11. `FakeOutboxEventStore` Exists Three Times, in Two Different Flavours
 - `OutboxEventStore` is a port in `shared.infrastructure`, and its test fake exists **three** times: `shared`'s `shared.infrastructure.fake.FakeOutboxEventStore`, `basket-core`'s `basket.infrastructure.messaging.fake.FakeOutboxEventStore`, and `catalog-core`'s `products.infrastructure.messaging.fake.FakeOutboxEventStore`. Basket's and catalog's are byte-identical apart from the package declaration and two fields that lost their `final` in the copy; catalog's appeared on 2026-09-08 when its messaging folder structure was aligned with basket's.

@@ -1,6 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
-import io.github.tommante.eshopmodularmonolith.shared.contract.error.ValidationExceptionHandler;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
