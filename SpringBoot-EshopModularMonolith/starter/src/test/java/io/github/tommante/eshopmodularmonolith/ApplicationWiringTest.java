@@ -16,6 +16,7 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.application.feat
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductRequest;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.validation.ConstraintViolation;
@@ -73,6 +74,9 @@ class ApplicationWiringTest {
     ProductRepository productRepository;
 
     @Autowired
+    OutboxEventJpaRepository outboxEventJpaRepository;
+
+    @Autowired
     CreateBasketHandler createBasketHandler;
 
     @Autowired
@@ -107,8 +111,8 @@ class ApplicationWiringTest {
     }
 
     @Test
-    @DisplayName("Given all modules assembled, when creating a product, then the write commits and is readable")
-    void givenAllModulesAssembled_whenCreatingAProduct_thenTheWriteCommits() {
+    @DisplayName("Given all modules assembled, when creating a product, then the write commits, is readable and its created event is in the outbox")
+    void givenAllModulesAssembled_whenCreatingAProduct_thenTheWriteCommitsWithItsOutboxEvent() {
         var command = new CreateProductCommand(
                 "Wiring Test Product",
                 List.of("Test"),
@@ -122,6 +126,11 @@ class ApplicationWiringTest {
         var stored = productRepository.findProductById(productId);
         assertThat(stored).isPresent();
         assertThat(stored.get().name()).isEqualTo(command.name());
+        var productCreatedEvents = outboxEventJpaRepository.findAll().stream()
+                .filter(event -> event.eventType().equals("ProductCreated"))
+                .filter(event -> event.payload().contains(productId.toString()))
+                .toList();
+        assertThat(productCreatedEvents).hasSize(1);
     }
 
     @Test
