@@ -134,19 +134,19 @@ Why this order:
   - the serializer round-trip and the port refactor (2.1–2.2): behaviour-preserving, existing tests are the safety net;
   - dispatcher wiring (3.4);
   - schema-version persistence and fixture capture (4.3).
-- **Refactor steps** (1.1–1.2, 2.1–2.2 and 4.1) follow [refactoring.md](../../processes/refactoring.md).
+- **Refactor steps** (2.1–2.2 and 4.1) follow [refactoring.md](../../processes/refactoring.md). Increment 1 does not: that process is for production code and forbids touching tests, and increment 1 is test code only. Its safety net is the suite staying green with the same assertions.
 
 ## Todo List
 
 ### Increment 1: One fake outbox store (closes Backlog 11)
 No production code changes. The port stays `save(DomainEvent)` / `fetchUnprocessedEvents()` / `markAsProcessed(DomainEvent)`.
-- [ ] 1.1. **Rewrite `shared`'s `FakeOutboxEventStore`** (`shared.infrastructure.fake`) as flag-and-retain: a `LinkedHashMap` of stored events plus a processed flag per event id. `fetchUnprocessedEvents()` returns the unflagged events **in save order**. Basket's copy uses a `HashMap`, which doesn't keep that order; increment 2's red test ("unreadable row saved *before* a valid one") depends on it. Don't add query methods that no current test needs.
-- [ ] 1.2. **Publish and consume it.**
+- [x] 1.1. **Rewrite `shared`'s `FakeOutboxEventStore`** (`shared.infrastructure.fake`) as flag-and-retain: a `LinkedHashMap` of stored events plus a processed flag per event id. `fetchUnprocessedEvents()` returns the unflagged events **in save order**. Basket's copy uses a `HashMap`, which doesn't keep that order; increment 2's red test ("unreadable row saved *before* a valid one") depends on it. Don't add query methods that no current test needs.
+- [x] 1.2. **Publish and consume it.**
   - `shared/pom.xml` gains the `maven-jar-plugin` `test-jar` execution. Copy the four lines from `security/pom.xml`.
   - `basket-core` and `catalog-core` each add a `shared` dependency with `<type>test-jar</type>` and `<scope>test</scope>`, as `basket-core` already does for `security`.
   - Delete `basket.infrastructure.messaging.fake.FakeOutboxEventStore` and `products.infrastructure.messaging.fake.FakeOutboxEventStore`. Point `BasketOutboxDispatcherTest` and `CatalogOutboxDispatcherTest` at the shared one.
-- [ ] 1.3. **`./mvnw clean verify`** is green. The full build matters here, not `-Dtest`: the test-jar only resolves through the reactor.
-- [ ] 1.4. **Live lists:** remove Backlog 11 from [BACKLOG.md](../../../docs/BACKLOG.md). Move its "Do not fix the other duplicates SonarCloud reports" paragraph into [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md) (decided with the user). It explains duplication that the architecture requires, so it belongs with the architecture, not with speculation.
+- [x] 1.3. **`./mvnw clean verify`** is green. The full build matters here, not `-Dtest`: the test-jar only resolves through the reactor.
+- [x] 1.4. **Live lists:** remove Backlog 11 from [BACKLOG.md](../../../docs/BACKLOG.md). Move its "Do not fix the other duplicates SonarCloud reports" paragraph into [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md) (decided with the user). It explains duplication that the architecture requires, so it belongs with the architecture, not with speculation.
 
 ### Increment 2: Reading moves to `shared`; an unreadable row doesn't stop the batch
 - [ ] 2.1. **`OutboxPayloadSerializer` and `StoredOutboxEvent`** in `shared.infrastructure`, without versioning yet (`schemaVersion` always 1). `OutboxPayloadSerializerTest`: a round-trip, and an unknown type throwing a descriptive exception.

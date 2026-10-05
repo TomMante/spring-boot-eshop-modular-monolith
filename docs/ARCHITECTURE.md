@@ -24,6 +24,14 @@ Better solutions:
 2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
+### Duplication the architecture requires
+SonarCloud reports some code as duplicated that is duplicated on purpose. Do not merge these copies:
+- **`OutboxEventEntity` and `OutboxEventDocument`**: two adapters over two database engines. Showing that is the point of this project.
+- **`Product` and `ProductDB`**: a domain model and its persistence projection. The ports/adapters split requires both.
+- **`PaymentMother`/`AddressMother` in basket and in ordering**: they mirror the `Payment` and `Address` value objects, which each module owns separately on purpose. Sharing the test builders would couple the two modules.
+
+Test fakes for a port in `shared` are different: there is only one, published from `shared`'s test-jar (e.g. `shared.infrastructure.fake.FakeOutboxEventStore`), because two copies of a fake drift apart.
+
 ## 🔀 Cross-module communication
 
 Modules cross their boundaries in two ways, depending on what they need.

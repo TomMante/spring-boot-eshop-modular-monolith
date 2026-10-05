@@ -4,8 +4,8 @@ package io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.
 import io.github.tommante.eshopmodularmonolith.catalog.products.contract.integrationevents.ProductCreatedMessage;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.messaging.fake.FakeMessageBus;
-import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.messaging.fake.FakeOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.fake.FakeOutboxEventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
