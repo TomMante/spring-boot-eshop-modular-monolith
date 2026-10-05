@@ -3,6 +3,7 @@ This file provides strict guidance for AI Agents (like WARP) working in this rep
 ## 📚 Project Documentation
 Before making architectural decisions, refactoring, or writing tests, consult the following documents in the `docs/` directory:
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Core design (DDD, CQRS, VSA, Module Isolation, Shared Module Rules).
+- [SPRING_MODULITH.md](../../docs/SPRING_MODULITH.md) - Which hand-built parts Spring Modulith provides out of the box, and where it does not fit. Awareness only; the project does not use it. Not yet reviewed by the author — verify a Spring Modulith claim before relying on it.
 - [DESIGN_NOTES.md](../../docs/DESIGN_NOTES.md) - Options and open questions only. Nothing in it is a decision; do not treat it as direction.
 - [KNOWN_ISSUES.md](../../docs/KNOWN_ISSUES.md) - Known defects and testing gaps in the current codebase.
 - [BACKLOG.md](../../docs/BACKLOG.md) - Work deliberately postponed: missing capabilities and unmade decisions.

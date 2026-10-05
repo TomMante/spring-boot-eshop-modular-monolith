@@ -63,6 +63,11 @@ The core idea stems from Packt's *.NET 8 Backend Bootcamp: Modulith, VSA, DDD, C
 [original .NET source code](https://github.com/PacktPublishing/.NET-8-Backend-Bootcamp---Modulith-VSA-DDD-CQRS-and-Outbox)),
 which shows how to implement a modular monolith using DDD, CQRS and VSA.
 
+The outbox, the module-boundary checks and the module-scoped wiring are built by hand here. In
+the Spring ecosystem, [Spring Modulith](https://spring.io/projects/spring-modulith) provides much
+of that out of the box. [A comparison](docs/SPRING_MODULITH.md) maps what it would replace in
+this codebase, and why its single event registry doesn't fit per-module databases.
+
 ## Changes from original .NET course
 
 I took that base and ported it over to the Spring Boot/Java world and added my own ideas. The main concepts I added are:
@@ -77,6 +82,7 @@ I took that base and ported it over to the Spring Boot/Java world and added my o
 
 Detailed documentation is located in the `docs/` directory:
 - **[Architecture (DDD, CQRS, Modules)](docs/ARCHITECTURE.md)**
+- **[Spring Modulith (what it would replace here, and what it wouldn't) — to review](docs/SPRING_MODULITH.md)**
 - **[Design Notes (options and open questions, not decisions)](docs/DESIGN_NOTES.md)**
 - **[Known Issues (defects & testing gaps)](docs/KNOWN_ISSUES.md)**
 - **[Backlog (work deliberately postponed)](docs/BACKLOG.md)**
@@ -89,7 +95,7 @@ Detailed documentation is located in the `docs/` directory:
 | Path | Contents |
 | --- | --- |
 | `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, a multi-stage layered Dockerfile running as a non-root user, and the local compose stack in `docker/sb-eshop/`. It sits one level down so the root can hold the material below alongside it. |
-| `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup. |
+| `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup, and a comparison with Spring Modulith. |
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |
 | `.github/workflows/` | CI and PR builds; `main` is also analysed on SonarCloud. |
