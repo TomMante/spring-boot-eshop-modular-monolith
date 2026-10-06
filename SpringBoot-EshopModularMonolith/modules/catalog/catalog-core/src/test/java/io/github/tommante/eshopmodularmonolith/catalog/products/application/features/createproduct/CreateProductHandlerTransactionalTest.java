@@ -5,14 +5,14 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.p
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.JpaProductRepository;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.SpringJpaProductRepository;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventEntity;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.SpringDomainEventPublisher;
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;

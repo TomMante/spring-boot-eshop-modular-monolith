@@ -2,11 +2,11 @@ package io.github.tommante.eshopmodularmonolith.basket;
 
 import com.mongodb.client.MongoClient;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxDocumentMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;

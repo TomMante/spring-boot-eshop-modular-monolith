@@ -18,12 +18,14 @@ class ArchitectureTest {
 
     private static final String ROOT = "io.github.tommante.eshopmodularmonolith.";
     private static final List<String> MODULES = List.of("basket", "catalog", "ordering");
+    private static final String[] OUTBOX_PACKAGES = {"..outboxcore..", "..outboxjpa..", "..outboxmongo.."};
 
     @ArchTest
     void givenDomainCode_whenScanned_thenItDependsOnNoFrameworkAndNoOuterLayer(JavaClasses classes) {
         noClasses().that().resideInAPackage("..domain..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..", "jakarta..", "..application..", "..infrastructure..", "..contract..")
+                .orShould().dependOnClassesThat().resideInAnyPackage(OUTBOX_PACKAGES)
                 .check(classes);
     }
 
@@ -32,6 +34,7 @@ class ArchitectureTest {
         noClasses().that().resideInAPackage("..contract..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..", "jakarta..", "..domain..", "..application..", "..infrastructure..")
+                .orShould().dependOnClassesThat().resideInAnyPackage(OUTBOX_PACKAGES)
                 .check(classes);
     }
 

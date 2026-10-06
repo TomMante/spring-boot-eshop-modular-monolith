@@ -101,7 +101,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.tommante</groupId>
-            <artifactId>shared</artifactId>
+            <artifactId>outbox-core</artifactId>
             <version>${project.parent.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

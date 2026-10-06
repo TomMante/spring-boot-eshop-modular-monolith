@@ -3,10 +3,10 @@ package io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.
 
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.mapper.ProductMapper;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.ProductMother;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.SortOrder;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

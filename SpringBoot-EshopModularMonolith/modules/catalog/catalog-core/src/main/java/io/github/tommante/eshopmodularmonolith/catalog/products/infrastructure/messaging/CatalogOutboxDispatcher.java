@@ -2,10 +2,10 @@ package io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.
 
 import io.github.tommante.eshopmodularmonolith.catalog.products.contract.integrationevents.ProductCreatedMessage;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.MessageBus;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventProcessor;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
