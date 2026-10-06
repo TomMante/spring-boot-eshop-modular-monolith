@@ -11,7 +11,7 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 ## 🐛 Known Bugs
 
 ### 2. Outbox Dispatchers Have No Retry Limit or Dead-Letter State for a Poisoned Event
-- **Location:** `OutboxEventProcessor.dispatchPendingEvents` (`shared.infrastructure`), used by both `BasketOutboxDispatcher` and `CatalogOutboxDispatcher`.
+- **Location:** `OutboxEventProcessor.dispatchPendingEvents` (`outbox-core`), used by both `BasketOutboxDispatcher` and `CatalogOutboxDispatcher`.
 - **Issue:** [outbox-dispatcher-per-event-isolation](../ai-coding-tools/plans/outbox-dispatcher-per-event-isolation/outbox-dispatcher-per-event-isolation.md) fixed the original defect: each event's publish-then-`markAsProcessed` is now wrapped in a try/catch, so a failure is logged and the loop moves on to the next event instead of propagating out of the scheduled method. What's still open is what happens to that one poisoned event afterward: it stays unprocessed and is retried every 5 seconds forever, with no attempt counter and no dead-letter state — the only trace of it is a log line.
 - **Impact:** No longer halts unrelated events — a bad event no longer blocks its neighbors or the rest of the batch. But a permanently-poisoned event (e.g. a listener that will always throw for that payload) retries silently and indefinitely, invisible to the HTTP caller and to anyone not reading logs.
 - **Action Required:** Decide retry semantics for the poisoned event itself — an attempt counter with a terminal dead-letter state, or some other bound. This requires an `OutboxEventStore` port change (both the Mongo and JPA adapters currently only support "unprocessed" vs. "processed") and is a decision, not a mechanical fix.

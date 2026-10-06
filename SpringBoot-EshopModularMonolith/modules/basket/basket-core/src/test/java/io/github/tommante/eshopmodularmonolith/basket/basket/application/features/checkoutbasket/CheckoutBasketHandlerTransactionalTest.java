@@ -12,13 +12,13 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.pers
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.MongoBasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.SpringMongoBasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.ShoppingCartDB;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxDocumentMapper;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.SpringDomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -2,12 +2,12 @@ package io.github.tommante.eshopmodularmonolith.catalog;
 
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.OutboxEventSubscriber;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;

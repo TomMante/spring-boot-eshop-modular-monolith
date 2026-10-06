@@ -30,7 +30,7 @@ SonarCloud reports some code as duplicated that is duplicated on purpose. Do not
 - **`Product` and `ProductDB`**: a domain model and its persistence projection. The ports/adapters split requires both.
 - **`PaymentMother`/`AddressMother` in basket and in ordering**: they mirror the `Payment` and `Address` value objects, which each module owns separately on purpose. Sharing the test builders would couple the two modules.
 
-Test fakes for a port in `shared` are different: there is only one, published from `shared`'s test-jar (e.g. `shared.infrastructure.fake.FakeOutboxEventStore`), because two copies of a fake drift apart.
+Test fakes for a shared port are different: there is only one, published from the test-jar of the module that owns the port (e.g. `outboxcore.fake.FakeOutboxEventStore` from `outbox-core`), because two copies of a fake drift apart.
 
 ## 🔀 Cross-module communication
 
@@ -250,6 +250,25 @@ These classes:
 
 A module's **application** layer may depend on `shared.infrastructure`, even though it must never depend on its *own* infrastructure. Controllers and their `@RestControllerAdvice` error handlers live under `application/features/…` but are adapters by role (see *Controller, handler, aggregate*), so shared web plumbing such as `ApiErrors` is theirs to use.
 
+The outbox is **not** in `shared`: not every module has one, so it lives in its own modules (next section).
+
+---
+
+## 📮 Outbox modules
+
+The outbox lives under `outbox/`, separate from `shared`, because it's an optional capability: `ordering` has none.
+
+| Module | Package | Contains | Depends on |
+|---|---|---|---|
+| `outbox-core` | `outboxcore` | The `OutboxEventStore` port, `OutboxEventProcessor` (the dispatch loop), `OutboxEventSubscriber` (writes domain events into the outbox inside the module's transaction), `OutboxEventPublisher` (the callback the processor invokes for each event read back from the outbox). Test-jar: `outboxcore.fake.FakeOutboxEventStore`. | `shared` |
+| `outbox-jpa` | `outboxjpa` | JPA adapter for the port (used by Catalog) | `outbox-core` |
+| `outbox-mongo` | `outboxmongo` | MongoDB adapter for the port (used by Basket) | `outbox-core` |
+
+- **A module gets the outbox by depending on one adapter.** `basket-core` and `catalog-core` declare only `outbox-mongo` / `outbox-jpa` and reach `outbox-core` transitively, even though their configs and dispatchers use its classes directly. That's deliberate: choosing an adapter is all it takes. Only `outbox-core`'s test-jar has to be declared, because Maven never passes on test-scoped dependencies.
+- **`outbox/pom.xml` is an aggregator only.** It lists the three modules; each of them keeps the root pom as its `<parent>`, because no configuration is shared at group level.
+- **`OutboxEventPublisher` isn't an integration-event publisher.** It receives a *domain* event; translating it into an integration event and handing it to `MessageBus` is the dispatcher's job. If it throws, the event stays pending and is retried.
+- **`DomainEventRegistry` stays in `shared.domain`.** The outbox uses it to deserialize payloads, but it registers domain events, which isn't an outbox concern.
+
 ---
 
 ## 🧭 Architectural intent
@@ -280,8 +299,8 @@ The dependency rules above are checked on every build by `starter/src/test/…/A
 
 | Rule | Why Maven alone doesn't enforce it |
 |---|---|
-| `..domain..` depends on no Spring, Jakarta, application, infrastructure or contract code | Same Maven module as the layers it must not reach |
-| `..contract..` depends on no Spring, Jakarta, domain, application or infrastructure code | Same — and `ordering` and `shared` have no separate contract artifact |
+| `..domain..` depends on no Spring, Jakarta, application, infrastructure, contract or outbox code | Same Maven module as the layers it must not reach |
+| `..contract..` depends on no Spring, Jakarta, domain, application, infrastructure or outbox code | Same — and `ordering` and `shared` have no separate contract artifact |
 | A module's application layer never depends on its own infrastructure | Same Maven module |
 | A module reaches another module only through that module's `contract` package | Maven only limits *which* artifacts are visible; a wrong pom dependency would open a module's internals |
 

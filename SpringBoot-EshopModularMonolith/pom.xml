@@ -20,10 +20,9 @@
 		<module>modules/catalog/catalog-core</module>
 		<module>modules/ordering</module>
 		<module>sonar</module>
-        <module>outbox-jpa</module>
-        <module>outbox-mongo</module>
 		<module>security</module>
-    </modules>
+		<module>outbox</module>
+	</modules>
 	<properties>
 		<java.version>25</java.version>
 		<maven.compiler.release>${java.version}</maven.compiler.release>
