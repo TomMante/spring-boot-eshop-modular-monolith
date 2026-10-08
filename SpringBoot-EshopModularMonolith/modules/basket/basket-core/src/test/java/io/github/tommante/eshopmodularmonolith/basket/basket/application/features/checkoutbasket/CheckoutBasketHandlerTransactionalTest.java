@@ -14,8 +14,8 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.pers
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.model.ShoppingCartDB;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxDocumentMapper;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
@@ -83,18 +83,18 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         }
 
         @Bean
-        OutboxDocumentMapper outboxDocumentMapper(DomainEventRegistry registry, ObjectMapper mapper) {
-            return new OutboxDocumentMapper(registry, mapper);
+        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, ObjectMapper mapper) {
+            return new OutboxPayloadSerializer(registry, mapper);
         }
 
         @Bean
-        OutboxEventStore mongoOutboxEventStore(MongoTemplate mongoTemplate, OutboxDocumentMapper mapper) {
-            return new MongoOutboxEventStore(mongoTemplate, mapper);
+        OutboxEventStore mongoOutboxEventStore(MongoTemplate mongoTemplate) {
+            return new MongoOutboxEventStore(mongoTemplate);
         }
 
         @Bean
-        OutboxEventSubscriber outboxEventSubscriber(OutboxEventStore outbox) {
-            return new OutboxEventSubscriber(outbox);
+        OutboxEventSubscriber outboxEventSubscriber(OutboxEventStore outbox, OutboxPayloadSerializer serializer) {
+            return new OutboxEventSubscriber(outbox, serializer);
         }
 
         @Bean
@@ -113,6 +113,8 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
     private CheckoutBasketHandler handler;
     @Autowired
     private BasketRepository basketRepository;
+    @Autowired
+    private OutboxPayloadSerializer serializer;
     @MockitoBean
     private ProductService productService;
     @MockitoSpyBean
@@ -145,8 +147,9 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
-        assertThat(outboxEventStore.fetchUnprocessedEvents())
+        assertThat(outboxEventStore.fetchPending())
                 .singleElement()
+                .extracting(serializer::read)
                 .isInstanceOfSatisfying(BasketCheckedOut.class, event -> {
                     assertThat(event.billingAddress()).isEqualTo(billingAddress);
                     assertThat(event.shippingAddress()).isEqualTo(shippingAddress);

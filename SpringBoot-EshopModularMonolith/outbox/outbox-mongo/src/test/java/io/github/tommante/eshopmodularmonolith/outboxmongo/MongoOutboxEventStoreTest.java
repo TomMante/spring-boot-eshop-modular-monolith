@@ -1,7 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxmongo;
 
-import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
-import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
+import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,10 +16,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
-import java.util.List;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,24 +35,10 @@ class MongoOutboxEventStoreTest {
     @Configuration
     @EnableAutoConfiguration
     static class Config {
-        @Bean
-        ObjectMapper objectMapper() {
-            return new ObjectMapper();
-        }
 
         @Bean
-        DomainEventRegistry domainEventRegistry() {
-            return new DomainEventRegistry();
-        }
-
-        @Bean
-        OutboxDocumentMapper outboxDocumentMapper(DomainEventRegistry domainEventRegistry, ObjectMapper mapper) {
-            return new OutboxDocumentMapper(domainEventRegistry, mapper);
-        }
-
-        @Bean
-        MongoOutboxEventStore mongoOutboxEventStore(MongoTemplate mongoTemplate, OutboxDocumentMapper mapper) {
-            return new MongoOutboxEventStore(mongoTemplate, mapper);
+        MongoOutboxEventStore mongoOutboxEventStore(MongoTemplate mongoTemplate) {
+            return new MongoOutboxEventStore(mongoTemplate);
         }
     }
 
@@ -66,42 +50,31 @@ class MongoOutboxEventStoreTest {
     private MongoOutboxEventStore mongoOutboxEventStore;
     @Autowired
     private MongoTemplate mongoTemplate;
-    @Autowired
-    private DomainEventRegistry domainEventRegistry;
 
     @BeforeEach
     void setUp() {
         mongoTemplate.getDb().drop();
-        domainEventRegistry.registerDomainEvent(TestDomainEvent.class.getSimpleName(), TestDomainEvent.class);
     }
 
     @Test
     @DisplayName("Given domain event, when event is stored, then should be available as unprocessed event")
     void givenDomainEvent_whenEventIsStored_thenShouldBeAvailableAsUnprocessedEvent() {
-        var event = new TestDomainEvent(UUID.randomUUID(), Instant.now(), List.of("test", "me", "now"));
-        mongoOutboxEventStore.save(event);
-        assertThat(mongoOutboxEventStore.fetchUnprocessedEvents()).containsExactly(event);
+        var row = new StoredOutboxEvent(UUID.randomUUID(), Instant.now().truncatedTo(ChronoUnit.MILLIS), "AnyType", "{\"any\":\"payload\"}");
+        mongoOutboxEventStore.save(row);
+        assertThat(mongoOutboxEventStore.fetchPending()).containsExactly(row);
     }
 
     @Test
     @DisplayName("Given stored domain event, when marked as processed, then it is no longer unprocessed")
     void givenStoredDomainEvent_whenProcessEventIsCalled_thenDomainEventIsCorrectlyUpdated() {
-        var event = new TestDomainEvent(UUID.randomUUID(), Instant.now(), List.of("test", "me", "now"));
-        mongoOutboxEventStore.save(event);
-        assertThat(mongoOutboxEventStore.fetchUnprocessedEvents()).containsExactly(event);
-        mongoOutboxEventStore.markAsProcessed(event);
-        assertThat(mongoOutboxEventStore.fetchUnprocessedEvents()).isEmpty();
-        assertThat(mongoTemplate.findById(event.eventId(), OutboxEventDocument.class))
+        var row = new StoredOutboxEvent(UUID.randomUUID(), Instant.now().truncatedTo(ChronoUnit.MILLIS), "AnyType", "{\"any\":\"payload\"}");
+        mongoOutboxEventStore.save(row);
+        assertThat(mongoOutboxEventStore.fetchPending()).containsExactly(row);
+        mongoOutboxEventStore.markAsProcessed(row.eventId());
+        assertThat(mongoOutboxEventStore.fetchPending()).isEmpty();
+        assertThat(mongoTemplate.findById(row.eventId(), OutboxEventDocument.class))
                 .isNotNull()
                 .extracting(OutboxEventDocument::processedOn)
                 .isNotNull();
-    }
-
-    record TestDomainEvent(UUID eventId, Instant occurredOn, List<String> information) implements DomainEvent {
-
-        @Override
-        public String eventType() {
-            return "TestDomainEvent";
-        }
     }
 }

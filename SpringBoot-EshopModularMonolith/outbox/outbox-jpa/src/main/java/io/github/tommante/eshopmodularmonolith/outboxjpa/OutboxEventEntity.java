@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxjpa;
 
+import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -56,4 +57,9 @@ public class OutboxEventEntity {
     public String payload() {
         return payload;
     }
+
+    public StoredOutboxEvent toStored() {
+        return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
+    }
+
 }

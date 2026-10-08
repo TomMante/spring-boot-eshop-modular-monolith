@@ -10,6 +10,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.MessageBus;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,9 +23,9 @@ public class BasketOutboxDispatcher {
     private final MessageBus messageBus;
     private final OutboxEventProcessor outboxEventProcessor;
 
-    public BasketOutboxDispatcher(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
+    public BasketOutboxDispatcher(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer, MessageBus messageBus) {
         this.messageBus = messageBus;
-        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore);
+        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore, serializer);
     }
 
     @Scheduled(fixedDelay = 5000)

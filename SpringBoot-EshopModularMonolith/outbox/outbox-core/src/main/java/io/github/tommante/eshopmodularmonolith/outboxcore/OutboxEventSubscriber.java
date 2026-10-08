@@ -15,13 +15,15 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class OutboxEventSubscriber {
 
     private final OutboxEventStore outbox;
+    private final OutboxPayloadSerializer serializer;
 
-    public OutboxEventSubscriber(OutboxEventStore outbox) {
+    public OutboxEventSubscriber(OutboxEventStore outbox, OutboxPayloadSerializer serializer) {
         this.outbox = outbox;
+        this.serializer = serializer;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void on(DomainEvent event) {
-        outbox.save(event);
+        outbox.save(serializer.toStored(event));
     }
 }

@@ -4,9 +4,9 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.eve
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
-import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
@@ -103,19 +103,13 @@ public class CatalogModuleConfig {
         return new FlywayMigrationInitializer(catalogSeedFlyway);
     }
 
-    @Bean("catalogOutboxEventMapper")
-    OutboxEventMapper catalogOutboxEventMapper(DomainEventRegistry domainEventRegistry, tools.jackson.databind.ObjectMapper mapper) {
-        return new OutboxEventMapper(domainEventRegistry, mapper);
-    }
-
     @Bean("catalogOutboxEventStore")
-    OutboxEventStore catalogOutboxEventStore(OutboxEventJpaRepository repository,
-                                             @Qualifier("catalogOutboxEventMapper") OutboxEventMapper mapper) {
-        return new JpaOutboxEventStore(repository, mapper);
+    OutboxEventStore catalogOutboxEventStore(OutboxEventJpaRepository repository) {
+        return new JpaOutboxEventStore(repository);
     }
 
     @Bean("catalogOutboxEventSubscriber")
-    OutboxEventSubscriber catalogOutboxEventSubscriber(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore) {
-        return new OutboxEventSubscriber(outboxEventStore);
+    OutboxEventSubscriber catalogOutboxEventSubscriber(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer) {
+        return new OutboxEventSubscriber(outboxEventStore, serializer);
     }
 }

@@ -4,8 +4,8 @@ import com.mongodb.client.MongoClient;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
-import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxDocumentMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,7 +18,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableMongoRepositories(
@@ -56,20 +55,14 @@ public class BasketModuleConfig {
         return new MongoTemplate(dbFactory);
     }
 
-    @Bean("basketOutboxDocumentMapper")
-    public OutboxDocumentMapper outboxDocumentMapper(DomainEventRegistry domainEventRegistry, ObjectMapper mapper) {
-        return new OutboxDocumentMapper(domainEventRegistry, mapper);
-    }
-
     @Bean("basketOutboxEventStore")
-    public OutboxEventStore mongoOutboxEventStore(@Qualifier("basketMongoTemplate") MongoTemplate mongoTemplate,
-                                                  @Qualifier("basketOutboxDocumentMapper") OutboxDocumentMapper outboxDocumentMapper) {
-        return new MongoOutboxEventStore(mongoTemplate, outboxDocumentMapper);
+    public OutboxEventStore mongoOutboxEventStore(@Qualifier("basketMongoTemplate") MongoTemplate mongoTemplate) {
+        return new MongoOutboxEventStore(mongoTemplate);
     }
 
     @Bean("basketOutboxEventSubscriber")
-    public OutboxEventSubscriber outboxEventSubscriber(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore) {
-        return new OutboxEventSubscriber(outboxEventStore);
+    public OutboxEventSubscriber outboxEventSubscriber(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer) {
+        return new OutboxEventSubscriber(outboxEventStore, serializer);
     }
 
 }

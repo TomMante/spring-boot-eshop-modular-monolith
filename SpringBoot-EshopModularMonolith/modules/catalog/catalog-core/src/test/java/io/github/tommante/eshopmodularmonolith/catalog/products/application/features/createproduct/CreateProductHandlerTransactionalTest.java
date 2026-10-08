@@ -7,10 +7,10 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.p
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.SpringJpaProductRepository;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventEntity;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
-import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventMapper;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.SpringDomainEventPublisher;
@@ -70,18 +70,18 @@ class CreateProductHandlerTransactionalTest extends CatalogDatabaseTest {
         }
 
         @Bean
-        OutboxEventMapper outboxEventMapper(DomainEventRegistry registry, ObjectMapper mapper) {
-            return new OutboxEventMapper(registry, mapper);
+        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, ObjectMapper mapper) {
+            return new OutboxPayloadSerializer(registry, mapper);
         }
 
         @Bean
-        OutboxEventStore catalogOutboxEventStore(OutboxEventJpaRepository repository, OutboxEventMapper mapper) {
-            return new JpaOutboxEventStore(repository, mapper);
+        OutboxEventStore catalogOutboxEventStore(OutboxEventJpaRepository repository) {
+            return new JpaOutboxEventStore(repository);
         }
 
         @Bean
-        OutboxEventSubscriber outboxEventSubscriber(OutboxEventStore outbox) {
-            return new OutboxEventSubscriber(outbox);
+        OutboxEventSubscriber outboxEventSubscriber(OutboxEventStore outbox, OutboxPayloadSerializer serializer) {
+            return new OutboxEventSubscriber(outbox, serializer);
         }
 
         @Bean

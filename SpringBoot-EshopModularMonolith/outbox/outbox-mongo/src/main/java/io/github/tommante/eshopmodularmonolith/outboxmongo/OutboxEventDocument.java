@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxmongo;
 
+import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -49,5 +50,9 @@ public class OutboxEventDocument {
 
     public String payload() {
         return payload;
+    }
+
+    public StoredOutboxEvent toStored() {
+        return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
     }
 }

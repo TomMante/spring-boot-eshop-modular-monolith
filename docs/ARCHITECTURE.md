@@ -260,9 +260,25 @@ The outbox lives under `outbox/`, separate from `shared`, because it's an option
 
 | Module | Package | Contains | Depends on |
 |---|---|---|---|
-| `outbox-core` | `outboxcore` | The `OutboxEventStore` port, `OutboxEventProcessor` (the dispatch loop), `OutboxEventSubscriber` (writes domain events into the outbox inside the module's transaction), `OutboxEventPublisher` (the callback the processor invokes for each event read back from the outbox). Test-jar: `outboxcore.fake.FakeOutboxEventStore`. | `shared` |
+| `outbox-core` | `outboxcore` | The `OutboxEventStore` port and its row type `StoredOutboxEvent`, `OutboxPayloadSerializer`, `OutboxEventProcessor`, `OutboxEventSubscriber`, `OutboxEventPublisher`, and `OutboxCoreConfig` (declares the single serializer bean). Test-jar: `outboxcore.fake.FakeOutboxEventStore` and `outboxcore.fake.FakeDomainEvent`. | `shared`, Jackson |
 | `outbox-jpa` | `outboxjpa` | JPA adapter for the port (used by Catalog) | `outbox-core` |
 | `outbox-mongo` | `outboxmongo` | MongoDB adapter for the port (used by Basket) | `outbox-core` |
+
+The adapters depend only on `outbox-core`: they never look inside a payload, so they need neither `shared` nor Jackson.
+
+### Who does what
+
+| Component | Responsibility | Knows about |
+|---|---|---|
+| **Serializer** (`OutboxPayloadSerializer`) | Translation: `DomainEvent` ↔ `StoredOutboxEvent`. Fails when a row can't be translated: an unregistered type surfaces as the registry's `IllegalArgumentException`, a payload that doesn't fit its class as an `IllegalStateException` with Jackson's exception as the cause. | `DomainEventRegistry`, Jackson. Not storage, not policy. |
+| **Store** (`OutboxEventStore`, implemented by the JPA and Mongo adapters) | Persistence: save rows, return pending rows, mark them processed. Never interprets the payload. | Its database. Not event types, not Jackson. |
+| **Processor** (`OutboxEventProcessor`) | Policy: for each pending row, read it, publish it, mark it processed. A failure at any of those steps (including reading) is caught per row and logged with the row's id and type, so it costs only that row. | Serializer, store, publisher. The only place where decisions are made. |
+| Subscriber (`OutboxEventSubscriber`) | Write entry point: domain event → serializer → store, inside the module's transaction (`BEFORE_COMMIT`). | Serializer, store. |
+| Publisher (`OutboxEventPublisher`) | Exit point: what to do with each event read back. Each module's dispatcher implements it by translating to an integration event and handing it to `MessageBus`. | Implemented per module. |
+
+**Why the port speaks rows (`StoredOutboxEvent`), not `DomainEvent`s.** An adapter could return domain events and still isolate failures by catching per row. But then each adapter would decide what happens to a row it can't read, and that policy would be written twice, once per database, and drift the way three copies of the test fake once did. With rows on the port, the store only persists, translation sits once in the serializer, and policy sits once in the processor. Each changes for one reason: a new database touches only a store, a payload schema change only the serializer, a retry rule only the processor. It also keeps the adapter tests about persistence alone (any type and payload string will do), and lets every policy case run against the fake store without containers. The port does speak a storage shape (`payload` as a `String`); that is deliberate, since the outbox *is* the store of serialized events. Domain events still enter and leave the outbox as `DomainEvent`.
+
+**What the row carries is what the processor needs.** `StoredOutboxEvent` has no `processedOn`: `fetchPending()` returns only unprocessed rows, so it would always be `null`. Storage-only state is written by the adapters and checked in their tests by reading the entity or document directly.
 
 - **A module gets the outbox by depending on one adapter.** `basket-core` and `catalog-core` declare only `outbox-mongo` / `outbox-jpa` and reach `outbox-core` transitively, even though their configs and dispatchers use its classes directly. That's deliberate: choosing an adapter is all it takes. Only `outbox-core`'s test-jar has to be declared, because Maven never passes on test-scoped dependencies.
 - **`outbox/pom.xml` is an aggregator only.** It lists the three modules; each of them keeps the root pom as its `<parent>`, because no configuration is shared at group level.

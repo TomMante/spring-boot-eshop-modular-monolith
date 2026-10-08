@@ -9,10 +9,13 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.Baske
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeMessageBus;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxcore.fake.FakeOutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,12 +28,16 @@ class BasketOutboxDispatcherTest {
     private OutboxEventStore outboxEventStore;
     private FakeMessageBus messageBus;
     private BasketOutboxDispatcher dispatcher;
+    private OutboxPayloadSerializer serializer;
 
     @BeforeEach
     void setUp() {
         messageBus = new FakeMessageBus();
         outboxEventStore = new FakeOutboxEventStore();
-        dispatcher = new BasketOutboxDispatcher(outboxEventStore, messageBus);
+        var registry = new DomainEventRegistry();
+        registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
+        serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
+        dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, messageBus);
     }
 
     @Test
@@ -41,11 +48,11 @@ class BasketOutboxDispatcherTest {
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();
         var domainEvent = new BasketCheckedOut("john", List.of(item), new BigDecimal("19.98"), billingAddress, payment, shippingAddress);
-        outboxEventStore.save(domainEvent);
+        outboxEventStore.save(serializer.toStored(domainEvent));
 
-        assertThat(outboxEventStore.fetchUnprocessedEvents()).isNotEmpty();
+        assertThat(outboxEventStore.fetchPending()).isNotEmpty();
         dispatcher.dispatch();
-        assertThat(outboxEventStore.fetchUnprocessedEvents()).isEmpty();
+        assertThat(outboxEventStore.fetchPending()).isEmpty();
 
         var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
         assertThat(messageBus.publishedMessages()).hasSize(1);
