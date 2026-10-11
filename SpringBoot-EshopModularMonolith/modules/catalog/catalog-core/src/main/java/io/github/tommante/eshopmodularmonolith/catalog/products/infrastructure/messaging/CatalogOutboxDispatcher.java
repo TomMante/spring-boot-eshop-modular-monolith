@@ -4,6 +4,7 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.contract.integra
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.MessageBus;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,8 +17,8 @@ public class CatalogOutboxDispatcher {
     private final OutboxEventProcessor outboxEventProcessor;
     private final MessageBus messageBus;
 
-    public CatalogOutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, MessageBus messageBus) {
-        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore);
+    public CatalogOutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer, MessageBus messageBus) {
+        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore, serializer);
         this.messageBus = messageBus;
     }
 

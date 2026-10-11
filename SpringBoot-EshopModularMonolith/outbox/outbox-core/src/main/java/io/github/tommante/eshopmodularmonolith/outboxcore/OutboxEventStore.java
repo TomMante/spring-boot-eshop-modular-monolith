@@ -1,12 +1,11 @@
 package io.github.tommante.eshopmodularmonolith.outboxcore;
 
-import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
-
 import java.util.List;
+import java.util.UUID;
 
 public interface OutboxEventStore {
 
-    void save(DomainEvent event);
-    List<DomainEvent> fetchUnprocessedEvents();
-    void markAsProcessed(DomainEvent event);
+    void save(StoredOutboxEvent event);
+    List<StoredOutboxEvent> fetchPending();
+    void markAsProcessed(UUID eventId);
 }
