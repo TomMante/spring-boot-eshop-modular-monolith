@@ -9,7 +9,7 @@ Work this project has decided to do later, recorded with the reasoning that put 
 | broken, or behaving correctly with nothing proving it | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 | fine as far as it goes, but a capability is missing or a decision is unmade | here |
 
-Route by **nature, not by origin**. Something surfaced while deferring a plan step canok, o still be a defect — most of this project's deferrals have been. "A plan deferred it" is not a category.
+Route by **nature, not by origin**. Something surfaced while deferring a plan step can still be a defect — most of this project's deferrals have been. "A plan deferred it" is not a category.
 
 **Entry bar:** work actually decided on and deliberately postponed. Not ideas, not "would be nice". A backlog that accepts those stops being read, which is the only way a backlog fails.
 
@@ -79,6 +79,20 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
     - building one group alone (`./mvnw -f modules/basket/pom.xml verify`) only includes that group's modules in the reactor, so anything they depend on (`shared`, `catalog-contract`, `outbox-mongo`) must already be installed by a root `install`.
 - **Shape:** poms only, behaviour unchanged, checked by a green `./mvnw clean verify`. Fits the [quick-fix](../ai-coding-tools/processes/quick-fix.md) workflow.
 - **Why deferred:** raised on 2026-10-06 while grouping the outbox modules, and kept out of that increment because it's unrelated to the outbox.
+
+### 16. Dead-Letter Metric
+- **Priority: low.** Dead-lettering is visible today only as an ERROR log line and a stored state (see [ARCHITECTURE.md](ARCHITECTURE.md), *Retry and dead-letter*).
+- **Goal:** a Micrometer gauge such as `eshop.outbox.dead_lettered{module=…}`, so a dashboard or alert can see dead-lettered events without reading logs.
+- **Shape:** the gauge needs a count, so the `OutboxEventStore` port gains a count query (rows with `deadLetteredOn` set), implemented in both adapters and the fake. Register one gauge per module dispatcher.
+- **Constraint:** it must not affect health status. A dead-lettered event is a data problem for an operator, not a reason to take the application out of rotation.
+- **Why deferred:** decided with the user in [outbox-dead-letter-and-payload-compatibility](../ai-coding-tools/plans/outbox-dead-letter-and-payload-compatibility/outbox-dead-letter-and-payload-compatibility.md) as an improvement on top of the dead-letter state, not part of closing the endless retry.
+
+### 17. Replay Operation for Dead-Lettered Events
+- **Priority: low.** Replay works today by hand: one Mongo `updateOne` or one SQL `UPDATE`, documented in [ARCHITECTURE.md](ARCHITECTURE.md), *Retry and dead-letter*.
+- **Goal:** an endpoint or admin command that requeues a dead-lettered event: clear its dead-letter time, reset its attempt count, make it due now.
+- **Shape:** an explicit port method (for example `requeue(UUID eventId, Instant now)`) rather than reusing `save`, which accepts no delivery state on purpose. One implementation per adapter, tested in the adapter tests like the other updates.
+- **Blocked on:** authorization. Requeueing is an operator action, so it needs a role, which depends on Backlog 13's decision about where roles live.
+- **Why deferred:** decided with the user in the same plan as Backlog 16.
 
 ## ⏳ Gated on a trigger
 

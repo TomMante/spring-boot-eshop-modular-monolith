@@ -71,7 +71,7 @@ this codebase, and why its single event registry doesn't fit per-module database
 ## Changes from original .NET course
 
 I took that base and ported it over to the Spring Boot/Java world and added my own ideas. The main concepts I added are:
-1. **Transactional outbox on two engines.** One `OutboxEventStore` port in `outbox-core` with a JPA adapter (`outbox-jpa`, used by Catalog) and a MongoDB adapter (`outbox-mongo`, used by Basket), both driven by the same dispatch logic. A module gets the outbox by depending on one adapter.
+1. **Transactional outbox on two engines.** One `OutboxEventStore` port in `outbox-core` with a JPA adapter (`outbox-jpa`, used by Catalog) and a MongoDB adapter (`outbox-mongo`, used by Basket), both driven by the same dispatch logic, including retry with exponential backoff and a dead-letter state for events that keep failing. A module gets the outbox by depending on one adapter.
 2. **Per-module database isolation, on purpose.** Each module owns its database instead of sharing a schema, to push microservice-readiness as far as it goes. What that costs (no cross-module transactions, dual writes, eventual consistency) and what I'd choose in production is set out in [Architecture](docs/ARCHITECTURE.md#architectural-trade-offs).
 3. Used TDD, borrowing the given-when-then convention from BDD. Where tests sit and how they are named is set out in [Testing Conventions](docs/TESTING_CONVENTIONS.md).
 4. Split the domain from the infrastructure using ports, so the domain does not depend on the persistence technology. This is put to use: Basket and Ordering run on MongoDB while Catalog stays on JPA/PostgreSQL, behind the same kind of ports.

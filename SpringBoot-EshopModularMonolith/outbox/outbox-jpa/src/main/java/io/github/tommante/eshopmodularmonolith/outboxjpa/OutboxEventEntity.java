@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxjpa;
 
+import io.github.tommante.eshopmodularmonolith.outboxcore.DueOutboxEvent;
 import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,23 +20,27 @@ public class OutboxEventEntity {
     private Instant occurredOn;
     @Column(nullable = false)
     private String eventType;
-    private Instant processedOn;
     @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
+    @Column(nullable = false)
+    private int failedAttempts;
+    @Column(nullable = false)
+    private Instant nextAttemptAt;
+    @Column(columnDefinition = "TEXT")
+    private String lastError;
+    private Instant deadLetteredOn;
+    private Instant processedOn;
 
     public OutboxEventEntity() {
         //Required for JPA
     }
 
-    OutboxEventEntity(UUID eventId, Instant occurredOn, String eventType, String payload) {
-        this.eventId = eventId;
-        this.occurredOn = occurredOn;
-        this.eventType = eventType;
-        this.payload = payload;
-    }
-
-    public void process() {
-        processedOn = Instant.now();
+    OutboxEventEntity(StoredOutboxEvent event) {
+        this.eventId = event.eventId();
+        this.occurredOn = event.occurredOn();
+        this.eventType = event.eventType();
+        this.payload = event.payload();
+        this.nextAttemptAt = event.occurredOn();
     }
 
     public UUID eventId() {
@@ -50,16 +55,36 @@ public class OutboxEventEntity {
         return eventType;
     }
 
-    public Instant processedOn() {
-        return processedOn;
-    }
-
     public String payload() {
         return payload;
     }
 
+    public int failedAttempts() {
+        return failedAttempts;
+    }
+
+    public Instant nextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    public String lastError() {
+        return lastError;
+    }
+
+    public Instant deadLetteredOn() {
+        return deadLetteredOn;
+    }
+
+    public Instant processedOn() {
+        return processedOn;
+    }
+
     public StoredOutboxEvent toStored() {
         return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
+    }
+
+    public DueOutboxEvent toDue() {
+        return new DueOutboxEvent(toStored(), failedAttempts);
     }
 
 }

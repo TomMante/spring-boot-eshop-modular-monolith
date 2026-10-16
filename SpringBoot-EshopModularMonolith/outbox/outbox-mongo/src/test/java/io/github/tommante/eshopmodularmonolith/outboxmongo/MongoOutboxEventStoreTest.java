@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxmongo;
 
+import io.github.tommante.eshopmodularmonolith.outboxcore.DueOutboxEvent;
 import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,11 +18,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @DataMongoTest
@@ -31,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.data.mongodb.representation.big-decimal=decimal128"
 })
 class MongoOutboxEventStoreTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+    private static final Instant LATER = NOW.plus(Duration.ofHours(1));
 
     @Configuration
     @EnableAutoConfiguration
@@ -47,7 +52,7 @@ class MongoOutboxEventStoreTest {
     static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble");
 
     @Autowired
-    private MongoOutboxEventStore mongoOutboxEventStore;
+    private MongoOutboxEventStore outboxEventStore;
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -56,25 +61,85 @@ class MongoOutboxEventStoreTest {
         mongoTemplate.getDb().drop();
     }
 
-    @Test
-    @DisplayName("Given domain event, when event is stored, then should be available as unprocessed event")
-    void givenDomainEvent_whenEventIsStored_thenShouldBeAvailableAsUnprocessedEvent() {
-        var row = new StoredOutboxEvent(UUID.randomUUID(), Instant.now().truncatedTo(ChronoUnit.MILLIS), "AnyType", "{\"any\":\"payload\"}");
-        mongoOutboxEventStore.save(row);
-        assertThat(mongoOutboxEventStore.fetchPending()).containsExactly(row);
+    private OutboxEventDocument stored(UUID eventId) {
+        return mongoTemplate.findById(eventId, OutboxEventDocument.class);
+    }
+
+    private static StoredOutboxEvent rowOccurredAt(Instant occurredOn) {
+        return new StoredOutboxEvent(UUID.randomUUID(), occurredOn, "AnyType", "{\"any\":\"payload\"}");
     }
 
     @Test
-    @DisplayName("Given stored domain event, when marked as processed, then it is no longer unprocessed")
-    void givenStoredDomainEvent_whenProcessEventIsCalled_thenDomainEventIsCorrectlyUpdated() {
-        var row = new StoredOutboxEvent(UUID.randomUUID(), Instant.now().truncatedTo(ChronoUnit.MILLIS), "AnyType", "{\"any\":\"payload\"}");
-        mongoOutboxEventStore.save(row);
-        assertThat(mongoOutboxEventStore.fetchPending()).containsExactly(row);
-        mongoOutboxEventStore.markAsProcessed(row.eventId());
-        assertThat(mongoOutboxEventStore.fetchPending()).isEmpty();
-        assertThat(mongoTemplate.findById(row.eventId(), OutboxEventDocument.class))
-                .isNotNull()
-                .extracting(OutboxEventDocument::processedOn)
-                .isNotNull();
+    @DisplayName("Given a saved row, when fetching due rows, then it is due at its occurrence time and not before")
+    void givenSavedRow_whenFetchingDueRows_thenItIsDueAtItsOccurrenceTimeAndNotBefore() {
+        var row = rowOccurredAt(NOW);
+
+        outboxEventStore.save(row);
+
+        assertThat(outboxEventStore.fetchDue(NOW.minusMillis(1))).isEmpty();
+        assertThat(outboxEventStore.fetchDue(NOW)).containsExactly(new DueOutboxEvent(row, 0));
+    }
+
+    @Test
+    @DisplayName("Given a failed attempt, when fetching due rows, then the row is due again only at its next attempt time, with the count and error recorded")
+    void givenFailedAttempt_whenFetchingDueRows_thenRowIsDueAgainOnlyAtNextAttemptTimeWithCountAndErrorRecorded() {
+        var row = rowOccurredAt(NOW);
+        outboxEventStore.save(row);
+
+        outboxEventStore.recordFailedAttempt(row.eventId(), "boom", NOW.plusSeconds(5));
+
+        assertThat(outboxEventStore.fetchDue(NOW.plusSeconds(5).minusMillis(1))).isEmpty();
+        assertThat(outboxEventStore.fetchDue(NOW.plusSeconds(5))).containsExactly(new DueOutboxEvent(row, 1));
+        assertThat(stored(row.eventId()).lastError()).isEqualTo("boom");
+    }
+
+    @Test
+    @DisplayName("Given a processed row, when fetching due rows, then it is never fetched again and its processing time is stored")
+    void givenProcessedRow_whenFetchingDueRows_thenItIsNeverFetchedAgainAndItsProcessingTimeIsStored() {
+        var row = rowOccurredAt(NOW);
+        outboxEventStore.save(row);
+
+        outboxEventStore.markAsProcessed(row.eventId(), NOW);
+
+        assertThat(outboxEventStore.fetchDue(LATER)).isEmpty();
+        assertThat(stored(row.eventId()).processedOn()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("Given a dead-lettered row, when fetching due rows, then it is never fetched again and the final attempt is stored")
+    void givenDeadLetteredRow_whenFetchingDueRows_thenItIsNeverFetchedAgainAndTheFinalAttemptIsStored() {
+        var row = rowOccurredAt(NOW);
+        outboxEventStore.save(row);
+
+        outboxEventStore.markAsDeadLettered(row.eventId(), "boom", NOW);
+
+        assertThat(outboxEventStore.fetchDue(LATER)).isEmpty();
+        var stored = stored(row.eventId());
+        assertThat(stored.deadLetteredOn()).isEqualTo(NOW);
+        assertThat(stored.lastError()).isEqualTo("boom");
+        assertThat(stored.failedAttempts()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Given rows saved out of occurrence order, when fetching due rows, then they come back in occurrence order")
+    void givenRowsSavedOutOfOccurrenceOrder_whenFetchingDueRows_thenTheyComeBackInOccurrenceOrder() {
+        var laterRow = rowOccurredAt(NOW.plusSeconds(1));
+        var earlierRow = rowOccurredAt(NOW);
+        outboxEventStore.save(laterRow);
+        outboxEventStore.save(earlierRow);
+
+        assertThat(outboxEventStore.fetchDue(LATER))
+                .extracting(due -> due.event().eventId())
+                .containsExactly(earlierRow.eventId(), laterRow.eventId());
+    }
+
+    @Test
+    @DisplayName("Given an unknown event id, when recording a failed attempt, then it fails naming the event")
+    void givenUnknownEventId_whenRecordingFailedAttempt_thenItFailsNamingTheEvent() {
+        var unknownEventId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> outboxEventStore.recordFailedAttempt(unknownEventId, "boom", NOW))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Unknown outbox event: " + unknownEventId);
     }
 }

@@ -2,7 +2,6 @@ package io.github.tommante.eshopmodularmonolith.ordering.orders.application.feat
 
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -14,7 +13,7 @@ public class CreateOrderHandler {
     private final OrderRepository repository;
     private final Clock clock;
 
-    public CreateOrderHandler(OrderRepository repository, @Qualifier("orderClock") Clock clock) {
+    public CreateOrderHandler(OrderRepository repository, Clock clock) {
         this.repository = repository;
         this.clock = clock;
     }

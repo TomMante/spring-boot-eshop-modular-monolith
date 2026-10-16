@@ -27,6 +27,8 @@ class OutboxEventSubscriberTest {
 
         subscriber.on(event);
 
-        assertThat(outbox.fetchPending()).singleElement().extracting(serializer::read).isEqualTo(event);
+        assertThat(outbox.fetchDue(event.occurredOn())).singleElement()
+                .extracting(due -> serializer.read(due.event()))
+                .isEqualTo(event);
     }
 }
