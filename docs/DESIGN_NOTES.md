@@ -95,7 +95,7 @@ The fuller shape: basket mints its own `checkoutId` in `ShoppingCart.checkout`, 
 What it would cost:
 
 - `ShoppingCart`, `BasketCheckedOut`, `BasketCheckoutIntegrationEvent` and `BasketOutboxDispatcher`, plus their tests — three modules, and a change to the public contract between basket and ordering.
-- A change to `BasketCheckedOut`'s shape, which outbox payloads already at rest do not have (the outbox has no schema versioning). They deserialize with `checkoutId` null: if `Order` accepts the null, dedup is silently off for every event in flight at deploy time; if it rejects it, the event is retried indefinitely. A listener fallback — `checkoutId != null ? checkoutId : eventId` — bridges the drain, which means the current shape survives as the compatibility path either way.
+- A change to `BasketCheckedOut`'s shape, which outbox payloads already at rest do not have (the outbox has no schema versioning). They deserialize with `checkoutId` null: if `Order` accepts the null, dedup is silently off for every event in flight at deploy time; if it rejects it, the event is retried until it is dead-lettered, and every checkout in flight needs a manual replay. A listener fallback — `checkoutId != null ? checkoutId : eventId` — bridges the drain, which means the current shape survives as the compatibility path either way.
 
 **Open question, and why this stays a note:** nothing would read the id today. `CheckoutBasketHandler` deletes the cart straight after checkout and `POST /basket/checkout` returns `202` with no body, so a basket-minted `checkoutId` would exist only on the event — a second random UUID, distinguishable from `eventId` only by its name. Worth revisiting when any of these appear:
 
@@ -143,6 +143,7 @@ Ideas carried over from the README's former "Extending the project" checklist. E
 - **Performance testing:** exercising the application at scale.
 - **Keycloak policy enforcer:** moving authorization decisions into Keycloak.
 - **Roles in Keycloak vs. roles in the application:** where role definitions and checks should live.
+- **The outbox as a Spring Boot starter:** auto-configuration (with `AutoConfiguration.imports`, conditional beans and configuration metadata) instead of each module declaring its outbox beans. The tension is that a Boot auto-configuration naturally creates one bean of each kind, while this project needs one outbox per module, each bound to that module's own database, template and transaction manager. So the starter would need a per-module registration that it expands into a store, a subscriber and a dispatcher. Spring Modulith's Event Publication Registry is the existing starter of this kind, and [SPRING_MODULITH.md](SPRING_MODULITH.md) explains why its single registry doesn't fit per-module databases.
 - **[Mongock](https://mongock.io/) for MongoDB:** data migrations for the Mongo modules, as the counterpart to Flyway's schema migrations on Postgres.
 - **Immutable aggregates:** making every aggregate immutable, for thread safety at the domain level.
 - **Kustomize:** sample deployments of the `Kubernetes/` manifests built with Kustomize overlays.

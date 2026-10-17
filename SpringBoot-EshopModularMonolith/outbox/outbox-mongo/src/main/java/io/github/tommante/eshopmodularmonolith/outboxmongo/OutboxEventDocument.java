@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.outboxmongo;
 
+import io.github.tommante.eshopmodularmonolith.outboxcore.DueOutboxEvent;
 import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,22 +15,23 @@ public class OutboxEventDocument {
     private UUID eventId;
     private Instant occurredOn;
     private String eventType;
-    private Instant processedOn;
     private String payload;
+    private int failedAttempts;
+    private Instant nextAttemptAt;
+    private String lastError;
+    private Instant deadLetteredOn;
+    private Instant processedOn;
 
     public OutboxEventDocument() {
         //Required for Spring Data
     }
 
-    OutboxEventDocument(UUID eventId, Instant occurredOn, String eventType, String payload) {
-        this.eventId = eventId;
-        this.occurredOn = occurredOn;
-        this.eventType = eventType;
-        this.payload = payload;
-    }
-
-    public void process() {
-        processedOn = Instant.now();
+    OutboxEventDocument(StoredOutboxEvent event) {
+        this.eventId = event.eventId();
+        this.occurredOn = event.occurredOn();
+        this.eventType = event.eventType();
+        this.payload = event.payload();
+        this.nextAttemptAt = event.occurredOn();
     }
 
     public UUID eventId() {
@@ -44,15 +46,35 @@ public class OutboxEventDocument {
         return eventType;
     }
 
-    public Instant processedOn() {
-        return processedOn;
-    }
-
     public String payload() {
         return payload;
     }
 
+    public int failedAttempts() {
+        return failedAttempts;
+    }
+
+    public Instant nextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    public String lastError() {
+        return lastError;
+    }
+
+    public Instant deadLetteredOn() {
+        return deadLetteredOn;
+    }
+
+    public Instant processedOn() {
+        return processedOn;
+    }
+
     public StoredOutboxEvent toStored() {
         return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
+    }
+
+    public DueOutboxEvent toDue() {
+        return new DueOutboxEvent(this.toStored(), this.failedAttempts);
     }
 }

@@ -260,7 +260,7 @@ The outbox lives under `outbox/`, separate from `shared`, because it's an option
 
 | Module | Package | Contains | Depends on |
 |---|---|---|---|
-| `outbox-core` | `outboxcore` | The `OutboxEventStore` port and its row type `StoredOutboxEvent`, `OutboxPayloadSerializer`, `OutboxEventProcessor`, `OutboxEventSubscriber`, `OutboxEventPublisher`, and `OutboxCoreConfig` (declares the single serializer bean). Test-jar: `outboxcore.fake.FakeOutboxEventStore` and `outboxcore.fake.FakeDomainEvent`. | `shared`, Jackson |
+| `outbox-core` | `outboxcore` | The `OutboxEventStore` port with its row type `StoredOutboxEvent` and its read view `DueOutboxEvent`, `OutboxPayloadSerializer`, `OutboxEventProcessor`, `OutboxRetryPolicy`, `OutboxEventSubscriber`, `OutboxEventPublisher`, and `OutboxCoreConfig` (declares the serializer bean and binds `OutboxRetryPolicy` from `eshop.outbox.retry.*`). Test-jar: `outboxcore.fake.FakeOutboxEventStore` and `outboxcore.fake.FakeDomainEvent`. | `shared`, Jackson |
 | `outbox-jpa` | `outboxjpa` | JPA adapter for the port (used by Catalog) | `outbox-core` |
 | `outbox-mongo` | `outboxmongo` | MongoDB adapter for the port (used by Basket) | `outbox-core` |
 
@@ -271,18 +271,53 @@ The adapters depend only on `outbox-core`: they never look inside a payload, so 
 | Component | Responsibility | Knows about |
 |---|---|---|
 | **Serializer** (`OutboxPayloadSerializer`) | Translation: `DomainEvent` ↔ `StoredOutboxEvent`. Fails when a row can't be translated: an unregistered type surfaces as the registry's `IllegalArgumentException`, a payload that doesn't fit its class as an `IllegalStateException` with Jackson's exception as the cause. | `DomainEventRegistry`, Jackson. Not storage, not policy. |
-| **Store** (`OutboxEventStore`, implemented by the JPA and Mongo adapters) | Persistence: save rows, return pending rows, mark them processed. Never interprets the payload. | Its database. Not event types, not Jackson. |
-| **Processor** (`OutboxEventProcessor`) | Policy: for each pending row, read it, publish it, mark it processed. A failure at any of those steps (including reading) is caught per row and logged with the row's id and type, so it costs only that row. | Serializer, store, publisher. The only place where decisions are made. |
+| **Store** (`OutboxEventStore`, implemented by the JPA and Mongo adapters) | Persistence: save rows, return the rows that are due, record a failed attempt, mark a row processed or dead-lettered. Owns the attempt count. Never interprets the payload. | Its database. Not event types, not Jackson, not the retry rules. |
+| **Processor** (`OutboxEventProcessor`) | Policy: for each due row, read it, publish it, mark it processed. A failure at any of those steps (including reading) is caught per row, so it costs only that row: it is retried after a backoff, or dead-lettered once its attempts are exhausted (see *Retry and dead-letter* below). | Serializer, store, publisher, retry policy, `Clock`. The only place where decisions are made. |
+| Retry policy (`OutboxRetryPolicy`) | Arithmetic: when the next attempt is due after the *n*th failure, and whether *n* failures exhaust the event. Bound from configuration. | Nothing else: a pure calculation. |
 | Subscriber (`OutboxEventSubscriber`) | Write entry point: domain event → serializer → store, inside the module's transaction (`BEFORE_COMMIT`). | Serializer, store. |
 | Publisher (`OutboxEventPublisher`) | Exit point: what to do with each event read back. Each module's dispatcher implements it by translating to an integration event and handing it to `MessageBus`. | Implemented per module. |
 
 **Why the port speaks rows (`StoredOutboxEvent`), not `DomainEvent`s.** An adapter could return domain events and still isolate failures by catching per row. But then each adapter would decide what happens to a row it can't read, and that policy would be written twice, once per database, and drift the way three copies of the test fake once did. With rows on the port, the store only persists, translation sits once in the serializer, and policy sits once in the processor. Each changes for one reason: a new database touches only a store, a payload schema change only the serializer, a retry rule only the processor. It also keeps the adapter tests about persistence alone (any type and payload string will do), and lets every policy case run against the fake store without containers. The port does speak a storage shape (`payload` as a `String`); that is deliberate, since the outbox *is* the store of serialized events. Domain events still enter and leave the outbox as `DomainEvent`.
 
-**What the row carries is what the processor needs.** `StoredOutboxEvent` has no `processedOn`: `fetchPending()` returns only unprocessed rows, so it would always be `null`. Storage-only state is written by the adapters and checked in their tests by reading the entity or document directly.
+**What the row carries is what the serializer writes; delivery state stays in storage.** `StoredOutboxEvent` is identity, type and payload, written once, and it is all `save` accepts. `fetchDue` returns `DueOutboxEvent(event, failedAttempts)`, a read view rather than a persisted type: the attempt count is the only delivery state the processor needs. `nextAttemptAt`, `lastError`, `deadLetteredOn` and `processedOn` are storage-only columns of the one entity or document per row, written by the adapters and checked in their tests by reading the entity or document directly. So `save` cannot receive delivery state, the serializer never invents any, and state the store owns grows in read views without touching the row.
+
+### Retry and dead-letter
+
+A row that fails (unreadable, publish throws, or marking it processed throws) is not retried on the next poll. The processor asks `OutboxRetryPolicy` when it is next due, with exponential backoff, and dead-letters it once it has failed `max-attempts` times:
+
+| Property | Default | Meaning |
+|---|---|---|
+| `eshop.outbox.retry.max-attempts` | `8` | The failure that reaches this count dead-letters the row. |
+| `eshop.outbox.retry.initial-delay` | `5s` | Delay after the first failure; it doubles after each further one. |
+| `eshop.outbox.retry.max-delay` | `5m` | Cap on the delay. |
+
+With the defaults the delays are 5 s, 10 s, 20 s, 40 s, 80 s, 160 s and 300 s, so a row is dead-lettered on its 8th failure, about 10 minutes after the first. That is long enough to ride out a consumer's database being briefly down, and short enough that a payload that can never be read stops retrying. The defaults live once, in `@DefaultValue` on the record; invalid values (`max-attempts` below 1, a non-positive delay, an initial delay longer than the cap) fail at startup with a message naming the property.
+
+- **Each retry logs a WARN** with the attempt number and the next attempt time. **Dead-lettering logs an ERROR**, and the row keeps its last error in storage. A dead-lettered row is never fetched again until it is requeued by hand (below).
+- **Time comes from the application's single `Clock`**, declared in `starter` and injected into both dispatchers (and `ordering`'s `CreateOrderHandler`). The adapters never call `Instant.now()`; every timestamp they write is one the processor passes in. Tests fix the clock instead of sleeping.
+- **Both adapters update only the fields they name, and count in the database.** Mongo uses `updateFirst` with `$inc`/`$set`; JPA uses `@Modifying` update queries (`set e.failedAttempts = e.failedAttempts + 1, …`), each `@Transactional` because nothing around them opens a transaction. Neither reads the row first, so a concurrent write to another field is not overwritten and no increment is lost. With one scheduler per module that is cheap insurance rather than a present need. An update that matches no row fails with `IllegalStateException("Unknown outbox event: …")` in both.
+- **A failure while recording the failure is not caught.** If the store itself is down, the exception ends that dispatch run; the row is unchanged and the next poll tries again.
+
+**Manual replay.** To requeue a dead-lettered row, clear its dead-letter time, reset its count, and make it due. Its `lastError` is kept until the next failure overwrites it.
+
+Basket (MongoDB, database `eshop-basket-db`, collection `outbox`):
+```javascript
+db.outbox.updateOne(
+  { _id: UUID("<event id>") },
+  { $set: { failedAttempts: 0, nextAttemptAt: new Date() }, $unset: { deadLetteredOn: "" } }
+)
+```
+
+Catalog (Postgres, table `catalog.outbox_events`). Setting `next_attempt_at` to `occurred_on` makes the row due without any time-zone conversion:
+```sql
+update catalog.outbox_events
+set dead_lettered_on = null, failed_attempts = 0, next_attempt_at = occurred_on
+where event_id = '<event id>';
+```
 
 - **A module gets the outbox by depending on one adapter.** `basket-core` and `catalog-core` declare only `outbox-mongo` / `outbox-jpa` and reach `outbox-core` transitively, even though their configs and dispatchers use its classes directly. That's deliberate: choosing an adapter is all it takes. Only `outbox-core`'s test-jar has to be declared, because Maven never passes on test-scoped dependencies.
 - **`outbox/pom.xml` is an aggregator only.** It lists the three modules; each of them keeps the root pom as its `<parent>`, because no configuration is shared at group level.
-- **`OutboxEventPublisher` isn't an integration-event publisher.** It receives a *domain* event; translating it into an integration event and handing it to `MessageBus` is the dispatcher's job. If it throws, the event stays pending and is retried.
+- **`OutboxEventPublisher` isn't an integration-event publisher.** It receives a *domain* event; translating it into an integration event and handing it to `MessageBus` is the dispatcher's job. If it throws, the event stays pending and is retried after a backoff, until it is dead-lettered.
 - **`DomainEventRegistry` stays in `shared.domain`.** The outbox uses it to deserialize payloads, but it registers domain events, which isn't an outbox concern.
 
 ---

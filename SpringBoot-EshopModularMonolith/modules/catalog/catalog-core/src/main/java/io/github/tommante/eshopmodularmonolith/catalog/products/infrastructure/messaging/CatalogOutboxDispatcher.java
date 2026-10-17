@@ -5,11 +5,14 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.eve
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxRetryPolicy;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.MessageBus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.Clock;
 
 @Component
 public class CatalogOutboxDispatcher {
@@ -17,8 +20,13 @@ public class CatalogOutboxDispatcher {
     private final OutboxEventProcessor outboxEventProcessor;
     private final MessageBus messageBus;
 
-    public CatalogOutboxDispatcher(@Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer, MessageBus messageBus) {
-        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore, serializer);
+    public CatalogOutboxDispatcher(
+            @Qualifier("catalogOutboxEventStore") OutboxEventStore outboxEventStore,
+            OutboxPayloadSerializer serializer,
+            OutboxRetryPolicy retryPolicy,
+            Clock clock,
+            MessageBus messageBus) {
+        this.outboxEventProcessor = new OutboxEventProcessor(outboxEventStore, serializer, retryPolicy, clock);
         this.messageBus = messageBus;
     }
 

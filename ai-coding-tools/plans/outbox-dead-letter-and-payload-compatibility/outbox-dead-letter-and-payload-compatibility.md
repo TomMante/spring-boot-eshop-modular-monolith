@@ -22,25 +22,43 @@ Decided with the user, one question at a time:
 3. **Compatibility policy: schema version per row plus JSON upcasters, enforced by golden payload fixtures.** Chosen over "additive in place, new type key when breaking" (consumers would handle two classes until drained, and every change needs an additive-vs-breaking judgment) and over typed legacy records (every old shape stays as a class forever).
 4. **Backlog 11 is included:** one flag-and-retain fake, published from `shared`'s test-jar in increment 1, and moved to `outbox-core`'s test-jar in increment 2.
 5. **Visibility and replay: ERROR log plus stored state, and a documented manual replay.** A dead-letter metric and a replay operation are recorded as Backlog improvements, not built here.
-6. **The outbox's shared code lives in a new `outbox-core` Maven module, not in `shared`** (decided with the user on 2026-10-06, after increment 1). `outbox-jpa` and `outbox-mongo` depend on it. Chosen over an `outbox` package inside `shared.infrastructure`: a package fixes the layout but not the dependencies. With a module, only modules that choose an outbox adapter see outbox classes (`ordering` deliberately has none, see Backlog 5), and `shared` keeps to what every module needs rather than collecting optional capabilities. The three outbox modules are grouped under `outbox/`. `outbox/pom.xml` (artifact `outbox`, packaging `pom`) is an **aggregator only**: it lists `outbox-core`, `outbox-jpa` and `outbox-mongo` in its `<modules>`, and the root lists only `outbox`. The three modules keep the root as their `<parent>`, because no configuration is shared at group level (decided with the user). This is the target layout. `modules/basket/` and `modules/catalog/` still use the older pattern, where the grouping pom is neither parent nor aggregator and the root lists every module; converting them is [Backlog 15](../../../docs/BACKLOG.md). The artifactIds of the two adapters don't change, so the modules that depend on them don't change either. Package: `io.github.tommante.eshopmodularmonolith.outboxcore`, matching `outboxjpa` and `outboxmongo`. A module gets `outbox-core` **transitively** by depending on an adapter, and does not declare it itself, although its config and dispatcher use `outbox-core` classes directly. That is deliberate: choosing an adapter should be all it takes to get the outbox (decided with the user). Only the test-jar has to be declared, because Maven never passes on test-scoped dependencies. `DomainEventRegistry` stays in `shared.domain` (decided with the user): it registers domain events, and the outbox is only one of its users, so conceptually it is not outbox code. Every new outbox class below lives there, and every outbox bean (serializer, clock, schema registry) is declared in an `OutboxCoreConfig` in that package. The starter's component scan picks it up, as it does `SharedModuleConfig`.
-7. **Each increment adds only the fields and signatures it uses** (decided with the user). `StoredOutboxEvent` starts as `(eventId, occurredOn, eventType, payload)`; increment 4 adds `failedAttempts` and `nextAttemptAt`, and increment 5 adds `schemaVersion`. Likewise, increment 3's port has `markAsProcessed(UUID)` and the adapters keep stamping `Instant.now()`; increment 4 adds the `Instant` parameter together with the `Clock` that supplies it. The shapes below are the end state.
+6. **The outbox's shared code lives in a new `outbox-core` Maven module, not in `shared`** (decided with the user on 2026-10-06, after increment 1). `outbox-jpa` and `outbox-mongo` depend on it. Chosen over an `outbox` package inside `shared.infrastructure`: a package fixes the layout but not the dependencies. With a module, only modules that choose an outbox adapter see outbox classes (`ordering` deliberately has none, see Backlog 5), and `shared` keeps to what every module needs rather than collecting optional capabilities. The three outbox modules are grouped under `outbox/`. `outbox/pom.xml` (artifact `outbox`, packaging `pom`) is an **aggregator only**: it lists `outbox-core`, `outbox-jpa` and `outbox-mongo` in its `<modules>`, and the root lists only `outbox`. The three modules keep the root as their `<parent>`, because no configuration is shared at group level (decided with the user). This is the target layout. `modules/basket/` and `modules/catalog/` still use the older pattern, where the grouping pom is neither parent nor aggregator and the root lists every module; converting them is [Backlog 15](../../../docs/BACKLOG.md). The artifactIds of the two adapters don't change, so the modules that depend on them don't change either. Package: `io.github.tommante.eshopmodularmonolith.outboxcore`, matching `outboxjpa` and `outboxmongo`. A module gets `outbox-core` **transitively** by depending on an adapter, and does not declare it itself, although its config and dispatcher use `outbox-core` classes directly. That is deliberate: choosing an adapter should be all it takes to get the outbox (decided with the user). Only the test-jar has to be declared, because Maven never passes on test-scoped dependencies. `DomainEventRegistry` stays in `shared.domain` (decided with the user): it registers domain events, and the outbox is only one of its users, so conceptually it is not outbox code. Every new outbox class below lives there, and every outbox bean (serializer, retry policy, schema registry) is declared in an `OutboxCoreConfig` in that package. The clock is not an outbox bean (decision 9). The starter's component scan picks it up, as it does `SharedModuleConfig`.
+7. **Each increment adds only the fields and signatures it uses** (decided with the user). `StoredOutboxEvent` starts as `(eventId, occurredOn, eventType, payload)`, and increment 5 adds `schemaVersion`. Increment 4 adds no field to it (decision 8). Likewise, increment 3's port has `markAsProcessed(UUID)` and the adapters keep stamping `Instant.now()`; increment 4 adds the `Instant` parameter together with the `Clock` that supplies it (step 4.2, moved from 4.4 with the user's agreement, so the port changes once). The shapes below are the end state.
+8. **Delivery state stays off `StoredOutboxEvent`** (decided with the user on 2026-10-15, during increment 4; it replaces this plan's original flat record with `failedAttempts` and `nextAttemptAt`). `StoredOutboxEvent` is what the serializer writes once: identity, type and payload. `fetchDue` returns `DueOutboxEvent(StoredOutboxEvent event, int failedAttempts)`, a read view and not a persisted type. `nextAttemptAt`, `lastError`, `deadLetteredOn` and `processedOn` are storage-only columns of the one entity or document per row. The storage model doesn't change: one table, one collection. Reasons:
+   - `save` can't receive delivery state, so the port doesn't leave it to each adapter whether to trust it, and requeueing has to become an explicit port method.
+   - The serializer doesn't invent scheduling values.
+   - It is consistent with `processedOn`, which was already kept off the record in increment 3.
+   - It is the smaller diff: no `new StoredOutboxEvent(…)` call site changes.
+   - Delivery state is the part expected to grow (Backlog: dead-letter metric, replay), and it can do so in read views without touching the row the serializer writes.
+   The cost is one extra record. The store owns the attempt count: `recordFailedAttempt` and `markAsDeadLettered` increment it, and on `save` the adapter sets `nextAttemptAt = occurredOn`, because a new event is due immediately.
+9. **One application `Clock`, defined in `starter`** (decided with the user on 2026-10-16, during increment 4; it replaces this plan's original `outboxClock` bean in `OutboxCoreConfig`).
+   - **The bean:** a `ClockConfiguration` in `starter`, next to `AuditingConfiguration`, declares `Clock.tickMillis(ZoneOffset.UTC)`. Millisecond ticks match what Mongo stores and what `ordering` already used.
+   - **Consumers:** modules inject `Clock` by type, with no qualifier: the outbox dispatchers, and `ordering`'s `CreateOrderHandler`.
+   - **`ordering`'s `orderClock` bean is removed.** It was guarded by `@ConditionalOnMissingBean`, which is only reliable on auto-configuration. Next to a second `Clock` bean, it would have been skipped or kept depending on the order in which Spring processed the configurations.
+   - **Why one clock:** several clocks need qualifiers everywhere, and a test that fixes one of them leaves the modules running on different times.
+   - **Why the starter and not `shared`:** the starter is the composition root, so modules declare the need and the application decides what time is.
+   - **The cost:** a test context that builds module beans without the starter must declare its own `Clock`.
 
 ### Shapes
 
-**`StoredOutboxEvent`** (`outboxcore`), the row the port speaks:
+**`StoredOutboxEvent`** (`outboxcore`), the row the serializer writes and `save` takes:
 ```java
-public record StoredOutboxEvent(UUID eventId, Instant occurredOn, String eventType, int schemaVersion,
-                                String payload, int failedAttempts, Instant nextAttemptAt) {}
+public record StoredOutboxEvent(UUID eventId, Instant occurredOn, String eventType, int schemaVersion, String payload) {}
+```
+
+**`DueOutboxEvent`** (`outboxcore`), what `fetchDue` returns (decision 8):
+```java
+public record DueOutboxEvent(StoredOutboxEvent event, int failedAttempts) {}
 ```
 
 **`OutboxEventStore` port**: no `DomainEvent` on it any more. All timestamps come from the processor's `Clock`, never `Instant.now()` inside an adapter.
 ```java
 public interface OutboxEventStore {
     void save(StoredOutboxEvent event);
-    List<StoredOutboxEvent> fetchDue(Instant now);   // not processed, not dead-lettered, nextAttemptAt <= now
+    List<DueOutboxEvent> fetchDue(Instant now);      // not processed, not dead-lettered, nextAttemptAt <= now, in occurredOn order
     void markAsProcessed(UUID eventId, Instant processedOn);
-    void recordFailedAttempt(UUID eventId, String error, Instant nextAttemptAt);
-    void markAsDeadLettered(UUID eventId, String error, Instant deadLetteredOn);
+    void recordFailedAttempt(UUID eventId, String error, Instant nextAttemptAt);   // increments failedAttempts
+    void markAsDeadLettered(UUID eventId, String error, Instant deadLetteredOn);   // increments failedAttempts
 }
 ```
 
@@ -54,35 +72,39 @@ public interface OutboxPayloadUpcaster {
 ```
 
 **`OutboxPayloadSerializer`** (`outboxcore`) replaces both mappers:
-- `toStored(DomainEvent)`: registry key, current schema version, JSON, `failedAttempts` 0, `nextAttemptAt = occurredOn`.
+- `toStored(DomainEvent)`: event id, occurrence time, registry key, current schema version and JSON. No delivery state (decision 8).
 - `read(StoredOutboxEvent)`: parse to a tree, apply upcasters from the stored version up to the current one, then `treeToValue` into the registered class. It throws a descriptive exception for an unknown type, a missing upcaster in the chain, or a payload that doesn't fit.
 
 **`OutboxEventSubscriber`** serializes before saving: `outbox.save(serializer.toStored(event))`.
 
-**`OutboxRetryPolicy`** (`outboxcore`): `record OutboxRetryPolicy(int maxAttempts, Duration initialDelay, Duration maxDelay)`, with `Instant nextAttemptAfter(int failedAttempts, Instant now)` = `now + min(initialDelay × 2^(failedAttempts − 1), maxDelay)`. Defaults for both modules: **8 attempts, 5s initial, 5 min cap**. The delays are 5s, 10s, 20s, 40s, 80s, 160s and 300s, so an event is dead-lettered on its 8th failure, about 10 minutes after the first.
+**`OutboxRetryPolicy`** (`outboxcore`): `record OutboxRetryPolicy(int maxAttempts, Duration initialDelay, Duration maxDelay)`, with `Instant nextAttemptAfter(int failedAttempts, Instant now)` = `now + min(initialDelay × 2^(failedAttempts − 1), maxDelay)` and `boolean isExhausted(int failedAttempts)` = `failedAttempts >= maxAttempts`. `failedAttempts` includes the failure that just happened. Defaults for both modules: **8 attempts, 5s initial, 5 min cap**. The delays are 5s, 10s, 20s, 40s, 80s, 160s and 300s, so an event is dead-lettered on its 8th failure, about 10 minutes after the first.
+- **It is tuning, so it is configuration** (decided with the user on 2026-10-11). The record itself is `@ConfigurationProperties("eshop.outbox.retry")`, registered with `@EnableConfigurationProperties` on `OutboxCoreConfig`. The defaults live once, in `@DefaultValue` on the components, not in `application.yaml`, so contexts that set nothing still get them. A compact constructor rejects invalid values (`maxAttempts < 1`, non-positive delays, `initialDelay > maxDelay`), with a message naming the property key, so a bad value fails at startup.
+- **The exhaustion boundary lives in the policy** (decided with the user), not in the processor, so the "8th failure dead-letters" boundary is tested once as a pure function.
+- The calculation must not overflow for large counts: it stops doubling once it reaches `maxDelay`.
 
 **`OutboxEventProcessor`** owns all policy:
 ```java
 public void dispatchPendingEvents(OutboxEventPublisher publisher) {
     var now = clock.instant();
-    for (var stored : outboxEventStore.fetchDue(now)) {
+    for (var due : outboxEventStore.fetchDue(now)) {
         try {
-            publisher.publish(serializer.read(stored));
-            outboxEventStore.markAsProcessed(stored.eventId(), now);
+            publisher.publish(serializer.read(due.event()));
+            outboxEventStore.markAsProcessed(due.event().eventId(), now);
         } catch (Exception failure) {
-            recordFailure(stored, failure, now);   // failedAttempts + 1 >= maxAttempts → dead-letter + ERROR log; else recordFailedAttempt with backoff
+            recordFailure(due, failure, now);   // retryPolicy.isExhausted(due.failedAttempts() + 1) → dead-letter + ERROR log; else recordFailedAttempt with backoff
         }
     }
 }
 ```
 A `markAsProcessed` failure after a successful publish counts as a failed attempt and the event is redelivered, as today. One-order-per-checkout deduplication already covers that.
 
-**Dispatchers** construct `new OutboxEventProcessor(store, serializer, retryPolicy, clock)`. The `Clock` is an `outboxClock` bean (`Clock.systemUTC()`) in `OutboxCoreConfig`.
+**Dispatchers** construct `new OutboxEventProcessor(store, serializer, retryPolicy, clock)`. The `Clock` is the application's single `Clock` bean from `starter` (decision 9).
 
 **Registration per module**: a small static registration helper per module (`BasketOutboxEvents.registerIn(DomainEventRegistry, OutboxSchemaRegistry)`, and the catalog equivalent). The module config's `@PostConstruct` and that module's fixture test both call it, so the test can never drift from production registration.
 
 ### Storage
 - **Mongo `outbox` documents** gain `schemaVersion`, `failedAttempts`, `nextAttemptAt`, `lastError` and `deadLetteredOn`. The fetch query is `processedOn == null && deadLetteredOn == null && nextAttemptAt <= now`. Updates use `updateFirst` with `$inc`/`$set` rather than load-and-save.
+- **Catalog `outbox_events`**: updates are `@Modifying` JPQL update queries (`set e.failedAttempts = e.failedAttempts + 1, …`), the counterpart of Mongo's `$inc`/`$set`, rather than load-change-save. Decided with the user on 2026-10-16, so both adapters change only the fields they name and count atomically. With one scheduler per module the concurrency gain is small today; the user chose it to keep the adapters symmetric. The entity has no methods that change it. An update that matches no row throws `IllegalStateException("Unknown outbox event: …")` in both adapters.
 - **Catalog `outbox_events`**: the same columns are added **directly to `V1__init.sql`** (`schema_version int not null`, `failed_attempts int not null default 0`, `next_attempt_at timestamp not null`, `last_error text`, `dead_lettered_on timestamp`). There is no V2 migration. An existing local database fails Flyway's checksum validation and must be dropped (`docker compose down -v`).
 - **No fallback for old rows:** `schemaVersion` is required, because rows without it will not exist.
 
@@ -181,19 +203,31 @@ No behaviour changes. Only packages, imports and poms change.
 - [x] 3.4. **Docs:** add a responsibilities table (serializer, store, processor, subscriber, publisher) to the *📮 Outbox modules* section of [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md), explaining why the port speaks `StoredOutboxEvent` rows rather than `DomainEvent`s: the store only persists rows, translation sits once in the serializer, and policy for unreadable rows sits once in the processor instead of in each adapter (decided with the user). Update the module table's `outbox-core` contents (`StoredOutboxEvent`, `OutboxPayloadSerializer`, `OutboxCoreConfig`, `FakeDomainEvent`) and drop the adapters' dependency on `shared` and Jackson. **Live lists:** rewrite [Known Bug 2](../../../docs/KNOWN_ISSUES.md) to say that a row that can't be read now only blocks itself, and that the endless retry is what remains. In Known Bug 3, drop the "wedges the whole outbox" sentence.
 
 ### Increment 4: Retry, backoff and dead-letter (closes Known Bug 2)
-- [ ] 4.1. **Red → green:** `OutboxRetryPolicy` and `OutboxRetryPolicyTest`: first retry after `initialDelay`, doubling, capped at `maxDelay`.
-- [ ] 4.2. **Red → green**, `OutboxEventProcessorTest` with a fixed `Clock`, one test at a time:
-  - a failure records an attempt with `nextAttemptAt` from the policy and keeps the event pending;
-  - a row that isn't due yet is not dispatched;
-  - the `maxAttempts`-th failure dead-letters the event, and it is never fetched again;
-  - a success after earlier failures marks the event processed.
+- [x] 4.1. **Red → green:** `OutboxRetryPolicy` (a `@ConfigurationProperties` record) and `OutboxRetryPolicyTest`: first retry after `initialDelay`, doubling, capped at `maxDelay`, no overflow for a count far beyond the cap, `isExhausted` at `maxAttempts − 1` and `maxAttempts`, and invalid values rejected with a message naming the property.
+- [x] 4.2. **Red → green**, `OutboxEventProcessorTest` with a fixed `Clock`, one test at a time:
+  - **Scaffolding first (no behaviour change):**
+    - `DueOutboxEvent` (decision 8);
+    - the port gains `fetchDue(Instant)` (replacing `fetchPending()`), `recordFailedAttempt` and `markAsDeadLettered`, and `markAsProcessed` gains its `Instant processedOn` parameter;
+    - the fake implements them and exposes `isDeadLettered(UUID)`, because "never fetched again" alone can't tell dead-lettered from processed;
+    - the processor takes `(store, serializer, OutboxRetryPolicy, Clock)`.
 
-  The port gains `fetchDue(Instant)`, `recordFailedAttempt` and `markAsDeadLettered`, replacing `fetchPending()`, and the fake implements them. `StoredOutboxEvent` gains `failedAttempts` and `nextAttemptAt`.
-- [ ] 4.3. **Adapters:** Mongo fields and `$inc`/`$set` updates; JPA columns in `V1__init.sql`, entity fields and a repository query. **Red → green** adapter tests for `fetchDue`, covering due, not due, processed and dead-lettered rows. Tests alongside for the counters, `lastError` and timestamps being written.
-- [ ] 4.4. **Wiring:** the `outboxClock` bean in `OutboxCoreConfig`; `markAsProcessed` gains its `Instant processedOn` parameter, and the adapters stop calling `Instant.now()`; the dispatchers build the processor with serializer, policy (8 attempts / 5s / 5 min) and clock; dispatcher tests adapted.
-- [ ] 4.5. **`./mvnw clean verify`:** green, including `ArchitectureTest` and `ApplicationWiringTest`.
-- [ ] 4.6. **Docs:** [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md) gets the retry and dead-letter behaviour and the manual replay commands. [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md) gets a worked-example row for the processor policy seam. [SETUP.md](../../../docs/SETUP.md) gets a note that `V1__init.sql` changed, so existing local volumes need `docker compose down -v`.
-- [ ] 4.7. **Live lists:** remove Known Bug 2. Route the Deferred entries below (all of them relate to dead-lettering). Check [README.md](../../../README.md).
+    The two existing processor tests stay green. Their events use `occurredOn = NOW`, because a real-time `occurredOn` is after the fixed clock and would never be due.
+  - **Red:** a failure records an attempt, and the event is due again only after the policy's delay.
+  - **Red:** the `maxAttempts`-th failure dead-letters the event; it is never fetched again, and the fake reports it as dead-lettered.
+  - **Guards** (green when written, kept as regression tests):
+    - a row that isn't due yet is not dispatched; the filter's real red tests are the adapters' in 4.3;
+    - a success after earlier failures marks the event processed.
+
+  Tests reach attempt state through the port, by calling `recordFailedAttempt`, rather than building it by hand. Until 4.3 and 4.4, only `outbox-core` compiles and is tested.
+- [x] 4.3. **Adapters:** the entity and the document gain the delivery columns and a `toDue()`, `save` sets `nextAttemptAt = occurredOn`, and `markAsProcessed` stamps the `Instant` it receives instead of calling `Instant.now()`; Mongo fields and `$inc`/`$set` updates; JPA columns in `V1__init.sql`, entity fields, a `findDue` query and `@Modifying` update queries. **Red → green** adapter tests for `fetchDue`, covering due, not due, processed and dead-lettered rows. Tests alongside for the counters, `lastError` and timestamps being written.
+- [x] 4.4. **Wiring:**
+  - `@EnableConfigurationProperties(OutboxRetryPolicy.class)` in `OutboxCoreConfig`;
+  - one application `Clock` in a new `starter` `ClockConfiguration`, while `ordering`'s `orderClock` bean is removed and `CreateOrderHandler` injects `Clock` without a qualifier (decision 9);
+  - the dispatchers receive the `OutboxRetryPolicy` and the `Clock` and build the processor with serializer, policy and clock;
+  - the dispatcher tests and `CheckoutBasketHandlerTransactionalTest` move to `fetchDue`.
+- [x] 4.5. **`./mvnw clean verify`:** green, including `ArchitectureTest` and `ApplicationWiringTest`.
+- [x] 4.6. **Docs:** [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md) gets the retry and dead-letter behaviour and the manual replay commands. [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md) gets a worked-example row for the processor policy seam. [SETUP.md](../../../docs/SETUP.md) gets a note that `V1__init.sql` changed, so existing local volumes need `docker compose down -v`.
+- [x] 4.7. **Live lists:** remove Known Bug 2. Route the Deferred entries below (all of them relate to dead-lettering). Check [README.md](../../../README.md).
 
 ### Increment 5: Schema version and upcasters (closes Known Bug 3)
 - [ ] 5.1. **`OutboxSchemaRegistry`** in `outboxcore`, with a current version per type and upcasters registered per `(type, fromVersion)`. A bean in `OutboxCoreConfig`. `StoredOutboxEvent` gains `schemaVersion`. The serializer stamps the current version on `toStored`.

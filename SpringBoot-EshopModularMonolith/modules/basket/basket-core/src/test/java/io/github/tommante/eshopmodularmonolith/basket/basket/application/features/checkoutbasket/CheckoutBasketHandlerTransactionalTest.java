@@ -40,6 +40,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -147,9 +148,9 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
-        assertThat(outboxEventStore.fetchPending())
+        assertThat(outboxEventStore.fetchDue(Instant.now()))
                 .singleElement()
-                .extracting(serializer::read)
+                .extracting(due -> serializer.read(due.event()))
                 .isInstanceOfSatisfying(BasketCheckedOut.class, event -> {
                     assertThat(event.billingAddress()).isEqualTo(billingAddress);
                     assertThat(event.shippingAddress()).isEqualTo(shippingAddress);

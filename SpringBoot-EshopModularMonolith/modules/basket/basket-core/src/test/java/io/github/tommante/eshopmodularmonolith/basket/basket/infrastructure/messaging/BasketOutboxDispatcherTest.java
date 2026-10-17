@@ -10,6 +10,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeMessageBus;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxRetryPolicy;
 import io.github.tommante.eshopmodularmonolith.outboxcore.fake.FakeOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,9 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +41,8 @@ class BasketOutboxDispatcherTest {
         var registry = new DomainEventRegistry();
         registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
         serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
-        dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, messageBus);
+        var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
+        dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.systemUTC(), messageBus);
     }
 
     @Test
@@ -50,9 +55,9 @@ class BasketOutboxDispatcherTest {
         var domainEvent = new BasketCheckedOut("john", List.of(item), new BigDecimal("19.98"), billingAddress, payment, shippingAddress);
         outboxEventStore.save(serializer.toStored(domainEvent));
 
-        assertThat(outboxEventStore.fetchPending()).isNotEmpty();
+        assertThat(outboxEventStore.fetchDue(Instant.MAX)).isNotEmpty();
         dispatcher.dispatch();
-        assertThat(outboxEventStore.fetchPending()).isEmpty();
+        assertThat(outboxEventStore.fetchDue(Instant.MAX)).isEmpty();
 
         var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
         assertThat(messageBus.publishedMessages()).hasSize(1);
