@@ -5,6 +5,9 @@ eshop:
 spring:
   application:
     name: eshopmodularmonolith
+  jackson:
+    deserialization:
+      use-big-decimal-for-floats: true
   messages:
     basename: basket-messages, catalog-messages
   security:

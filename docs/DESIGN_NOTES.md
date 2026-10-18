@@ -95,7 +95,7 @@ The fuller shape: basket mints its own `checkoutId` in `ShoppingCart.checkout`, 
 What it would cost:
 
 - `ShoppingCart`, `BasketCheckedOut`, `BasketCheckoutIntegrationEvent` and `BasketOutboxDispatcher`, plus their tests — three modules, and a change to the public contract between basket and ordering.
-- A change to `BasketCheckedOut`'s shape, which outbox payloads already at rest do not have (the outbox has no schema versioning). They deserialize with `checkoutId` null: if `Order` accepts the null, dedup is silently off for every event in flight at deploy time; if it rejects it, the event is retried until it is dead-lettered, and every checkout in flight needs a manual replay. A listener fallback — `checkoutId != null ? checkoutId : eventId` — bridges the drain, which means the current shape survives as the compatibility path either way.
+- A change to `BasketCheckedOut`'s shape, which outbox payloads already at rest do not have. Under the outbox's compatibility policy ([Architecture](ARCHITECTURE.md), *Payload versioning*) that is a version 2 with an upcaster from version 1, and the upcaster has to decide what `checkoutId` an old payload gets. Copying its `eventId` keeps dedup working for every event in flight at deploy time, and means the current identity survives as the compatibility path either way.
 
 **Open question, and why this stays a note:** nothing would read the id today. `CheckoutBasketHandler` deletes the cart straight after checkout and `POST /basket/checkout` returns `202` with no body, so a basket-minted `checkoutId` would exist only on the event — a second random UUID, distinguishable from `eventId` only by its name. Worth revisiting when any of these appear:
 

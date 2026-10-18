@@ -11,6 +11,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.mess
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxRetryPolicy;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxcore.fake.FakeOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +40,9 @@ class BasketOutboxDispatcherTest {
         messageBus = new FakeMessageBus();
         outboxEventStore = new FakeOutboxEventStore();
         var registry = new DomainEventRegistry();
-        registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
-        serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
+        var schemaRegistry = new OutboxSchemaRegistry();
+        BasketOutboxEvents.registerIn(registry, schemaRegistry);
+        serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
         dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.systemUTC(), messageBus);
     }

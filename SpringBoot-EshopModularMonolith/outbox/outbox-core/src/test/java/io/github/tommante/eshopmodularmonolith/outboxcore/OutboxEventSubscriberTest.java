@@ -20,7 +20,9 @@ class OutboxEventSubscriberTest {
     void givenDomainEvent_whenReceived_thenSavedToOutbox() {
         var registry = new DomainEventRegistry();
         registry.registerDomainEvent("FakeDomainEvent", FakeDomainEvent.class);
-        var serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
+        var schemaRegistry = new OutboxSchemaRegistry();
+        schemaRegistry.registerEvent("FakeDomainEvent");
+        var serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         var outbox = new FakeOutboxEventStore();
         var subscriber = new OutboxEventSubscriber(outbox, serializer);
         var event = new FakeDomainEvent(UUID.randomUUID(), Instant.now(), List.of("a"));

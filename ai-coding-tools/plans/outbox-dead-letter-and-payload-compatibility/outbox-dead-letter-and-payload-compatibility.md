@@ -38,6 +38,19 @@ Decided with the user, one question at a time:
    - **Why one clock:** several clocks need qualifiers everywhere, and a test that fixes one of them leaves the modules running on different times.
    - **Why the starter and not `shared`:** the starter is the composition root, so modules declare the need and the application decides what time is.
    - **The cost:** a test context that builds module beans without the starter must declare its own `Clock`.
+10. **`OutboxSchemaRegistry` registers one version per call, and only the next one** (decided with the user on 2026-10-17, during increment 5; it replaces this plan's original upcaster interface, which carried `eventType()` and `fromVersion()`). `registerEvent(type)` adds a type at version 1. `registerVersion(type, version, upcaster)` adds exactly the next version, together with the upcaster that reaches it from the previous one. Anything other than the current version + 1 is rejected, and so is a missing upcaster. Each line in a module's registration helper states its version, so the current version is visible without counting. A gap, a duplicate, an overwritten version or a version without an upcaster fails at startup, inside the call that made the mistake. Chosen over:
+    - two independent methods (`registerCurrentVersion`, `registerUpcaster`): an upcaster can be forgotten, and gaps are only found when an old row is read;
+    - one call with a list of upcasters, where the version is the list's length + 1: the version is nowhere on the page, and it has to be counted;
+    - the same call with the version stated as well: complete, but one call that grows with every version;
+    - typed version classes with annotations, as in some event-sourcing libraries: these are the typed legacy records decision 3 rejected, and annotations on domain events would put a storage concern in the domain.
+
+    The upcaster no longer carries its type or source version, because `registerVersion` supplies both.
+
+11. **Decimal amounts stay exact through the upcaster path** (decided with the user on 2026-10-18, during increment 5). Since 5.2, `read` parses the payload into a tree for the upcasters, and by default Jackson stores decimal numbers in a tree as `double`: `550.00` came back as `550.0`, and `12345678901234567890.12` lost digits. The basket fixture test caught it. The fix is applied at two levels:
+    - **In the serializer:** `read` parses with `mapper.reader().with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)`. This keeps exact decimals an invariant of `outbox-core`, whatever mapper the host application passes in, and it is what the unit tests, built with `new ObjectMapper()`, exercise.
+    - **In the application:** `spring.jackson.deserialization.use-big-decimal-for-floats: true` in `starter`'s `application.yaml`, so every untyped read in the eshop keeps exact amounts.
+
+    Money as strings in the HTTP API, which protects clients that parse JSON numbers as `double`, is an API contract decision and went to [Backlog 18](../../../docs/BACKLOG.md).
 
 ### Shapes
 
@@ -62,18 +75,37 @@ public interface OutboxEventStore {
 }
 ```
 
-**`OutboxSchemaRegistry`** (`outboxcore`): current schema version per event type, plus upcasters. One bean, contributed to by each module, following the same contributor pattern as `DomainEventRegistry`.
+**`OutboxSchemaRegistry`** (`outboxcore`): current schema version per event type, plus upcasters (decision 10). One bean, contributed to by each module, following the same contributor pattern as `DomainEventRegistry`.
 ```java
 public interface OutboxPayloadUpcaster {
-    String eventType();
-    int fromVersion();                     // upgrades fromVersion → fromVersion + 1
-    ObjectNode upcast(ObjectNode payload);
+    ObjectNode upcast(ObjectNode payload);   // previous version → the version it was registered with
+}
+
+public class OutboxSchemaRegistry {
+    public void registerEvent(String eventType);                                          // version 1
+    public void registerVersion(String eventType, int version, OutboxPayloadUpcaster upcaster);  // current + 1 only
+    public int currentVersionOf(String eventType);
 }
 ```
+Rejected with a message that names the type and what the caller must change:
+- `currentVersionOf` or `registerVersion` for a type that was never registered;
+- `registerEvent` for a type that is already registered;
+- `registerVersion` with any version other than the current one + 1 (the message names the expected version);
+- `registerVersion` with a `null` upcaster.
+
+A module helper at version 3 reads:
+```java
+schemaRegistry.registerEvent("BasketCheckedOut");
+schemaRegistry.registerVersion("BasketCheckedOut", 2, new BasketCheckedOutV1ToV2());
+schemaRegistry.registerVersion("BasketCheckedOut", 3, new BasketCheckedOutV2ToV3());
+```
+A `null` upcaster is rejected with `Objects.requireNonNull`, so it throws `NullPointerException` (the JDK convention for null arguments, decided with the user); the other rejections throw `IllegalArgumentException`.
+
+Step 5.2 adds the lookup the serializer's upcaster loop needs: `List<OutboxPayloadUpcaster> upcastersFrom(String eventType, int storedVersion)`, the upcasters that take a payload from `storedVersion` to the current version, in order. It is empty at the current version. A stored version below 1 or above the current one is rejected, because the application can't read it: a version above the current one usually means a newer deployment wrote the row and the application was then rolled back.
 
 **`OutboxPayloadSerializer`** (`outboxcore`) replaces both mappers:
 - `toStored(DomainEvent)`: event id, occurrence time, registry key, current schema version and JSON. No delivery state (decision 8).
-- `read(StoredOutboxEvent)`: parse to a tree, apply upcasters from the stored version up to the current one, then `treeToValue` into the registered class. It throws a descriptive exception for an unknown type, a missing upcaster in the chain, or a payload that doesn't fit.
+- `read(StoredOutboxEvent)`: parse to a tree, apply upcasters from the stored version up to the current one, then `treeToValue` into the registered class. It throws a descriptive exception for an unknown type, a stored version outside 1 to the current version, or a payload that doesn't fit. Decision 10 makes a gap in the chain impossible, so there is no "missing upcaster" case.
 
 **`OutboxEventSubscriber`** serializes before saving: `outbox.save(serializer.toStored(event))`.
 
@@ -112,7 +144,7 @@ A `markAsProcessed` failure after a successful publish counts as a failed attemp
 > Every change to a persisted domain event's JSON shape bumps its schema version, registers an upcaster from the previous version, and adds a fixture for the new version. Existing fixtures are never edited.
 
 - **Fixtures:** `src/test/resources/outbox-payloads/<EventType>/v<N>.json` in the module that owns the event. Each is captured once from a real serialized payload.
-- **Fixture test per module:** reads every fixture through a real `OutboxPayloadSerializer` built with that module's registration helper, and asserts the result is the registered class. Where an upcaster's output matters, it also asserts the upcast fields.
+- **Fixture test per module:** reads every fixture through a real `OutboxPayloadSerializer` built with that module's registration helper, and asserts the result **equals the record built from the fixture's captured values** (decided with the user on 2026-10-18, during increment 5). A type check alone would miss the most likely breaking change: a field added to the record without an upcaster reads as `null` from an old payload, and Jackson doesn't fail. Comparing the whole record makes that fixture's test fail and points at the missing upcaster.
 - **Starting point:** every event is at version 1 with no upcasters. The first real upcaster arrives with Backlog 8.
 
 ### Manual replay (to be written into ARCHITECTURE.md)
@@ -124,8 +156,10 @@ To requeue a dead-lettered event, clear `deadLetteredOn`, set `failedAttempts` t
 |---|---|---|
 | Unreadable row doesn't block others; retry counting, backoff, cap, dead-lettering, due-filtering | `OutboxEventProcessorTest` with the shared fake store and a fixed `Clock` | A state machine with more cases than an adapter test would enumerate, and all policy lives in the processor. The fake is behind the port, so no container is needed. |
 | Backoff arithmetic | `OutboxRetryPolicyTest` | A pure calculation with edge cases (first attempt, doubling, cap). |
-| Upcaster chain, unknown type, missing upcaster | `OutboxPayloadSerializerTest` (`outbox-core`) with test events at v1→v2→v3 | Deterministic logic with several failure modes. |
+| Version registration: unknown type, duplicate type, only the next version, upcaster required | `OutboxSchemaRegistryTest` (`outbox-core`) | Invariants that must hold whichever module registers; each mistake must fail at startup. |
+| Upcaster chain, unknown type, stored version outside the known range | `OutboxPayloadSerializerTest` (`outbox-core`) with test events at v1→v2→v3 | Deterministic logic with several failure modes. |
 | Rows persist and filter correctly: due, not processed, not dead-lettered; counters and timestamps written | `MongoOutboxEventStoreTest`, `JpaOutboxEventStoreTest` (Testcontainers) | Null handling and time comparisons in real queries only real databases prove. |
+| Decimal amounts keep their digits and scale through the upcaster path | `OutboxPayloadSerializerTest` with a `BigDecimal` test event | The serializer's own invariant, independent of the host's mapper configuration. |
 | Stored payloads of every version still read | Fixture test in `basket-core` and `catalog-core` | Compatibility is a property of the module's real registration and records. |
 | Dispatchers translate events and wire the processor | `BasketOutboxDispatcherTest`, `CatalogOutboxDispatcherTest` (existing, adapted) | Wiring only; policy is proven once, in `outbox-core`. |
 | Assembled context still routes events into both outboxes | `ApplicationWiringTest` (existing) | Unchanged behaviour; it must stay green. |
@@ -154,13 +188,13 @@ Why this order:
 
 ## Testing rigor
 
-- **Strict red → green:** unreadable-row isolation (3.3), backoff arithmetic (4.1), the retry and dead-letter state machine (4.2), the adapters' `fetchDue` filter (4.3), and the upcaster chain (5.2). This is new control flow or query logic with real regression risk, and a failing test first pins the interface down.
+- **Strict red → green:** unreadable-row isolation (3.3), backoff arithmetic (4.1), the retry and dead-letter state machine (4.2), the adapters' `fetchDue` filter (4.3), the schema registry's validation (5.1), and the upcaster chain (5.2). This is new control flow or query logic with real regression risk, and a failing test first pins the interface down.
 - **Tests alongside:**
   - fake consolidation (increment 1) and the module move (increment 2): no behaviour change, and the existing tests are the safety net, with only their package and import lines changing;
   - the serializer round-trip and the port refactor (3.1–3.2): behaviour-preserving, existing tests are the safety net;
   - dispatcher wiring (4.4);
   - schema-version persistence and fixture capture (5.3).
-- **Refactor steps** (3.1–3.2 and 5.1) follow [refactoring.md](../../processes/refactoring.md). Increments 1 and 2 do not: that process is for production code and forbids touching tests, and both increments necessarily move or change test code.
+- **Refactor steps** (3.1–3.2, and 5.1's `schemaVersion` stamping) follow [refactoring.md](../../processes/refactoring.md). Increments 1 and 2 do not: that process is for production code and forbids touching tests, and both increments necessarily move or change test code.
 
 ## Todo List
 
@@ -230,14 +264,30 @@ No behaviour changes. Only packages, imports and poms change.
 - [x] 4.7. **Live lists:** remove Known Bug 2. Route the Deferred entries below (all of them relate to dead-lettering). Check [README.md](../../../README.md).
 
 ### Increment 5: Schema version and upcasters (closes Known Bug 3)
-- [ ] 5.1. **`OutboxSchemaRegistry`** in `outboxcore`, with a current version per type and upcasters registered per `(type, fromVersion)`. A bean in `OutboxCoreConfig`. `StoredOutboxEvent` gains `schemaVersion`. The serializer stamps the current version on `toStored`.
-- [ ] 5.2. **Red:** `OutboxPayloadSerializerTest`: a test event registered at version 3, with upcasters 1→2 and 2→3, reads a version 1 payload into the current record; a missing upcaster throws a descriptive exception. **Green:** the upcaster loop in `read`.
-- [ ] 5.3. **Adapters persist `schemaVersion`:** Mongo field, `V1__init.sql` column, adapter tests alongside.
+- [x] 5.1. **`OutboxSchemaRegistry`** in `outboxcore`, with `registerEvent`, `registerVersion` and `currentVersionOf` (decision 10), and `OutboxPayloadUpcaster`. A bean in `OutboxCoreConfig`. `StoredOutboxEvent` gains `schemaVersion`. The serializer takes the registry and stamps the current version on `toStored`.
+  - **Red → green, `OutboxSchemaRegistryTest`:**
+    - a registered type is at version 1, and at version 3 after `registerVersion` for 2 and 3;
+    - `currentVersionOf` for an unregistered type is rejected;
+    - `registerEvent` twice for the same type is rejected;
+    - `registerVersion` for an unregistered type is rejected;
+    - `registerVersion` with a version other than the next one (skipped, or repeated) is rejected, naming the expected version;
+    - `registerVersion` with a `null` upcaster is rejected.
+  - **Tests alongside:** the existing `outbox-core` tests register `FakeDomainEvent` at version 1 and build the serializer with the registry, and the "row carries its id, time and type" test also asserts `schemaVersion` is 1.
+
+  Until 5.3, only `outbox-core` compiles and is tested: the adapters and the module tests still use the old constructors.
+- [x] 5.2. **Red:** `OutboxPayloadSerializerTest`, with `FakeDomainEvent` registered at version 3 and upcasters 1→2 and 2→3:
+  - a version 1 payload reads into the current record, through both upcasters in order;
+  - a version 2 payload goes through the 2→3 upcaster only;
+  - a stored version above the current one, or below 1, is rejected with a message naming the type, the stored version and the readable range.
+
+  The original "missing upcaster" test is dropped: decision 10 makes a gap in the chain impossible. **Green:** `upcastersFrom` in `OutboxSchemaRegistry`, and the upcaster loop in `read`. The behaviour seam is reading a row, so the range check is tested through the serializer, not in `OutboxSchemaRegistryTest`.
+- [x] 5.3. **Adapters persist `schemaVersion`:** Mongo field, `V1__init.sql` column, adapter tests alongside.
   - Per-module registration helpers (`BasketOutboxEvents`, and the catalog equivalent) are called from the module configs.
-  - Capture `BasketCheckedOut/v1.json` and `ProductCreated/v1.json`, and add a fixture test in `basket-core` and `catalog-core`.
-- [ ] 5.4. **`./mvnw clean verify`:** green.
-- [ ] 5.5. **Docs:** the compatibility policy in [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md). A worked-example row for the payload fixtures in [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md). Make sure SETUP.md's `down -v` note covers this change too.
-- [ ] 5.6. **Live lists:** remove Known Bug 3. Update [Backlog 1](../../../docs/BACKLOG.md)'s "Realistic order", which names Known Bug 3 as the first step. Check [README.md](../../../README.md).
+  - Capture `BasketCheckedOut/v1.json` and `ProductCreated/v1.json`, and add a fixture test in `basket-core` and `catalog-core` that asserts equality with the captured values.
+  - **Exact decimals (decision 11):** `read` parses with `USE_BIG_DECIMAL_FOR_FLOATS`, and `starter`'s `application.yaml` enables the same feature for the application's mapper. Regression test in `OutboxPayloadSerializerTest`: a `FakePricedDomainEvent` with a `BigDecimal` reads `550.00` and `12345678901234567890.12` back with their exact digits and scale.
+- [x] 5.4. **`./mvnw clean verify`:** green.
+- [x] 5.5. **Docs:** the compatibility policy in [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md). A worked-example row for the payload fixtures in [TESTING_CONVENTIONS.md](../../../docs/TESTING_CONVENTIONS.md). Make sure SETUP.md's `down -v` note covers this change too.
+- [x] 5.6. **Live lists:** remove Known Bug 3. Update [Backlog 1](../../../docs/BACKLOG.md)'s "Realistic order", which names Known Bug 3 as the first step. Check [README.md](../../../README.md).
 
 ## Deferred
 - **Dead-letter metric** (a Micrometer gauge such as `eshop.outbox.dead_lettered{module=…}`, needing a count query on the port). Decided with the user as an improvement → **Backlog**. It must not affect health status.
