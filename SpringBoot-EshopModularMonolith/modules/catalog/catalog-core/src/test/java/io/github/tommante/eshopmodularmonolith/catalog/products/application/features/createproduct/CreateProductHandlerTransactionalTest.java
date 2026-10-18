@@ -1,6 +1,7 @@
 package io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.messaging.CatalogOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.CatalogDatabaseTest;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.JpaProductRepository;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
@@ -8,6 +9,7 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.p
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventEntity;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
@@ -59,9 +61,12 @@ class CreateProductHandlerTransactionalTest extends CatalogDatabaseTest {
 
         @Bean
         DomainEventRegistry domainEventRegistry() {
-            var registry = new DomainEventRegistry();
-            registry.registerDomainEvent("ProductCreated", io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated.class);
-            return registry;
+            return new DomainEventRegistry();
+        }
+
+        @Bean
+        OutboxSchemaRegistry schemaRegistry() {
+            return new OutboxSchemaRegistry();
         }
 
         @Bean
@@ -70,8 +75,9 @@ class CreateProductHandlerTransactionalTest extends CatalogDatabaseTest {
         }
 
         @Bean
-        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, ObjectMapper mapper) {
-            return new OutboxPayloadSerializer(registry, mapper);
+        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, OutboxSchemaRegistry schemaRegistry, ObjectMapper mapper) {
+            CatalogOutboxEvents.registerIn(registry, schemaRegistry);
+            return new OutboxPayloadSerializer(registry, schemaRegistry, mapper);
         }
 
         @Bean

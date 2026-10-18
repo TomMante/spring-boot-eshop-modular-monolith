@@ -145,7 +145,7 @@ docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml d
 
 `-v` discards the volumes, so the next `up` gives you empty databases and a freshly imported realm.
 
-**Do this after pulling a change to `V1__init.sql`.** The catalog schema is edited in place rather than migrated (this is not a production system), so Flyway refuses to start against a database created from the previous version, with a checksum mismatch on `V1`. The outbox's retry and dead-letter columns (2026-10-17) were such a change.
+**Do this after pulling a change to `V1__init.sql`.** The catalog schema is edited in place rather than migrated (this is not a production system), so Flyway refuses to start against a database created from the previous version, with a checksum mismatch on `V1`. The outbox's retry and dead-letter columns (2026-10-17) and its `schema_version` column (2026-10-18) were such changes. A local basket database needs it too: unprocessed outbox documents written before `schemaVersion` existed read as version 0, which the application rejects.
 
 ## API documentation and tooling
 

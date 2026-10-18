@@ -7,6 +7,7 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.m
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxRetryPolicy;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxcore.fake.FakeOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +35,9 @@ class CatalogOutboxDispatcherTest {
         messageBus = new FakeMessageBus();
         outboxEventStore = new FakeOutboxEventStore();
         var registry = new DomainEventRegistry();
-        registry.registerDomainEvent("ProductCreated", ProductCreated.class);
-        serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
+        var schemaRegistry = new OutboxSchemaRegistry();
+        CatalogOutboxEvents.registerIn(registry, schemaRegistry);
+        serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
         dispatcher = new CatalogOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.systemUTC(), messageBus);
     }

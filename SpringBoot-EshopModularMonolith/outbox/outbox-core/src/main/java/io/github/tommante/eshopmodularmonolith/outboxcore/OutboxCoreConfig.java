@@ -11,7 +11,12 @@ import tools.jackson.databind.ObjectMapper;
 public class OutboxCoreConfig {
 
     @Bean
-    OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry domainEventRegistry, ObjectMapper objectMapper) {
-        return new OutboxPayloadSerializer(domainEventRegistry, objectMapper);
+    OutboxSchemaRegistry outboxSchemaRegistry() {
+        return new OutboxSchemaRegistry();
+    }
+
+    @Bean
+    OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry domainEventRegistry, OutboxSchemaRegistry outboxSchemaRegistry, ObjectMapper objectMapper) {
+        return new OutboxPayloadSerializer(domainEventRegistry, outboxSchemaRegistry, objectMapper);
     }
 }

@@ -20,6 +20,8 @@ public class OutboxEventEntity {
     private Instant occurredOn;
     @Column(nullable = false)
     private String eventType;
+    @Column(nullable = false)
+    private int schemaVersion;
     @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
     @Column(nullable = false)
@@ -39,6 +41,7 @@ public class OutboxEventEntity {
         this.eventId = event.eventId();
         this.occurredOn = event.occurredOn();
         this.eventType = event.eventType();
+        this.schemaVersion = event.schemaVersion();
         this.payload = event.payload();
         this.nextAttemptAt = event.occurredOn();
     }
@@ -53,6 +56,10 @@ public class OutboxEventEntity {
 
     public String eventType() {
         return eventType;
+    }
+
+    public int schemaVersion() {
+        return schemaVersion;
     }
 
     public String payload() {
@@ -80,7 +87,7 @@ public class OutboxEventEntity {
     }
 
     public StoredOutboxEvent toStored() {
-        return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
+        return new StoredOutboxEvent(eventId, occurredOn, eventType, schemaVersion, payload);
     }
 
     public DueOutboxEvent toDue() {

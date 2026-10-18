@@ -15,6 +15,7 @@ public class OutboxEventDocument {
     private UUID eventId;
     private Instant occurredOn;
     private String eventType;
+    private int schemaVersion;
     private String payload;
     private int failedAttempts;
     private Instant nextAttemptAt;
@@ -30,6 +31,7 @@ public class OutboxEventDocument {
         this.eventId = event.eventId();
         this.occurredOn = event.occurredOn();
         this.eventType = event.eventType();
+        this.schemaVersion = event.schemaVersion();
         this.payload = event.payload();
         this.nextAttemptAt = event.occurredOn();
     }
@@ -44,6 +46,10 @@ public class OutboxEventDocument {
 
     public String eventType() {
         return eventType;
+    }
+
+    public int schemaVersion() {
+        return schemaVersion;
     }
 
     public String payload() {
@@ -71,7 +77,7 @@ public class OutboxEventDocument {
     }
 
     public StoredOutboxEvent toStored() {
-        return new StoredOutboxEvent(eventId, occurredOn, eventType, payload);
+        return new StoredOutboxEvent(eventId, occurredOn, eventType, schemaVersion, payload);
     }
 
     public DueOutboxEvent toDue() {

@@ -1,10 +1,11 @@
 package io.github.tommante.eshopmodularmonolith.basket;
 
 import com.mongodb.client.MongoClient;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.BasketOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.annotation.PostConstruct;
@@ -29,15 +30,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class BasketModuleConfig {
 
     private final DomainEventRegistry registry;
+    private final OutboxSchemaRegistry schemaRegistry;
 
-    public BasketModuleConfig(DomainEventRegistry registry) {
+    public BasketModuleConfig(DomainEventRegistry registry, OutboxSchemaRegistry schemaRegistry) {
         this.registry = registry;
+        this.schemaRegistry = schemaRegistry;
     }
 
     //Contributor pattern: the module registers the domain events it owns so the outbox can (de)serialize them.
     @PostConstruct
     private void postConstruct() {
-        registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
+        BasketOutboxEvents.registerIn(registry, schemaRegistry);
     }
 
     @Bean("basketMongoDatabaseFactory")

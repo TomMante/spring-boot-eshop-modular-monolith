@@ -1,10 +1,11 @@
 package io.github.tommante.eshopmodularmonolith.catalog;
 
-import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
+import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.messaging.CatalogOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa.ProductDB;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.JpaOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
@@ -38,16 +39,18 @@ import java.util.Map;
 @EnableScheduling
 public class CatalogModuleConfig {
 
-    private DomainEventRegistry registry;
+    private final DomainEventRegistry registry;
+    private final OutboxSchemaRegistry schemaRegistry;
 
-    public CatalogModuleConfig(DomainEventRegistry registry) {
+    public CatalogModuleConfig(DomainEventRegistry registry, OutboxSchemaRegistry schemaRegistry) {
         this.registry = registry;
+        this.schemaRegistry = schemaRegistry;
     }
 
     //Alternative "Contributor pattern". This is simpler in a modular monolith, as it delegates it all to the module config.
     @PostConstruct
-    private void postConstruct(){
-        registry.registerDomainEvent("ProductCreated", ProductCreated.class);
+    private void postConstruct() {
+        CatalogOutboxEvents.registerIn(registry, schemaRegistry);
     }
 
     @Bean

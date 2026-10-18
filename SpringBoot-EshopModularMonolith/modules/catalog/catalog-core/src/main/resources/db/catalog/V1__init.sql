@@ -31,6 +31,7 @@ create table catalog.outbox_events
     event_id         uuid primary key,
     occurred_on      timestamp    not null,
     event_type       varchar(255) not null,
+    schema_version   int          not null,
     payload          text         not null,
     failed_attempts  int          not null default 0,
     next_attempt_at  timestamp    not null,

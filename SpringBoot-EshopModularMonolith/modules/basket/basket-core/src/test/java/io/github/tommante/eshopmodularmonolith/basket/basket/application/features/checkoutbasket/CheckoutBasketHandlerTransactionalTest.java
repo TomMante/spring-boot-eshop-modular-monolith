@@ -8,6 +8,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.ProductService;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.ProductInfo;
+import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.BasketOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.BasketDatabaseTest;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.MongoBasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.SpringMongoBasketRepository;
@@ -15,6 +16,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.pers
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventPublisher;
@@ -73,9 +75,12 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         @Bean
         DomainEventRegistry domainEventRegistry() {
-            var registry = new DomainEventRegistry();
-            registry.registerDomainEvent("BasketCheckedOut", BasketCheckedOut.class);
-            return registry;
+            return new DomainEventRegistry();
+        }
+
+        @Bean
+        OutboxSchemaRegistry schemaRegistry() {
+            return new OutboxSchemaRegistry();
         }
 
         @Bean
@@ -84,8 +89,9 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         }
 
         @Bean
-        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, ObjectMapper mapper) {
-            return new OutboxPayloadSerializer(registry, mapper);
+        OutboxPayloadSerializer outboxPayloadSerializer(DomainEventRegistry registry, OutboxSchemaRegistry schemaRegistry, ObjectMapper mapper) {
+            BasketOutboxEvents.registerIn(registry, schemaRegistry);
+            return new OutboxPayloadSerializer(registry, schemaRegistry, mapper);
         }
 
         @Bean

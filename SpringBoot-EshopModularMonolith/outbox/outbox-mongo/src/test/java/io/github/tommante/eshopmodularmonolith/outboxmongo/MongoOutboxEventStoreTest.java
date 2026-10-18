@@ -66,7 +66,7 @@ class MongoOutboxEventStoreTest {
     }
 
     private static StoredOutboxEvent rowOccurredAt(Instant occurredOn) {
-        return new StoredOutboxEvent(UUID.randomUUID(), occurredOn, "AnyType", "{\"any\":\"payload\"}");
+        return new StoredOutboxEvent(UUID.randomUUID(), occurredOn, "AnyType", 1, "{\"any\":\"payload\"}");
     }
 
     @Test

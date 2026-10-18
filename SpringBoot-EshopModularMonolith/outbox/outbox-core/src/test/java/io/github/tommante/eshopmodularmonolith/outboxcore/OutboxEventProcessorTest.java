@@ -34,7 +34,9 @@ class OutboxEventProcessorTest {
     void setUp() {
         registry = new DomainEventRegistry();
         registry.registerDomainEvent("FakeDomainEvent", FakeDomainEvent.class);
-        serializer = new OutboxPayloadSerializer(registry, new ObjectMapper());
+        var schemaRegistry = new OutboxSchemaRegistry();
+        schemaRegistry.registerEvent("FakeDomainEvent");
+        serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         outboxEventStore = new FakeOutboxEventStore();
         var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
         outboxEventProcessor = new OutboxEventProcessor(outboxEventStore, serializer, retryPolicy, Clock.fixed(NOW, ZoneOffset.UTC));
@@ -69,7 +71,7 @@ class OutboxEventProcessorTest {
     @DisplayName("Given an unreadable row saved before a valid one, when dispatching pending events, then the valid one is still published")
     void givenUnreadableRowBeforeValidOne_whenDispatchingPendingEvents_thenValidOneIsStillPublished() {
         var unreadableRow = new StoredOutboxEvent(UUID.randomUUID(), NOW, "FakeDomainEvent",
-                "{\"eventId\":\"not-a-uuid\",\"information\":[]}");
+                1, "{\"eventId\":\"not-a-uuid\",\"information\":[]}");
         var validEvent = new FakeDomainEvent(UUID.randomUUID(), NOW, List.of("a"));
         outboxEventStore.save(unreadableRow);
         outboxEventStore.save(serializer.toStored(validEvent));

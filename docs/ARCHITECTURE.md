@@ -260,7 +260,7 @@ The outbox lives under `outbox/`, separate from `shared`, because it's an option
 
 | Module | Package | Contains | Depends on |
 |---|---|---|---|
-| `outbox-core` | `outboxcore` | The `OutboxEventStore` port with its row type `StoredOutboxEvent` and its read view `DueOutboxEvent`, `OutboxPayloadSerializer`, `OutboxEventProcessor`, `OutboxRetryPolicy`, `OutboxEventSubscriber`, `OutboxEventPublisher`, and `OutboxCoreConfig` (declares the serializer bean and binds `OutboxRetryPolicy` from `eshop.outbox.retry.*`). Test-jar: `outboxcore.fake.FakeOutboxEventStore` and `outboxcore.fake.FakeDomainEvent`. | `shared`, Jackson |
+| `outbox-core` | `outboxcore` | The `OutboxEventStore` port with its row type `StoredOutboxEvent` and its read view `DueOutboxEvent`, `OutboxPayloadSerializer`, `OutboxSchemaRegistry` and `OutboxPayloadUpcaster`, `OutboxEventProcessor`, `OutboxRetryPolicy`, `OutboxEventSubscriber`, `OutboxEventPublisher`, and `OutboxCoreConfig` (declares the schema registry and serializer beans and binds `OutboxRetryPolicy` from `eshop.outbox.retry.*`). Test-jar: `outboxcore.fake.FakeOutboxEventStore`, `outboxcore.fake.FakeDomainEvent` and `outboxcore.fake.FakePricedDomainEvent`. | `shared`, Jackson |
 | `outbox-jpa` | `outboxjpa` | JPA adapter for the port (used by Catalog) | `outbox-core` |
 | `outbox-mongo` | `outboxmongo` | MongoDB adapter for the port (used by Basket) | `outbox-core` |
 
@@ -270,16 +270,17 @@ The adapters depend only on `outbox-core`: they never look inside a payload, so 
 
 | Component | Responsibility | Knows about |
 |---|---|---|
-| **Serializer** (`OutboxPayloadSerializer`) | Translation: `DomainEvent` ↔ `StoredOutboxEvent`. Fails when a row can't be translated: an unregistered type surfaces as the registry's `IllegalArgumentException`, a payload that doesn't fit its class as an `IllegalStateException` with Jackson's exception as the cause. | `DomainEventRegistry`, Jackson. Not storage, not policy. |
+| **Serializer** (`OutboxPayloadSerializer`) | Translation: `DomainEvent` ↔ `StoredOutboxEvent`. Stamps the type's current schema version on write; on read, runs the payload through the upcasters from the stored version to the current one (see *Payload versioning* below). Fails when a row can't be translated: an unregistered type or a stored version it can't read surfaces as the registry's `IllegalArgumentException`, a payload that doesn't fit its class (or an upcaster that throws) as an `IllegalStateException` with the original exception as the cause. | `DomainEventRegistry`, `OutboxSchemaRegistry`, Jackson. Not storage, not policy. |
+| Schema registry (`OutboxSchemaRegistry`) | Versions: each event type's current schema version and the upcasters that lead to it. Registration mistakes fail at startup. | Upcasters. Not Jackson's mapping, not storage. |
 | **Store** (`OutboxEventStore`, implemented by the JPA and Mongo adapters) | Persistence: save rows, return the rows that are due, record a failed attempt, mark a row processed or dead-lettered. Owns the attempt count. Never interprets the payload. | Its database. Not event types, not Jackson, not the retry rules. |
 | **Processor** (`OutboxEventProcessor`) | Policy: for each due row, read it, publish it, mark it processed. A failure at any of those steps (including reading) is caught per row, so it costs only that row: it is retried after a backoff, or dead-lettered once its attempts are exhausted (see *Retry and dead-letter* below). | Serializer, store, publisher, retry policy, `Clock`. The only place where decisions are made. |
 | Retry policy (`OutboxRetryPolicy`) | Arithmetic: when the next attempt is due after the *n*th failure, and whether *n* failures exhaust the event. Bound from configuration. | Nothing else: a pure calculation. |
 | Subscriber (`OutboxEventSubscriber`) | Write entry point: domain event → serializer → store, inside the module's transaction (`BEFORE_COMMIT`). | Serializer, store. |
 | Publisher (`OutboxEventPublisher`) | Exit point: what to do with each event read back. Each module's dispatcher implements it by translating to an integration event and handing it to `MessageBus`. | Implemented per module. |
 
-**Why the port speaks rows (`StoredOutboxEvent`), not `DomainEvent`s.** An adapter could return domain events and still isolate failures by catching per row. But then each adapter would decide what happens to a row it can't read, and that policy would be written twice, once per database, and drift the way three copies of the test fake once did. With rows on the port, the store only persists, translation sits once in the serializer, and policy sits once in the processor. Each changes for one reason: a new database touches only a store, a payload schema change only the serializer, a retry rule only the processor. It also keeps the adapter tests about persistence alone (any type and payload string will do), and lets every policy case run against the fake store without containers. The port does speak a storage shape (`payload` as a `String`); that is deliberate, since the outbox *is* the store of serialized events. Domain events still enter and leave the outbox as `DomainEvent`.
+**Why the port speaks rows (`StoredOutboxEvent`), not `DomainEvent`s.** An adapter could return domain events and still isolate failures by catching per row. But then each adapter would decide what happens to a row it can't read, and that policy would be written twice, once per database, and drift the way three copies of the test fake once did. With rows on the port, the store only persists, translation sits once in the serializer, and policy sits once in the processor. Each changes for one reason: a new database touches only a store, a payload schema change only the owning module's registration and upcasters, a retry rule only the processor. It also keeps the adapter tests about persistence alone (any type and payload string will do), and lets every policy case run against the fake store without containers. The port does speak a storage shape (`payload` as a `String`); that is deliberate, since the outbox *is* the store of serialized events. Domain events still enter and leave the outbox as `DomainEvent`.
 
-**What the row carries is what the serializer writes; delivery state stays in storage.** `StoredOutboxEvent` is identity, type and payload, written once, and it is all `save` accepts. `fetchDue` returns `DueOutboxEvent(event, failedAttempts)`, a read view rather than a persisted type: the attempt count is the only delivery state the processor needs. `nextAttemptAt`, `lastError`, `deadLetteredOn` and `processedOn` are storage-only columns of the one entity or document per row, written by the adapters and checked in their tests by reading the entity or document directly. So `save` cannot receive delivery state, the serializer never invents any, and state the store owns grows in read views without touching the row.
+**What the row carries is what the serializer writes; delivery state stays in storage.** `StoredOutboxEvent` is identity, type, schema version and payload, written once, and it is all `save` accepts. `fetchDue` returns `DueOutboxEvent(event, failedAttempts)`, a read view rather than a persisted type: the attempt count is the only delivery state the processor needs. `nextAttemptAt`, `lastError`, `deadLetteredOn` and `processedOn` are storage-only columns of the one entity or document per row, written by the adapters and checked in their tests by reading the entity or document directly. So `save` cannot receive delivery state, the serializer never invents any, and state the store owns grows in read views without touching the row.
 
 ### Retry and dead-letter
 
@@ -319,6 +320,32 @@ where event_id = '<event id>';
 - **`outbox/pom.xml` is an aggregator only.** It lists the three modules; each of them keeps the root pom as its `<parent>`, because no configuration is shared at group level.
 - **`OutboxEventPublisher` isn't an integration-event publisher.** It receives a *domain* event; translating it into an integration event and handing it to `MessageBus` is the dispatcher's job. If it throws, the event stays pending and is retried after a backoff, until it is dead-lettered.
 - **`DomainEventRegistry` stays in `shared.domain`.** The outbox uses it to deserialize payloads, but it registers domain events, which isn't an outbox concern.
+
+### Payload versioning
+
+A domain event's JSON is stored in the outbox and read later, possibly by a newer version of the application. So a change to an event's shape is a change to data already at rest. Every row carries the `schemaVersion` it was written with, and the compatibility policy is:
+
+> Every change to a persisted domain event's JSON shape bumps its schema version, registers an upcaster from the previous version, and adds a fixture for the new version. Existing fixtures are never edited.
+
+**Registration.** Each module registers the events it owns in one static helper, `BasketOutboxEvents.registerIn(DomainEventRegistry, OutboxSchemaRegistry)` and `CatalogOutboxEvents.registerIn(…)`, called from the module config's `@PostConstruct` and from the module's tests, so tests register exactly what production does. A type starts at version 1, and each later version is one line that states its number:
+```java
+schemaRegistry.registerEvent("BasketCheckedOut");                                    // version 1
+schemaRegistry.registerVersion("BasketCheckedOut", 2, new BasketCheckedOutV1ToV2());  // future
+```
+`registerVersion` accepts only the current version + 1, and only with an upcaster (`OutboxPayloadUpcaster`: `ObjectNode upcast(ObjectNode payload)`, from the previous version to this one). So a gap, a duplicate, an overwritten version or a version without its upcaster fails at startup, in the call that made the mistake. A missing upcaster is a `NullPointerException`; every other mistake is an `IllegalArgumentException` that says what to call instead. Storing or reading a type that was never registered fails the same way, so an event can't reach the outbox unversioned. Every event is at version 1 today; the first real upcaster is expected with Backlog 8.
+
+**Reading.** The serializer parses the payload into a tree, applies the upcasters from the stored version up to the current one in order, then maps the tree onto the registered class. A stored version below 1 or above the current one is rejected. The case that matters is a rollback: a row written by a newer deployment fails on every attempt, so it is dead-lettered after about 10 minutes like any other failure, and is replayed by hand (above) once a version that knows it is deployed again.
+
+**Decimal amounts stay exact.** By default Jackson holds decimals in a tree as `double`, which would turn `550.00` into `550.0` and drop digits a `double` can't hold. So the serializer parses with `DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS`, which keeps that guarantee inside `outbox-core` whatever mapper it is given, and `starter`'s `application.yaml` enables the same feature for the application's mapper (`spring.jackson.deserialization.use-big-decimal-for-floats`). Typed `BigDecimal` fields were already exact; the setting covers untyped reads. Clients that parse JSON numbers as `double` are a separate, open question ([Backlog 18](BACKLOG.md)).
+
+**Fixtures.** Each module keeps one captured payload per event version under `src/test/resources/outbox-payloads/<EventType>/v<N>.json`, taken once from a payload the running application wrote. A fixture test per module (`BasketOutboxPayloadFixturesTest`, `CatalogOutboxPayloadFixturesTest`) reads each fixture through a real serializer built with the module's `registerIn`, and asserts that the result **equals** the record built from the captured values. Equality, not a type check, because the likeliest breaking change is silent: a field added to the record without an upcaster reads as `null` from an old payload, and Jackson doesn't fail.
+
+**Changing an event's shape**, in order:
+1. Write the upcaster from the current version to the next, and register the new version in the module's `registerIn`.
+2. Run the fixture tests: the old fixtures must still read into the new record. Update the expected records in the test, never the fixture files.
+3. Capture a fixture for the new version from the running application, and add a test for it.
+
+No database migration or `down -v` is needed: rows written before the change are upcast when they are read.
 
 ---
 
