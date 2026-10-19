@@ -1,5 +1,7 @@
 # Checkout Price on Order
 
+Approved by the user on 2026-10-19.
+
 ## Status
 - [ ] Step 1 — Checked-out lines carry the checkout price, from `BasketCheckedOut` through to the order's lines
 - [ ] Step 2 — `Order` derives its total from its lines, and the read model returns it
