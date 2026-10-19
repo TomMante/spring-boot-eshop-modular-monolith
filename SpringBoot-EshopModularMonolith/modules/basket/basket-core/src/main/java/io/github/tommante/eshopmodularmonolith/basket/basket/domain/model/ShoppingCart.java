@@ -8,6 +8,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects
 import io.github.tommante.eshopmodularmonolith.shared.domain.AggregateRoot;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +65,7 @@ public class ShoppingCart extends AggregateRoot<String> {
         items.removeIf(item -> item.productId().equals(productId));
     }
 
-    public void checkout(Map<UUID, BigDecimal> currentPrices, Address billingAddress, Payment payment, Address shippingAddress) {
+    public void checkout(Map<UUID, BigDecimal> currentPrices, Instant checkedOutAt, Address billingAddress, Payment payment, Address shippingAddress) {
         if (items.isEmpty()) {
             throw new EmptyCartCheckout();
         }
@@ -77,7 +78,7 @@ public class ShoppingCart extends AggregateRoot<String> {
                     return currentPrice.multiply(BigDecimal.valueOf(i.quantity()));
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        var event = new BasketCheckedOut(userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
+        var event = new BasketCheckedOut(checkedOutAt, userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
     }
 }

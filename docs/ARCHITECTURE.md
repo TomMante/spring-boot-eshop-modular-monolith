@@ -95,7 +95,7 @@ decision belong past it.
 | Shipping defaults to billing when absent | `ShoppingCart.checkout` | Pure function of its arguments |
 | Loading the cart / `BasketNotFound` | handler | Repository lookup |
 | Deleting the basket after checkout | handler | A lifecycle decision *about* the aggregate, not *by* it |
-| `placedAt` on an order | handler holds the `Clock`, `Order.placeFromCheckout` receives the `Instant` | An aggregate must not read ambient time |
+| `placedAt` on an order, `occurredOn` on a domain event | handler holds the `Clock`, the aggregate (`Order.placeFromCheckout`, `ShoppingCart.checkout`, `Product.create`) receives the `Instant` | An aggregate must not read ambient time |
 
 That last row is the pattern at its purest: the handler owns the *dependency*, the
 aggregate owns the *fact*.
@@ -295,7 +295,7 @@ A row that fails (unreadable, publish throws, or marking it processed throws) is
 With the defaults the delays are 5 s, 10 s, 20 s, 40 s, 80 s, 160 s and 300 s, so a row is dead-lettered on its 8th failure, about 10 minutes after the first. That is long enough to ride out a consumer's database being briefly down, and short enough that a payload that can never be read stops retrying. The defaults live once, in `@DefaultValue` on the record; invalid values (`max-attempts` below 1, a non-positive delay, an initial delay longer than the cap) fail at startup with a message naming the property.
 
 - **Each retry logs a WARN** with the attempt number and the next attempt time. **Dead-lettering logs an ERROR**, and the row keeps its last error in storage. A dead-lettered row is never fetched again until it is requeued by hand (below).
-- **Time comes from the application's single `Clock`**, declared in `starter` and injected into both dispatchers (and `ordering`'s `CreateOrderHandler`). The adapters never call `Instant.now()`; every timestamp they write is one the processor passes in. Tests fix the clock instead of sleeping.
+- **Time comes from the application's single `Clock`**, declared in `starter` and injected into both dispatchers and into the handlers that create aggregates or raise events (`CreateOrderHandler`, `CheckoutBasketHandler`, `CreateProductHandler`). A row's first due time is its event's `occurredOn`, so it comes from the same clock. The adapters never call `Instant.now()`; every timestamp they write is one the processor passes in. Tests fix the clock instead of sleeping.
 - **Both adapters update only the fields they name, and count in the database.** Mongo uses `updateFirst` with `$inc`/`$set`; JPA uses `@Modifying` update queries (`set e.failedAttempts = e.failedAttempts + 1, …`), each `@Transactional` because nothing around them opens a transaction. Neither reads the row first, so a concurrent write to another field is not overwritten and no increment is lost. With one scheduler per module that is cheap insurance rather than a present need. An update that matches no row fails with `IllegalStateException("Unknown outbox event: …")` in both.
 - **A failure while recording the failure is not caught.** If the store itself is down, the exception ends that dispatch run; the row is unchanged and the next poll tries again.
 

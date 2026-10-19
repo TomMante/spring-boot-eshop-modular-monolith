@@ -24,18 +24,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Accepted on 2026-09-16** in [order-endpoints-scoped-to-customer](../ai-coding-tools/plans/order-endpoints-scoped-to-customer/order-endpoints-scoped-to-customer.md), which scoped delete to the caller's own orders but kept it a hard delete rather than widening that increment.
 - **Action Required:** Replace the hard delete with a state change — a cancelled or deleted state on `Order` that the read queries exclude — so the document and its index entry survive. That adds state to the aggregate and the first update path to `OrderRepository`. Note that `MongoOrderRepository.save` replaces the stored document wholesale, so the update path needs its own method that sets only the fields the domain owns.
 
-### 14. Domain Events Read Ambient Time
-- **Locations:** the constructors of `BasketCheckedOut` and `ProductCreated` (`Instant.now()` for `occurredOn`)
-- **Issue:** [ARCHITECTURE.md](ARCHITECTURE.md) says an aggregate must not read ambient time, and `Order.placeFromCheckout` follows it by receiving an `Instant` from a handler that holds the application `Clock`. The domain events don't: they stamp `occurredOn` from the system clock. Found on 2026-10-17, in [outbox-dead-letter-and-payload-compatibility](../ai-coding-tools/plans/outbox-dead-letter-and-payload-compatibility/outbox-dead-letter-and-payload-compatibility.md) increment 4, when a dispatcher test using a millisecond-tick clock could miss an event stamped a few microseconds later in the same millisecond.
-- **Impact:** small. A row's first due time is its `occurredOn`, so an event created in the same millisecond as a poll waits one more poll (5 seconds). Tests can't fix the time an event occurred, which is why the dispatcher tests use `Clock.systemUTC()`.
-- **Action Required:** have whoever raises the event pass the `Instant`, from the application `Clock`, as `CreateOrderHandler` already does for `placedAt`.
-
-### 15. `DomainEventRegistry` Bean Depends on Configuration Order
-- **Location:** `SharedModuleConfig.domainEventRegistry()`, annotated `@ConditionalOnMissingBean`
-- **Issue:** `@ConditionalOnMissingBean` is only reliable on auto-configuration classes. On an ordinary `@Configuration` it is evaluated in whatever order Spring processes the configurations, so if any other `DomainEventRegistry` bean were ever declared, whether this one exists would depend on that order. The same pattern on `ordering`'s `orderClock` was removed on 2026-10-17 for exactly this reason, when a second `Clock` bean was about to appear.
-- **Impact:** none today, since nothing else declares a `DomainEventRegistry`. It is a latent trap, not a live defect.
-- **Action Required:** drop the annotation, or move the bean into a real auto-configuration if overriding it is ever wanted.
-
 ## 🧪 Testing Considerations & Gaps
 
 ### 6. Transactional Semantics of Order Creation Are Unverified

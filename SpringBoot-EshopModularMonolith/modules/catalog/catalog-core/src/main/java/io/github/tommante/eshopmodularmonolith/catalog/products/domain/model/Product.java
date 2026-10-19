@@ -5,6 +5,7 @@ import io.github.tommante.eshopmodularmonolith.shared.domain.AggregateRoot;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,9 +57,9 @@ public class Product extends AggregateRoot<UUID> {
 
 
     //FIXME id should probably be created within the create method and not passed
-    public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price) {
+    public static Product create(UUID id, String name, List<String> categories, String description, String imageFile, BigDecimal price, Instant createdAt) {
         var product = new Product(id, name, categories, description, imageFile, price);
-        product.addDomainEvent(new ProductCreated(product.id));
+        product.addDomainEvent(new ProductCreated(product.id, createdAt));
         return product;
     }
 

@@ -23,12 +23,15 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BasketOutboxDispatcherTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
 
     private OutboxEventStore outboxEventStore;
     private FakeMessageBus messageBus;
@@ -44,7 +47,7 @@ class BasketOutboxDispatcherTest {
         BasketOutboxEvents.registerIn(registry, schemaRegistry);
         serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
-        dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.systemUTC(), messageBus);
+        dispatcher = new BasketOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.fixed(NOW, ZoneOffset.UTC), messageBus);
     }
 
     @Test
@@ -54,7 +57,7 @@ class BasketOutboxDispatcherTest {
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();
-        var domainEvent = new BasketCheckedOut("john", List.of(item), new BigDecimal("19.98"), billingAddress, payment, shippingAddress);
+        var domainEvent = new BasketCheckedOut(NOW, "john", List.of(item), new BigDecimal("19.98"), billingAddress, payment, shippingAddress);
         outboxEventStore.save(serializer.toStored(domainEvent));
 
         assertThat(outboxEventStore.fetchDue(Instant.MAX)).isNotEmpty();

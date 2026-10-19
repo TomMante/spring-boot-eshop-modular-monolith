@@ -22,6 +22,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ class JpaProductRepositoryTest extends CatalogDatabaseTest {
     @Test
     @DisplayName("Given product with attached domain event, when saving, then domain events are dispatched")
     void givenProductWithAttachedDomainEvent_whenSaving_thenDomainEventsAreDispatched(){
-        var product = Product.create(UUID.randomUUID(), "Galaxy", List.of("phone", "communication"), "nice one", "galaxy.png", BigDecimal.valueOf(560));
+        var product = Product.create(UUID.randomUUID(), "Galaxy", List.of("phone", "communication"), "nice one", "galaxy.png", BigDecimal.valueOf(560), Instant.parse("2026-01-01T10:00:00Z"));
         var events = new ArrayList<>(product.domainEvents());
         repository.save(product);
 

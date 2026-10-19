@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct;
 
+import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
 import io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.fake.FakeProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,12 +8,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class CreateProductHandlerTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
 
 
     private ProductRepository repository;
@@ -21,7 +27,7 @@ class CreateProductHandlerTest {
     @BeforeEach
     void setUp() {
         repository = new FakeProductRepository();
-        handler = new CreateProductHandler(repository);
+        handler = new CreateProductHandler(repository, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -48,6 +54,9 @@ class CreateProductHandlerTest {
         assertThat(product.description()).isEqualTo(createProduct.description());
         assertThat(product.imageFile()).isEqualTo(createProduct.imageFile());
         assertThat(product.price()).isEqualTo(createProduct.price());
+        assertThat(product.domainEvents())
+                .singleElement()
+                .isInstanceOfSatisfying(ProductCreated.class, event -> assertThat(event.occurredOn()).isEqualTo(NOW));
     }
 
     @Test
