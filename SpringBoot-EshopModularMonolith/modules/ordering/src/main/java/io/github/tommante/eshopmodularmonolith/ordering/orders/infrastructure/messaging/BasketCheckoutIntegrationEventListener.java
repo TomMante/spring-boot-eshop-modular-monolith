@@ -1,9 +1,9 @@
 package io.github.tommante.eshopmodularmonolith.ordering.orders.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderCommand;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Item;
@@ -38,8 +38,8 @@ public class BasketCheckoutIntegrationEventListener {
     }
 
 
-    private Item toDomain(ItemDTO item){
-        return new Item(item.id(), item.productId(), item.quantity(), item.priceWhenAdded());
+    private Item toDomain(CheckedOutItemDTO item){
+        return new Item(item.id(), item.productId(), item.quantity(), item.price());
     }
 
     private Address toDomain(AddressDTO address){

@@ -5,6 +5,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMothe
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
@@ -61,7 +62,8 @@ class CheckoutBasketHandlerTest {
     @DisplayName("Given existing cart, when checkout command is received, then cart is checked out")
     void givenExistingCart_whenCheckoutCommandIsReceived_thenCartIsCheckedOut() {
         var addedPrice = BigDecimal.valueOf(400);
-        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name()))).build();
+        var cartItem = new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name());
+        var existingCart = ShoppingCartMother.create().withItems(List.of(cartItem)).build();
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
@@ -76,7 +78,7 @@ class CheckoutBasketHandlerTest {
                 .satisfies(e -> {
                             var event = (BasketCheckedOut) e;
                             assertThat(event.userName()).isEqualTo(existingCart.userName());
-                            assertThat(event.items()).isEqualTo(existingCart.items());
+                            assertThat(event.items()).containsExactly(new CheckedOutItem(cartItem.id(), product.id(), 1, product.price(), product.name()));
                             assertThat(event.totalPrice()).isEqualTo(product.price());
                             assertThat(event.eventId()).isNotNull();
                             assertThat(event.occurredOn()).isEqualTo(NOW);
@@ -94,7 +96,8 @@ class CheckoutBasketHandlerTest {
     @DisplayName("Given existing cart, when checkout command is received without shipping address, then cart is checked out with shipping address as billing address")
     void givenExistingCart_whenCheckoutCommandIsReceivedWithoutShippingAddress_thenCartIsCheckedOutWithShippingAddressAsBillingAddress() {
         var addedPrice = BigDecimal.valueOf(400);
-        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name()))).build();
+        var cartItem = new Item(UUID.randomUUID(), product.id(), 1, addedPrice, product.name());
+        var existingCart = ShoppingCartMother.create().withItems(List.of(cartItem)).build();
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
         var payment = PaymentMother.payment();
@@ -108,7 +111,7 @@ class CheckoutBasketHandlerTest {
                 .satisfies(e -> {
                             var event = (BasketCheckedOut) e;
                             assertThat(event.userName()).isEqualTo(existingCart.userName());
-                            assertThat(event.items()).isEqualTo(existingCart.items());
+                            assertThat(event.items()).containsExactly(new CheckedOutItem(cartItem.id(), product.id(), 1, product.price(), product.name()));
                             assertThat(event.totalPrice()).isEqualTo(product.price());
                             assertThat(event.eventId()).isNotNull();
                             assertThat(event.occurredOn()).isEqualTo(NOW);

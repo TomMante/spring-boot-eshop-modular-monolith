@@ -29,7 +29,7 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 ### 6. Transactional Semantics of Order Creation Are Unverified
 - **Locations:** `CreateOrderHandler`, `BasketCheckoutIntegrationEventListener`
 - **Issue:** `CreateOrderHandler` carries no `@Transactional`, and its only entry point is the integration-event listener, which runs on the outbox dispatcher's scheduler thread (the HTTP entry point, `POST /order`, was removed on 2026-09-15). One aggregate and one save, so this is very likely harmless today, and nothing proves it or would notice if a second write joined the handler.
-- **Improvement:** Recorded so it is not rediscovered as a surprise rather than because a test is owed right now. It becomes a real gap the moment order creation writes more than once, which Backlog item 1 (`totalPrice`) and item 5 (`OrderCreated` outbox) both approach.
+- **Improvement:** Recorded so it is not rediscovered as a surprise rather than because a test is owed right now. It becomes a real gap the moment order creation writes more than once, which Backlog item 5 (`OrderCreated` outbox) approaches. The order total added on 2026-10-19 is a field of the same document, so it did not.
 
 ### 7. Slice Test Configs Can Still Drift From Production
 - **Locations:** every `@DataJpaTest`/`@DataMongoTest`-based test's local `@Configuration`, versus the module configs in `main`

@@ -23,7 +23,9 @@ work on something as a request to implement it.
 - To hand a piece of implementation over, I will say so explicitly. Treat it
   as scoped to that piece, not as a new default. Choosing auto-implementation
   at the start of the [quick-fix.md](quick-fix.md) workflow counts as that
-  handover, for that one fix.
+  handover, for that one fix; choosing *Guided implementation* in
+  [feature-workflow.md](feature-workflow.md) counts as it for that one
+  increment.
 - If a task looks like it requires you to change source or build files, ask
   with ❓ instead of assuming.
 

@@ -1,9 +1,9 @@
 package io.github.tommante.eshopmodularmonolith.ordering.orders.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.AddressMother;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
@@ -71,7 +71,7 @@ class BasketCheckoutIntegrationEventListenerTest {
     }
 
     private BasketCheckoutIntegrationEvent checkoutEvent(UUID eventId, String userName) {
-        var item = new ItemDTO(UUID.randomUUID(), UUID.randomUUID(), 2, BigDecimal.valueOf(12.50), "Boba");
+        var item = new CheckedOutItemDTO(UUID.randomUUID(), UUID.randomUUID(), 2, BigDecimal.valueOf(12.50), "Boba");
         return new BasketCheckoutIntegrationEvent(eventId, userName, List.of(item), BigDecimal.valueOf(25.00),
                 toDto(AddressMother.address()), toDto(PaymentMother.payment()), toDto(AddressMother.address("Midgard")));
     }
@@ -81,7 +81,7 @@ class BasketCheckoutIntegrationEventListenerTest {
     void givenBasketCheckoutIntegrationEvent_whenPublished_thenOrderIsCreated() {
         var itemId = UUID.randomUUID();
         var productId = UUID.randomUUID();
-        var item = new ItemDTO(itemId, productId, 2, BigDecimal.valueOf(12.50), "Boba");
+        var item = new CheckedOutItemDTO(itemId, productId, 2, BigDecimal.valueOf(12.50), "Boba");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();

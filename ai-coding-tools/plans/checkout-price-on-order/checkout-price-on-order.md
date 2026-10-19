@@ -3,9 +3,9 @@
 Approved by the user on 2026-10-19.
 
 ## Status
-- [ ] Step 1 — Checked-out lines carry the checkout price, from `BasketCheckedOut` through to the order's lines
-- [ ] Step 2 — `Order` derives its total from its lines, and the read model returns it
-- [ ] Step 3 — Fixture recaptured, docs and live lists updated
+- [x] Step 1 — Checked-out lines carry the checkout price, from `BasketCheckedOut` through to the order's lines. Full suite green.
+- [x] Step 2 — `Order` derives its total from its lines, and the read model returns it. Full suite green.
+- [x] Step 3 — Fixture recaptured, docs and live lists updated. Full suite green.
 
 ## Context
 
@@ -55,44 +55,44 @@ Checkout already prices the cart at the current catalog price: `ShoppingCart.che
 
 ### 1. Checked-out lines carry the checkout price, through to the order
 Red first, with only what the new test needs to compile:
-- [ ] Add `CheckedOutItem` in `basket.domain.events` and `CheckedOutItemDTO` in `basket.contract.integrationevents`. Change `BasketCheckedOut.items` to `List<CheckedOutItem>` and `BasketCheckoutIntegrationEvent.items` to `List<CheckedOutItemDTO>`.
-- [ ] Map them through: `BasketOutboxDispatcher` (`CheckedOutItem` → `CheckedOutItemDTO`), and `BasketCheckoutIntegrationEventListener.toDomain` (order item `price` ← `CheckedOutItemDTO.price`).
-- [ ] In `ShoppingCart.checkout`, build the lines with `item.priceWhenAdded()` for now: compiles, and is the bug being fixed.
+- [x] Add `CheckedOutItem` in `basket.domain.events` and `CheckedOutItemDTO` in `basket.contract.integrationevents`. Change `BasketCheckedOut.items` to `List<CheckedOutItem>` and `BasketCheckoutIntegrationEvent.items` to `List<CheckedOutItemDTO>`.
+- [x] Map them through: `BasketOutboxDispatcher` (`CheckedOutItem` → `CheckedOutItemDTO`), and `BasketCheckoutIntegrationEventListener.toDomain` (order item `price` ← `CheckedOutItemDTO.price`).
+- [x] In `ShoppingCart.checkout`, build the lines with `item.priceWhenAdded()` for now: compiles, and is the bug being fixed.
 
 Red:
-- [ ] `ShoppingCartTest`: a cart with two items added at one price and checked out at others (different quantities, so a per-line mistake can't hide) → the event's lines `containsExactly` `CheckedOutItem`s carrying the checkout price. Fails on the price.
-- [ ] `ShoppingCartTest`, separate test: for the duplicate-product cart, `Σ(price × quantity)` over the event's lines `isEqualByComparingTo` `totalPrice`. This is the invariant Backlog 8 is about; it fails today too.
+- [x] `ShoppingCartTest`: a cart with two items added at one price and checked out at others (different quantities, so a per-line mistake can't hide) → the event's lines `containsExactly` `CheckedOutItem`s carrying the checkout price. Fails on the price.
+- [x] `ShoppingCartTest`, separate test: for the duplicate-product cart, `Σ(price × quantity)` over the event's lines `isEqualByComparingTo` `totalPrice`. This is the invariant Backlog 8 is about; it fails today too.
 
 Green and refactor:
-- [ ] `ShoppingCart.checkout` prices each line from `currentPrices` (a `priceAtCheckout(Item, Map)` helper keeps the `UnpriceableCartItem` check one level deep), collects them with `.toList()`, and sums the lines for the total. The `.toList()` also stops the event sharing the cart's live, mutable `items` list.
-- [ ] Refactor: leave the line total inline in `checkout`. A `CheckedOutItem.lineTotal()` would be one more accessor to check in the serialized outbox payload.
+- [x] `ShoppingCart.checkout` prices each line from `currentPrices` (a `priceAtCheckout(Item, Map)` helper keeps the `UnpriceableCartItem` check one level deep), collects them with `.toList()`, and sums the lines for the total. The `.toList()` also stops the event sharing the cart's live, mutable `items` list.
+- [x] Refactor: leave the line total inline in `checkout`. A `CheckedOutItem.lineTotal()` would be one more accessor to check in the serialized outbox payload.
 
 Alongside:
-- [ ] `CheckoutBasketHandlerTest` (both checkout tests): pull the cart `Item` into a variable and expect `containsExactly(new CheckedOutItem(cartItem.id(), product.id(), 1, product.price(), product.name()))`. This proves at the handler seam that the catalog price (783), not the add-time price (400), reaches the line.
-- [ ] `BasketOutboxDispatcherTest`: build the event with a `CheckedOutItem`, expect a `CheckedOutItemDTO`.
-- [ ] `BasketCheckoutIntegrationEventListenerTest` and ordering's test `DTOMapper`: send `CheckedOutItemDTO`s; assert the placed order's item `price` is the line's `price`.
-- [ ] `BasketOutboxPayloadFixturesTest`: expect a `CheckedOutItem`. Edit `v1.json` by hand for now (`priceWhenAdded` → `price`) so the suite stays green; it is recaptured in Step 3.
-- [ ] `./mvnw clean verify` green (the contract change crosses modules).
+- [x] `CheckoutBasketHandlerTest` (both checkout tests): pull the cart `Item` into a variable and expect `containsExactly(new CheckedOutItem(cartItem.id(), product.id(), 1, product.price(), product.name()))`. This proves at the handler seam that the catalog price (783), not the add-time price (400), reaches the line.
+- [x] `BasketOutboxDispatcherTest`: build the event with a `CheckedOutItem`, expect a `CheckedOutItemDTO`.
+- [x] `BasketCheckoutIntegrationEventListenerTest`: send `CheckedOutItemDTO`s; its existing assertion already checks the order item's `price` is the line's `price`. Ordering's test `DTOMapper` maps ordering's own `ItemDTO` and needed no change.
+- [x] `BasketOutboxPayloadFixturesTest`: expect a `CheckedOutItem`. Edit `v1.json` by hand for now (`priceWhenAdded` → `price`) so the suite stays green; it is recaptured in Step 3.
+- [x] `./mvnw clean verify` green (the contract change crosses modules).
 
 ### 2. `Order` derives its total; the read model returns it
-- [ ] Red: `CreateOrderHandlerTest` — an order placed from two lines with different prices and quantities has `totalPrice()` equal to `Σ(price × quantity)`.
-- [ ] Red: `CreateOrderHandlerTest` — an item with a `null` price is rejected with `IllegalArgumentException`, and nothing is saved.
-- [ ] Green: `Order.totalPrice()` and the null-price check in `placeFromCheckout`.
-- [ ] Alongside: `OrderDB.totalPrice`, `OrderDTO.totalPrice`, `DBMapper.toDb`/`toDto`, `FakeOrderQueryRepository`. Assert the stored total in `MongoOrderRepositoryTest` (read the document directly) and the returned total in `MongoOrderQueryRepositoryTest`.
-- [ ] Check the controller tests (`GetOrderByIdControllerTest`, `GetOrdersControllerTest`) for JSON assertions that need the new field.
-- [ ] `./mvnw clean verify` green.
+- [x] Red: `CreateOrderHandlerTest` — an order placed from two lines with different prices and quantities has `totalPrice()` equal to `Σ(price × quantity)`.
+- [x] Red: `CreateOrderHandlerTest` — an item with a `null` price is rejected with `IllegalArgumentException`, and nothing is saved.
+- [x] Green: `Order.totalPrice()` and the null-price check in `placeFromCheckout`.
+- [x] Alongside: `OrderDB.totalPrice`, `OrderDTO.totalPrice`, `DBMapper.toDb`/`toDto`, and the test `DTOMapper`. `FakeOrderQueryRepository` needed no change: it stores the DTOs tests build through that mapper, and `MongoOrderQueryRepositoryTest` already compares whole DTOs, so it checks the returned total without a new test. Assert the stored total in `MongoOrderRepositoryTest` (read the document directly) and the returned total in `MongoOrderQueryRepositoryTest`.
+- [x] Check the controller tests (`GetOrderByIdControllerTest`, `GetOrdersControllerTest`) for JSON assertions that need the new field. None assert an order body; no change.
+- [x] `./mvnw clean verify` green.
 
 ### 3. Fixture, docs, live lists
-- [ ] Recapture `BasketCheckedOut/v1.json` from the running application (after `docker compose down -v`), replacing the hand edit from Step 1, and update the expected values in `BasketOutboxPayloadFixturesTest`.
-- [ ] Bruno: check the order requests' documentation/assertions for the response shape and add `totalPrice` where orders are described.
-- [ ] [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md): *Payload versioning* says "the first real upcaster is expected with Backlog 8" — change it to the first change to a released event. Check the pricing description near *Why a synchronous read here* still holds.
-- [ ] [BACKLOG.md](../../../docs/BACKLOG.md): remove items 1 and 8. Add an entry for a checkout price preview (the customer sees the checkout price before paying), with the reasoning from *Decisions* above.
-- [ ] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md): Testing Gap 6 says Backlog item 1 approaches a second write in order creation. It doesn't: the total is a field of the same document. Reword it to point at Backlog 5 only.
-- [ ] Check [README.md](../../../README.md) for anything describing order or checkout payloads.
+- [x] Recapture `BasketCheckedOut/v1.json` from the running application (after `docker compose down -v`), replacing the hand edit from Step 1, and update the expected values in `BasketOutboxPayloadFixturesTest`.
+- [x] Bruno: check the order requests' documentation/assertions for the response shape and add `totalPrice` where orders are described. None describe a response shape; no change.
+- [x] [ARCHITECTURE.md](../../../docs/ARCHITECTURE.md): *Payload versioning* says "the first real upcaster is expected with Backlog 8" — change it to the first change to a released event. Check the pricing description near *Why a synchronous read here* still holds.
+- [x] [BACKLOG.md](../../../docs/BACKLOG.md): remove items 1 and 8. Add an entry for a checkout price preview (the customer sees the checkout price before paying), with the reasoning from *Decisions* above.
+- [x] [KNOWN_ISSUES.md](../../../docs/KNOWN_ISSUES.md): Testing Gap 6 says Backlog item 1 approaches a second write in order creation. It doesn't: the total is a field of the same document. Reword it to point at Backlog 5 only.
+- [x] Check [README.md](../../../README.md) for anything describing order or checkout payloads. Nothing; no change.
 
 ## Verification
-- [ ] `./mvnw clean verify` green.
-- [ ] Manual run: add an item, change its price in the catalog, check out; the placed order's line price and `totalPrice` show the new price.
+- [x] `./mvnw clean verify` green.
+- [x] Manual run: add an item, change its price in the catalog, check out; the placed order's line price and `totalPrice` show the new price. Done 2026-10-19: 2 × Galaxy Smartphone added at 550.00, catalog price changed to 499.00, checkout → order line `price` 499.00, `totalPrice` 998.00. The fixture was taken from this checkout.
 
 ## Deferred
 - **Checkout price preview** — routed to the Backlog in Step 3.
