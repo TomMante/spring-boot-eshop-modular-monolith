@@ -18,6 +18,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 
 class CheckoutBasketHandlerTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
 
     private FakeBasketRepository repository;
     private FakeProductQueryService productQueryService;
@@ -38,7 +43,7 @@ class CheckoutBasketHandlerTest {
         repository = new FakeBasketRepository();
         productQueryService = new FakeProductQueryService();
         productService = new CatalogProductACL(productQueryService);
-        handler = new CheckoutBasketHandler(repository, productService);
+        handler = new CheckoutBasketHandler(repository, productService, Clock.fixed(NOW, ZoneOffset.UTC));
 
         product = new ProductDTO(
                 UUID.randomUUID(),
@@ -74,7 +79,7 @@ class CheckoutBasketHandlerTest {
                             assertThat(event.items()).isEqualTo(existingCart.items());
                             assertThat(event.totalPrice()).isEqualTo(product.price());
                             assertThat(event.eventId()).isNotNull();
-                            assertThat(event.occurredOn()).isNotNull();
+                            assertThat(event.occurredOn()).isEqualTo(NOW);
                             assertThat(event.billingAddress()).isEqualTo(billingAddress);
                             assertThat(event.shippingAddress()).isEqualTo(shippingAddress);
                             assertThat(event.payment()).isEqualTo(payment);
@@ -106,7 +111,7 @@ class CheckoutBasketHandlerTest {
                             assertThat(event.items()).isEqualTo(existingCart.items());
                             assertThat(event.totalPrice()).isEqualTo(product.price());
                             assertThat(event.eventId()).isNotNull();
-                            assertThat(event.occurredOn()).isNotNull();
+                            assertThat(event.occurredOn()).isEqualTo(NOW);
                             assertThat(event.billingAddress()).isEqualTo(billingAddress);
                             assertThat(event.shippingAddress()).isEqualTo(billingAddress);
                             assertThat(event.payment()).isEqualTo(payment);

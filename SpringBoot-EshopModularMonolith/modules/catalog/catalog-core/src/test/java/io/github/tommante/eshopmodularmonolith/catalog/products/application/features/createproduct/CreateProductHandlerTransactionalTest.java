@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Clock;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -97,7 +98,7 @@ class CreateProductHandlerTransactionalTest extends CatalogDatabaseTest {
 
         @Bean
         CreateProductHandler createProductHandler(ProductRepository repository) {
-            return new CreateProductHandler(repository);
+            return new CreateProductHandler(repository, Clock.systemUTC());
         }
 
         @Bean(name = {"catalogTransactionManager", "transactionManager"})

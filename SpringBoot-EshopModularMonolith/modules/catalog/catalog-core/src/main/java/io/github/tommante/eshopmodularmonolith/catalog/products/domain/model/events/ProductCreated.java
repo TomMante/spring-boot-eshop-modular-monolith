@@ -7,8 +7,8 @@ import java.util.UUID;
 
 public record ProductCreated(UUID productId, UUID eventId, Instant occurredOn) implements DomainEvent {
 
-    public ProductCreated(UUID productId) {
-        this(productId, UUID.randomUUID(), Instant.now());
+    public ProductCreated(UUID productId, Instant occurredOn) {
+        this(productId, UUID.randomUUID(), occurredOn);
     }
 
     @Override

@@ -18,11 +18,14 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CatalogOutboxDispatcherTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
 
 
     private OutboxEventStore outboxEventStore;
@@ -39,13 +42,13 @@ class CatalogOutboxDispatcherTest {
         CatalogOutboxEvents.registerIn(registry, schemaRegistry);
         serializer = new OutboxPayloadSerializer(registry, schemaRegistry, new ObjectMapper());
         var retryPolicy = new OutboxRetryPolicy(8, Duration.ofSeconds(5), Duration.ofMinutes(5));
-        dispatcher = new CatalogOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.systemUTC(), messageBus);
+        dispatcher = new CatalogOutboxDispatcher(outboxEventStore, serializer, retryPolicy, Clock.fixed(NOW, ZoneOffset.UTC), messageBus);
     }
 
     @Test
     @DisplayName("Given outbox messages to be processed, when dispatching, then messages are dispatched")
     void givenOutboxMessagesToBeProcessed_whenDispatching_thenMessagesAreDispatched() {
-        var domainEvent = new ProductCreated(UUID.randomUUID());
+        var domainEvent = new ProductCreated(UUID.randomUUID(), NOW);
         outboxEventStore.save(serializer.toStored(domainEvent));
 
         assertThat(outboxEventStore.fetchDue(Instant.MAX)).isNotEmpty();

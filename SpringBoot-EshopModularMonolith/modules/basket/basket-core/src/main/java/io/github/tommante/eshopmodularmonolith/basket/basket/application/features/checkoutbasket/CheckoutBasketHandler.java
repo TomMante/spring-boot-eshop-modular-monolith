@@ -8,6 +8,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,10 +17,12 @@ public class CheckoutBasketHandler {
 
     private BasketRepository repository;
     private ProductService productService;
+    private final Clock clock;
 
-    public CheckoutBasketHandler(BasketRepository repository, ProductService productService) {
+    public CheckoutBasketHandler(BasketRepository repository, ProductService productService, Clock clock) {
         this.repository = repository;
         this.productService = productService;
+        this.clock = clock;
     }
 
     @Transactional("basketTransactionManager")
@@ -35,7 +38,7 @@ public class CheckoutBasketHandler {
                         ProductInfo::price
                 ));
 
-        cart.checkout(currentPrices, cmd.billingAddress(), cmd.payment(), cmd.shippingAddress());
+        cart.checkout(currentPrices, clock.instant(), cmd.billingAddress(), cmd.payment(), cmd.shippingAddress());
 
         // Remove basket
         repository.delete(cart);

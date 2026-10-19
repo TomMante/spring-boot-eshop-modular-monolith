@@ -20,8 +20,8 @@ public record BasketCheckedOut(
         Payment payment,
         Address shippingAddress) implements DomainEvent {
 
-    public BasketCheckedOut(String userName, List<Item> items, BigDecimal totalPrice, Address billingAddress, Payment payment, Address shippingAddress) {
-        this(UUID.randomUUID(), Instant.now(), userName, items, totalPrice, billingAddress, payment, shippingAddress);
+    public BasketCheckedOut(Instant occurredOn, String userName, List<Item> items, BigDecimal totalPrice, Address billingAddress, Payment payment, Address shippingAddress) {
+        this(UUID.randomUUID(), occurredOn, userName, items, totalPrice, billingAddress, payment, shippingAddress);
     }
 
     @Override

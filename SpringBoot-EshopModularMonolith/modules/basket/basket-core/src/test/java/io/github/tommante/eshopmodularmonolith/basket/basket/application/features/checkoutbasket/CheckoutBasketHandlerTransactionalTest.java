@@ -41,6 +41,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Clock;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -112,7 +113,7 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         @Bean
         CheckoutBasketHandler checkoutBasketHandler(BasketRepository repository, ProductService productService) {
-            return new CheckoutBasketHandler(repository, productService);
+            return new CheckoutBasketHandler(repository, productService, Clock.systemUTC());
         }
     }
 

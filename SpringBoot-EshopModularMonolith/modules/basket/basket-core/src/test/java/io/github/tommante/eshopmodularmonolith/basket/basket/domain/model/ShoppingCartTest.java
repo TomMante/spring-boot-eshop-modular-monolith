@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ShoppingCartTest {
+
+    private static final Instant CHECKED_OUT_AT = Instant.parse("2026-01-01T10:00:00Z");
 
 
     @Test
@@ -37,7 +40,7 @@ class ShoppingCartTest {
                 product2, new BigDecimal("25.00")
         ); // Assuming the total price for the items added
 
-        shoppingCart.checkout(currentPrices, billingAddress, payment, shippingAddress);
+        shoppingCart.checkout(currentPrices, CHECKED_OUT_AT, billingAddress, payment, shippingAddress);
 
         var domainEvents = shoppingCart.clearDomainEvents();
 
@@ -59,7 +62,7 @@ class ShoppingCartTest {
         ));
         var currentPrices = Map.of(product, new BigDecimal("12.00"));
 
-        cart.checkout(currentPrices, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping());
+        cart.checkout(currentPrices, CHECKED_OUT_AT, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping());
 
         var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
         assertThat(event.totalPrice()).isEqualByComparingTo(new BigDecimal("84.00")); // (2+5) * 12.00
@@ -90,7 +93,7 @@ class ShoppingCartTest {
         Map<UUID, BigDecimal> currentPrices = Map.of();
 
         assertThatExceptionOfType(UnpriceableCartItem.class)
-                .isThrownBy(() -> shoppingCart.checkout(currentPrices, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
+                .isThrownBy(() -> shoppingCart.checkout(currentPrices, CHECKED_OUT_AT, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
 
         assertThat(shoppingCart.clearDomainEvents()).isEmpty();
     }
@@ -101,7 +104,7 @@ class ShoppingCartTest {
         var shoppingCart = ShoppingCart.create("testUser");
 
         assertThatExceptionOfType(EmptyCartCheckout.class)
-                .isThrownBy(() -> shoppingCart.checkout(Map.of(), AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
+                .isThrownBy(() -> shoppingCart.checkout(Map.of(), CHECKED_OUT_AT, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping()));
 
         assertThat(shoppingCart.clearDomainEvents()).isEmpty();
     }
