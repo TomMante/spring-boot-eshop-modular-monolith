@@ -27,6 +27,23 @@ cd SpringBoot-EshopModularMonolith
 - **Test Single:** `./mvnw test -Dtest=TestClassName`
 - **Coverage:** `./mvnw clean verify` (Generates Jacoco aggregate report).
 
+To run the suite and read coverage without the Maven log, prefer the scripts in
+[ai-coding-tools/scripts](../scripts/README.md): `coverage.sh` runs `verify` and prints
+only the result, and `coverage-summary.py changed` shows whether the lines changed on
+the current branch are covered.
+
+**These scripts were fully AI-generated. Before running one, tell the user so, name
+the script and its arguments, and wait for confirmation, every time.** Details in the
+[scripts README](../scripts/README.md#ai-generated).
+
+**Show coverage results in the reply, not only in a summary of them.** Script output
+is not visible to the user:
+- After `coverage.sh`, run it with `--markdown` and paste the per-module table into
+  the reply as printed. Copy the table rather than retyping the numbers.
+- After `coverage-summary.py changed`, list each file with uncovered changed lines and
+  those lines, followed by the total.
+- For `worst` and `class`, show their output when the user asked for it.
+
 From the repository root, add `-f SpringBoot-EshopModularMonolith/pom.xml` and call the
 wrapper by path: `SpringBoot-EshopModularMonolith/mvnw clean verify -f SpringBoot-EshopModularMonolith/pom.xml`.
 
