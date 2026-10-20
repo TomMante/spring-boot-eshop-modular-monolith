@@ -398,11 +398,9 @@ run on one:
 - [x] The JDK-error legibility question recorded in
       [DESIGN_NOTES.md](../../../docs/DESIGN_NOTES.md) — a note, not a backlog
       entry, because nobody has committed to doing it.
-- [x] T1 and T2 ticked in
-      `portfolio-readiness`.
 - [x] [README.md](../../../README.md) checked and deliberately left alone: it
       links SETUP.md from its documentation index, which is still accurate.
-      Giving it a real quickstart is T4 of portfolio-readiness, a separate piece
+      Giving it a real quickstart is a separate piece
       of work about the README as a landing page.
 
 **Raised during this plan, and closed 2026-09-09 rather than filed.** The
