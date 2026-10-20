@@ -1,12 +1,12 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeMessageBus;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
@@ -53,7 +53,7 @@ class BasketOutboxDispatcherTest {
     @Test
     @DisplayName("Given a BasketCheckedOut in the outbox, when dispatching, then it is translated to an integration event and marked processed")
     void givenOutboxMessagesToBeProcessed_whenDispatching_thenMessagesAreDispatched() {
-        var item = new Item(UUID.randomUUID(), UUID.randomUUID(), 2, new BigDecimal("9.99"), "socks");
+        var item = new CheckedOutItem(UUID.randomUUID(), UUID.randomUUID(), 2, new BigDecimal("9.99"), "socks");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
         var payment = PaymentMother.payment();
@@ -64,7 +64,7 @@ class BasketOutboxDispatcherTest {
         dispatcher.dispatch();
         assertThat(outboxEventStore.fetchDue(Instant.MAX)).isEmpty();
 
-        var expectedItem = new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
+        var expectedItem = new CheckedOutItemDTO(item.id(), item.productId(), item.quantity(), item.price(), item.productName());
         assertThat(messageBus.publishedMessages()).hasSize(1);
         assertThat(messageBus.publishedMessages())
                 .containsExactly(new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98"), DTOMapper.toDto(billingAddress), DTOMapper.toDto(payment), DTOMapper.toDto(shippingAddress)));

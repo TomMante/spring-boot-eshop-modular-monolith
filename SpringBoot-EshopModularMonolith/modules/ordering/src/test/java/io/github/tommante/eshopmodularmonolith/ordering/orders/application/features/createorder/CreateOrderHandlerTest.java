@@ -2,6 +2,7 @@ package io.github.tommante.eshopmodularmonolith.ordering.orders.application.feat
 
 
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.AddressMother;
+import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Item;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.ItemMother;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.PaymentMother;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -120,5 +122,41 @@ class CreateOrderHandlerTest {
                 AddressMother.shipping(),
                 List.of(ItemMother.item()));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining("Order requires a checkout id");
+    }
+
+    @Test
+    @DisplayName("Given create order command with lines of different prices and quantities, when handler is called, then the order total is the sum of its lines")
+    void givenCreateOrderCommandWithLinesOfDifferentPricesAndQuantities_whenHandlerIsCalled_thenOrderTotalIsTheSumOfItsLines(){
+        var createOrder = new CreateOrderCommand(
+                UUID.randomUUID(),
+                "top_customer",
+                AddressMother.billing(),
+                PaymentMother.payment(),
+                AddressMother.shipping(),
+                List.of(
+                        new Item(UUID.randomUUID(), UUID.randomUUID(), 3, new BigDecimal("12.50")),
+                        new Item(UUID.randomUUID(), UUID.randomUUID(), 2, new BigDecimal("7.25"))));
+
+        var orderId = handler.handle(createOrder);
+
+        assertThat(repository.findById(orderId)).get()
+                .extracting(Order::totalPrice)
+                .satisfies(total -> assertThat(total).isEqualByComparingTo(new BigDecimal("52.00"))); // 3*12.50 + 2*7.25
+    }
+
+    @Test
+    @DisplayName("Given create order command with an item without a price, when handler is called, then order is rejected")
+    void givenCreateOrderCommandWithItemWithoutPrice_whenHandlerIsCalled_thenOrderIsRejected(){
+        var unpricedItemId = UUID.randomUUID();
+        var createOrder = new CreateOrderCommand(
+                UUID.randomUUID(),
+                "top_customer",
+                AddressMother.billing(),
+                PaymentMother.payment(),
+                AddressMother.shipping(),
+                List.of(new Item(unpricedItemId, UUID.randomUUID(), 1, null)));
+
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> handler.handle(createOrder)).withMessageContaining(unpricedItemId.toString());
+        assertThat(((FakeOrderRepository) repository).orders()).isEmpty();
     }
 }

@@ -38,7 +38,8 @@ document, use the lighter [quick-fix.md](quick-fix.md) instead.
    vs. tests-alongside, per step, as called out in the plan
    ([rules-of-engagement.md](rules-of-engagement.md)). Use
    [refactoring.md](refactoring.md)'s process for any step that's a
-   refactor of existing code.
+   refactor of existing code. By default the user writes the code; see
+   *Guided implementation* below for the opt-in alternative.
 6. **Commit as you go.** Refactor steps use
    [refactoring.md](refactoring.md)'s `- r <refactoring>` message format;
    other implementation commits are free-form but descriptive of the step
@@ -67,3 +68,41 @@ document, use the lighter [quick-fix.md](quick-fix.md) instead.
    merge time. Pushing the branch and opening the PR each require explicit
    confirmation in the moment, per standing rules — this workflow doesn't
    change that, it just marks where in the sequence it happens.
+
+## Guided implementation (opt-in)
+
+An alternative to the user writing the code in step 5. The assistant
+implements the approved plan, but applies nothing without the user's
+approval of that exact change. It only applies when the user asks for it
+for this increment, and counts as the implementation handover described
+in [rules-of-engagement.md](rules-of-engagement.md), for this increment only.
+
+1. **Work in small batches.** One batch is one file or a small set of
+   files that belong to one move in the plan: compile-only scaffolding,
+   the red tests, the green change, the tests updated alongside, a docs
+   update. Follow the plan's order and its rigor per step.
+2. **Show before applying.** For each batch, show the change as a diff,
+   explain why it is needed and what it should do when run, and ask for
+   **"ok"** or **"let's refine"**. Apply it only after "ok". On "let's
+   refine", discuss, then show the revised batch again. Stage every applied
+   change right away (`git add` on exactly the files in the batch), so the
+   staged diff is always what the user has approved and the unstaged diff
+   is empty.
+3. **Make red mean something.** For a strict red/green/refactor step, the
+   scaffolding batch compiles but keeps today's behavior, so the red tests
+   fail on the behavior, not on compilation. After applying the red batch,
+   run the tests and report why each one failed before proposing green.
+4. **Run and report.** After each applied batch that changes code, run the
+   narrowest command that proves it (one test class during red/green, the
+   full `./mvnw clean verify` at the end of each plan step) and report the
+   result before the next batch.
+5. **Keep the plan honest.** When the code disagrees with the plan (a step
+   that can't compile on its own, a file listed that needs no change), say
+   so with ❓ before going on, and record the outcome in the plan. Tick the
+   plan's items as part of the batches that complete them.
+6. **Ask separately for side effects outside the diff.** Wiping local
+   data, starting the application, or calling its endpoints are named and
+   confirmed on their own, before they run.
+7. **Leave the commit to the user.** When the plan is done, show the staged
+   diff and end with a suggested one-line commit message. The user reviews
+   and makes the commit; the assistant does not commit in this mode.

@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,7 @@ public record OrderDB(
         @Id UUID id,
         @Indexed(unique = true, name = "orders_checkoutId_unique") UUID checkoutId,
         List<ItemDB> items,
+        BigDecimal totalPrice,
         String customer,
         Instant placedAt,
         AddressDB shippingAddress,

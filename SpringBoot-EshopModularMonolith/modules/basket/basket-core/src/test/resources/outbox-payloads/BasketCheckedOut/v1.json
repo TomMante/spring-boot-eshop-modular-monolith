@@ -1,17 +1,17 @@
 {
-  "eventId": "1564d3f9-b0fd-41a1-a454-1d576e3a1dc6",
-  "occurredOn": "2026-10-18T05:52:45.634948Z",
+  "eventId": "5d10104a-4d4b-4356-a566-e4806494fda9",
+  "occurredOn": "2026-10-19T08:49:01.710Z",
   "userName": "john",
   "items": [
     {
-      "id": "15c964b9-8d27-4e0b-b53d-533985382476",
+      "id": "3ba7a9ff-ceed-41c5-ada8-13bf83d59b28",
       "productId": "a1000000-0000-4000-8000-000000000001",
-      "quantity": 1,
-      "priceWhenAdded": 550.00,
+      "quantity": 2,
+      "price": 499.00,
       "productName": "Galaxy Smartphone"
     }
   ],
-  "totalPrice": 550.00,
+  "totalPrice": 998.00,
   "billingAddress": {
     "firstName": "John",
     "lastName": "Doe",

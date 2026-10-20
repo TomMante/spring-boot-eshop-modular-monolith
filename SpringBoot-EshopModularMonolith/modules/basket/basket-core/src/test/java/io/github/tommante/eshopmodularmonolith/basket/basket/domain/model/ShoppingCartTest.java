@@ -3,6 +3,7 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.domain.model;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import org.junit.jupiter.api.DisplayName;
@@ -66,6 +67,45 @@ class ShoppingCartTest {
 
         var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
         assertThat(event.totalPrice()).isEqualByComparingTo(new BigDecimal("84.00")); // (2+5) * 12.00
+    }
+
+    @Test
+    @DisplayName("Given a cart whose prices changed since its items were added, when checkout happens, then each checked-out line carries the checkout price")
+    void givenCartWhosePricesChangedSinceItemsWereAdded_whenCheckoutHappens_thenEachCheckedOutLineCarriesTheCheckoutPrice() {
+        var product1 = UUID.randomUUID();
+        var product2 = UUID.randomUUID();
+        var cart = ShoppingCart.create("testUser");
+        cart.addItem(product1, 7, new BigDecimal("10.00"), "Product 1");
+        cart.addItem(product2, 3, new BigDecimal("20.00"), "Product 2");
+        var item1 = cart.items().get(0);
+        var item2 = cart.items().get(1);
+        var currentPrices = Map.of(product1, new BigDecimal("15.00"), product2, new BigDecimal("18.00"));
+
+        cart.checkout(currentPrices, CHECKED_OUT_AT, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping());
+
+        var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
+        assertThat(event.items()).containsExactly(
+                new CheckedOutItem(item1.id(), product1, 7, new BigDecimal("15.00"), "Product 1"),
+                new CheckedOutItem(item2.id(), product2, 3, new BigDecimal("18.00"), "Product 2"));
+    }
+
+    @Test
+    @DisplayName("Given a shopping cart reconstituted with two items for the same product, when checkout happens, then the checked-out lines add up to the total")
+    void givenCartWithDuplicateProductIdItems_whenCheckoutHappens_thenTheCheckedOutLinesAddUpToTheTotal() {
+        var product = UUID.randomUUID();
+        var cart = ShoppingCart.reconstitute("testUser", List.of(
+                new Item(UUID.randomUUID(), product, 2, new BigDecimal("10.00"), "Product"),
+                new Item(UUID.randomUUID(), product, 5, new BigDecimal("10.00"), "Product")
+        ));
+        var currentPrices = Map.of(product, new BigDecimal("12.00"));
+
+        cart.checkout(currentPrices, CHECKED_OUT_AT, AddressMother.billing(), PaymentMother.payment(), AddressMother.shipping());
+
+        var event = (BasketCheckedOut) cart.clearDomainEvents().get(0);
+        var sumOfLines = event.items().stream()
+                .map(line -> line.price().multiply(BigDecimal.valueOf(line.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(sumOfLines).isEqualByComparingTo(event.totalPrice());
     }
 
     @Test

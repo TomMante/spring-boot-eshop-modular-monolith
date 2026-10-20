@@ -84,4 +84,15 @@ class MongoOrderRepositoryTest extends OrderingDatabaseTest {
         assertThat(mongoTemplate.count(new Query(), OrderDB.class)).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("Given an order, when saving it, then its total price is stored")
+    void givenOrder_whenSavingIt_thenItsTotalPriceIsStored() {
+        var order = OrderMother.order();
+
+        repository.save(order);
+
+        assertThat(mongoTemplate.findById(order.id(), OrderDB.class))
+                .extracting(OrderDB::totalPrice)
+                .satisfies(total -> assertThat(total).isEqualByComparingTo(order.totalPrice()));
+    }
 }

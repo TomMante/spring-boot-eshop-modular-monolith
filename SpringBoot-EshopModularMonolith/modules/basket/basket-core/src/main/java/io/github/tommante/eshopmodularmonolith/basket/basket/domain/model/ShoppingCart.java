@@ -1,6 +1,7 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.domain.model;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
@@ -69,16 +70,21 @@ public class ShoppingCart extends AggregateRoot<String> {
         if (items.isEmpty()) {
             throw new EmptyCartCheckout();
         }
-        var totalPrice = items.stream()
-                .map(i -> {
-                    var currentPrice = currentPrices.get(i.productId());
-                    if (currentPrice == null) {
-                        throw new UnpriceableCartItem(i.productId());
-                    }
-                    return currentPrice.multiply(BigDecimal.valueOf(i.quantity()));
-                })
+        var checkedOutItems = items.stream()
+                .map(item -> priceAtCheckout(item, currentPrices))
+                .toList();
+        var totalPrice = checkedOutItems.stream()
+                .map(line -> line.price().multiply(BigDecimal.valueOf(line.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        var event = new BasketCheckedOut(checkedOutAt, userName, items, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
+        var event = new BasketCheckedOut(checkedOutAt, userName, checkedOutItems, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
+    }
+
+    private static CheckedOutItem priceAtCheckout(Item item, Map<UUID, BigDecimal> currentPrices) {
+        var currentPrice = currentPrices.get(item.productId());
+        if (currentPrice == null) {
+            throw new UnpriceableCartItem(item.productId());
+        }
+        return new CheckedOutItem(item.id(), item.productId(), item.quantity(), currentPrice, item.productName());
     }
 }

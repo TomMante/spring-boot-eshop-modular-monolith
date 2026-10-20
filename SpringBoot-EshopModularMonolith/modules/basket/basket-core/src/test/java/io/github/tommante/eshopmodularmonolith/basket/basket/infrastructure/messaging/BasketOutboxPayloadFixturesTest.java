@@ -1,7 +1,7 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
@@ -45,16 +45,16 @@ class BasketOutboxPayloadFixturesTest {
         var event = serializer.read(row);
 
         assertThat(event).isEqualTo(new BasketCheckedOut(
-                UUID.fromString("1564d3f9-b0fd-41a1-a454-1d576e3a1dc6"),
-                Instant.parse("2026-10-18T05:52:45.634948Z"),
+                UUID.fromString("5d10104a-4d4b-4356-a566-e4806494fda9"),
+                Instant.parse("2026-10-19T08:49:01.710Z"),
                 "john",
-                List.of(new Item(
-                        UUID.fromString("15c964b9-8d27-4e0b-b53d-533985382476"),
+                List.of(new CheckedOutItem(
+                        UUID.fromString("3ba7a9ff-ceed-41c5-ada8-13bf83d59b28"),
                         UUID.fromString("a1000000-0000-4000-8000-000000000001"),
-                        1,
-                        new BigDecimal("550.00"),
+                        2,
+                        new BigDecimal("499.00"),
                         "Galaxy Smartphone")),
-                new BigDecimal("550.00"),
+                new BigDecimal("998.00"),
                 new Address("John", "Doe", "john.doe@example.com", "1 Billing Street", "USA", "Billing State", "10001"),
                 new Payment("John Doe", "4111111111111111", "12/29", "123"),
                 new Address("Jane", "Roe", "jane.roe@example.com", "2 Shipping Avenue", "USA", "Shipping State", "90210")));

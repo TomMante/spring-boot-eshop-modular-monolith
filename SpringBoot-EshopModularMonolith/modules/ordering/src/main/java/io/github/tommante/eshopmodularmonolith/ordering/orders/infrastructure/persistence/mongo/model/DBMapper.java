@@ -37,7 +37,7 @@ public class DBMapper {
     }
 
     public static OrderDB toDb(Order order){
-        return new OrderDB(order.id(), order.checkoutId(), order.items().stream().map(DBMapper::toDb).toList(), order.customer(), order.placedAt(), toDb(order.shippingAddress()), toDb(order.billingAddress()), toDb(order.payment()));
+        return new OrderDB(order.id(), order.checkoutId(), order.items().stream().map(DBMapper::toDb).toList(), order.totalPrice(), order.customer(), order.placedAt(), toDb(order.shippingAddress()), toDb(order.billingAddress()), toDb(order.payment()));
     }
 
     public static Order toDomain(OrderDB order){
@@ -57,6 +57,6 @@ public class DBMapper {
     }
 
     public static OrderDTO toDto(OrderDB order){
-        return new OrderDTO(order.id(), order.items().stream().map(DBMapper::toDto).toList(), order.customer(), order.placedAt(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
+        return new OrderDTO(order.id(), order.items().stream().map(DBMapper::toDto).toList(), order.totalPrice(), order.customer(), order.placedAt(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
     }
 }

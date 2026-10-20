@@ -1,11 +1,11 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
@@ -51,8 +51,8 @@ public class BasketOutboxDispatcher {
         return new BasketCheckoutIntegrationEvent(event.eventId(), event.userName(), items, event.totalPrice(), toDto(event.billingAddress()), toDto(event.payment()), toDto(event.shippingAddress()));
     }
 
-    private static ItemDTO toDto(Item item) {
-        return new ItemDTO(item.id(), item.productId(), item.quantity(), item.priceWhenAdded(), item.productName());
+    private static CheckedOutItemDTO toDto(CheckedOutItem item) {
+        return new CheckedOutItemDTO(item.id(), item.productId(), item.quantity(), item.price(), item.productName());
     }
 
     private static AddressDTO toDto(Address address) {

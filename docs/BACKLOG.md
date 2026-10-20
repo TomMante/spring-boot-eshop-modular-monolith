@@ -19,23 +19,10 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 
 ## 🎯 Ready to pick up
 
-### 1. `Order.totalPrice` Doesn't Exist
-- **Resolved by [basket-quantity-fix](../ai-coding-tools/plans/basket-quantity-fix/basket-quantity-fix.md):** the pricing-basis question this item used to gate on is settled — checkout-time pricing, `Σ(current catalog price × quantity)`, fetched via `ProductService` at checkout. That plan also fixed `ShoppingCart.checkout`'s defects (closed Known Bug 1) and added `ShoppingCartTest` (closed Testing Gap 1).
-- **What's still missing:** `CreateOrderCommand`/`Order.placeFromCheckout` never receive or compute a total at all. Basket now computes a correct, current-price `totalPrice` on `BasketCheckedOut`, but `BasketCheckoutIntegrationEventListener` still never reads it — the value is computed and still never used downstream.
-- **Decision needed:** should `Order` trust the value carried on the integration event, or re-derive its own from the items it received? Trusting a caller-computed number repeats the shape of the bug this item used to describe — an aggregate should generally own its own invariant rather than believe one handed to it. Settle this before adding `totalPrice` to `Order`, `OrderDB`, `OrderDTO` and both mappers — and, only if the event's value is trusted, to `CreateOrderCommand` and `BasketCheckoutIntegrationEventListener`, which would have to carry it; a re-derived total needs neither.
-- **Neither option is independent of other open work (found 2026-09-17).** Ordering builds each order `Item` from `ItemDTO.priceWhenAdded` (`BasketCheckoutIntegrationEventListener.toDomain(ItemDTO)`), while `BasketCheckedOut.totalPrice` uses *current* catalog prices. Re-deriving the total in `Order` today would therefore sum add-time prices and contradict the checkout-time pricing decision above; it only becomes correct once item lines carry the current price (Backlog 8). Trusting the event's value means reading a field ordering ignores today. Either way `BasketCheckedOut`'s shape changes, so events already at rest in the basket outbox need an upcaster: under the outbox's compatibility policy ([ARCHITECTURE.md](ARCHITECTURE.md), *Payload versioning*), each shape change is a new schema version with an upcaster and a fixture. Realistic order: Backlog 8, then this.
-- **Why still deferred:** demonstrating the current-price-at-checkout mechanism was that plan's priority; wiring the result into `Order` is separate, smaller work once the trust-vs-derive question is answered.
-
 ### 3. `MongoAuditMetadata`
 - Ordering has no counterpart to `shared.infrastructure.JpaAuditMetadata`, so Mongo-backed documents carry no created/modified audit fields.
 - **Blocked on:** adding `@Version` to the documents. Mongo auditing decides created-vs-modified purely from `isNew`, which is id-based, and every document in this codebase assigns its id up front — so without a version field auditing cannot distinguish the two cases at all.
 - **Note:** whatever shape this takes must not write the audit fields from the domain projection. Catalog's `JpaProductRepository.save` originally rebuilt a whole `ProductDB` from the domain object and merged it over the stored row, which silently wiped `created_by` on every update; it now loads the stored row and mutates only the fields the domain owns. `MongoBasketRepository.save` and `MongoOrderRepository.save` have the same shape — they hand `repository.save` a document rebuilt from the domain, which replaces the stored one wholesale. Harmless only while `ShoppingCartDB`/`OrderDB` are total projections of what is stored; the audit fields added here would be wiped on the next basket update. Both are records, so the fix is not JPA-style mutation: either `$set` the domain-owned fields, or carry the stored audit values forward into the new record.
-
-### 8. `BasketCheckedOut` Items Don't Reflect Current Price
-- [basket-quantity-fix](../ai-coding-tools/plans/basket-quantity-fix/basket-quantity-fix.md) made `BasketCheckedOut.totalPrice` correct — `Σ(current catalog price × quantity)` — but each `Item` on that same event still only carries `priceWhenAdded`, the add-time price. Summing the event's own item lines does not reconcile against its `totalPrice`.
-- **Why it matters:** there's no way for a consumer of this event to show a customer the add-time-vs-current-price delta ("price dropped since you added it"), and the event is internally inconsistent for anyone reading it later, e.g. as an audit trail.
-- **Action:** needs a dedicated shape carrying both prices per item (e.g. `CheckedOutItem(id, productId, quantity, priceWhenAdded, currentPrice, productName)`) — deliberately not a change to `Item` itself, which is persisted cart state and shouldn't carry a checkout-only field. It changes `BasketCheckedOut`'s stored shape, so it is version 2 of that event: an upcaster from version 1 (which has to decide what `currentPrice` an old payload gets), registered in `BasketOutboxEvents`, plus a `v2.json` fixture ([ARCHITECTURE.md](ARCHITECTURE.md), *Payload versioning*). It would be the outbox's first real upcaster.
-- **Why deferred:** proving the current-price-at-checkout mechanism exists at all was the priority; representing both prices together, and any delta view built on it, is separate follow-up work.
 
 ### 12. Nothing Stops a Test Dependency Being Declared at Compile Scope
 
@@ -100,6 +87,13 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Decision to make:** whether amounts become JSON strings in the API, through `@JsonFormat(shape = JsonFormat.Shape.STRING)` on the fields or one `BigDecimal`-as-string serializer for the whole API. It changes the contract for every client, including the Bruno collection, so it is a decision, not a fix.
 - **Related, separate question:** an update request that carries a price nobody meant to change. A partial update, or a dedicated price change, would remove the round trip altogether.
 - **Why deferred:** raised by the user on 2026-10-18, while fixing the outbox's decimal precision in [outbox-dead-letter-and-payload-compatibility](../ai-coding-tools/plans/outbox-dead-letter-and-payload-compatibility/outbox-dead-letter-and-payload-compatibility.md) increment 5, which only covers the server side.
+
+### 19. Show the Checkout Price Before Paying
+- `POST /basket/checkout` returns `202` with no body. The only prices a customer ever sees are the cart's (`priceWhenAdded`), while checkout charges the current catalog price, which can differ. The customer pays a price they were never shown.
+- **What exists since 2026-10-19:** the checkout price is carried on each checked-out line and recorded on the order (each line's `price`, and `Order.totalPrice` derived from them), so the order shows afterwards what was paid. Showing it *before* paying is what's missing.
+- **Shape options:** a quote step, e.g. `GET /basket/checkout-preview`, pricing the cart through the same `ShoppingCart` logic checkout uses; or refreshing the cart's prices whenever it is read.
+- **Decision needed:** whether a price shown in a preview is binding (held for a while at checkout, which needs a quote with an expiry) or informational only (checkout may still charge a newer price).
+- **Why deferred:** raised on 2026-10-19 in [checkout-price-on-order](../ai-coding-tools/plans/checkout-price-on-order/checkout-price-on-order.md), which placed the price at checkout and on the order; a preview is separate work.
 
 ## ⏳ Gated on a trigger
 

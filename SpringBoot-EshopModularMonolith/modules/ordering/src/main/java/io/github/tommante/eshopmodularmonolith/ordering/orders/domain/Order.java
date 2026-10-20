@@ -4,6 +4,7 @@ import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjec
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.shared.domain.AggregateRoot;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +45,10 @@ public class Order extends AggregateRoot<UUID> {
         if (shippingAddress == null) throw new IllegalArgumentException("Shipping address is required");
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Order must contain at least one item");
+        for (var item : items) {
+            if (item.price() == null)
+                throw new IllegalArgumentException("Order item " + item.id() + " has no price; every item must carry the price paid at checkout");
+        }
         if (checkoutId == null) throw new IllegalArgumentException("Order requires a checkout id");
         return new Order(UUID.randomUUID(), checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
@@ -81,5 +86,11 @@ public class Order extends AggregateRoot<UUID> {
 
     public UUID checkoutId() {
         return checkoutId;
+    }
+
+    public BigDecimal totalPrice() {
+        return items.stream()
+                .map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

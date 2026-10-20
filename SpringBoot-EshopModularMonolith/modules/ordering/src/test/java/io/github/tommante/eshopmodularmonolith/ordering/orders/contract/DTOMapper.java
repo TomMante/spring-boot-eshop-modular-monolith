@@ -37,6 +37,6 @@ public class DTOMapper {
     }
 
     public static OrderDTO toDto(Order order){
-        return new OrderDTO(order.id(), order.items().stream().map(DTOMapper::toDto).toList(), order.customer(), order.placedAt(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
+        return new OrderDTO(order.id(), order.items().stream().map(DTOMapper::toDto).toList(), order.totalPrice(), order.customer(), order.placedAt(), toDto(order.shippingAddress()), toDto(order.billingAddress()), toDto(order.payment()));
     }
 }
