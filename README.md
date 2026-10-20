@@ -99,7 +99,7 @@ Detailed documentation is located in the `docs/` directory:
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |
 | `.github/workflows/` | CI and PR builds; `main` is also analysed on SonarCloud. |
-| `ai-coding-tools/` | How this project is built with a coding agent: process docs, one plan per increment recording what was decided and why, and scripts that run the suite and summarize coverage. |
+| `ai-coding-tools/` | How this project is built with a coding agent: process docs, one plan per increment recording what was decided and why, background research those decisions rest on, and scripts that run the suite and summarize coverage. |
 
 ## License
 
