@@ -163,7 +163,7 @@ properties collapse into one.
 
 `<url/>`, `<licenses><license/></licenses>` and `<developers><developer/></developers>` were
 empty generator placeholders. No build effect. Removed because
-[portfolio-readiness](../portfolio-readiness/portfolio-readiness.md) wants this repository read
+`portfolio-readiness` wants this repository read
 as a public showcase, and an empty `<licenses>` block is a detail a reviewer notices.
 
 ## Considered and left out
