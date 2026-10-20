@@ -399,7 +399,7 @@ run on one:
       [DESIGN_NOTES.md](../../../docs/DESIGN_NOTES.md) — a note, not a backlog
       entry, because nobody has committed to doing it.
 - [x] T1 and T2 ticked in
-      [portfolio-readiness](../portfolio-readiness/portfolio-readiness.md).
+      `portfolio-readiness`.
 - [x] [README.md](../../../README.md) checked and deliberately left alone: it
       links SETUP.md from its documentation index, which is still accurate.
       Giving it a real quickstart is T4 of portfolio-readiness, a separate piece

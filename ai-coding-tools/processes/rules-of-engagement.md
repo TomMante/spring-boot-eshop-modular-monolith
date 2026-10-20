@@ -79,6 +79,21 @@ work on something as a request to implement it.
       restate a Known Issue's *Action Required* as a separate Backlog entry,
       and make each entry self-contained, since plan documents may not be
       reachable later.
+    - **Code references in plans outlive the code.** Live docs (`docs/`,
+      READMEs) link code with relative links, so a link that breaks gets
+      noticed and fixed. A plan freezes while the code keeps moving, so:
+        - while writing a plan, refer to code with code spans (`ClassName`,
+          `method`), not links;
+        - at close-out, turn a reference into a GitHub permalink pinned to a
+          commit (`https://github.com/<owner>/<repo>/blob/<full-sha>/<path>#L<n>`)
+          when the plan's claim depends on what the code looked like then —
+          evidence of a defect, a line cited as proof, a file the plan deleted.
+          Pin to the commit that adds the plan, or to its parent for a file
+          that commit deletes. A reference to a pattern to copy stays a code
+          span;
+        - name the PR that implemented the plan at its top.
+      These close-out edits are the one exception to leaving the plan's text
+      unchanged: they change where a reference points, not what the plan says.
 - **README Maintenance:**
     - After any change that could affect what [README.md](../../README.md) describes (tools/domains exposed, installation/usage, requirements, project structure), check whether it needs updating and update it as part of the same change.
 - **Process Doc Conventions:** (for files under `ai-coding-tools/`)
