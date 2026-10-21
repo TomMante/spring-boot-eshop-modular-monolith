@@ -1,6 +1,6 @@
 # Tokenized Card Payment
 
-Draft, 2026-10-21. Not approved yet.
+Approved by the user on 2026-10-21.
 
 ## Status
 - [ ] Step 1 — `ShoppingCart` checks out only against a charge that matches its own total.
