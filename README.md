@@ -54,6 +54,13 @@ flowchart LR
 - **Secured.** Endpoints are an OAuth2 resource server against Keycloak; the compose stack imports
   the realm and two demo users.
 
+**Not production-safe: card data.** Checkout accepts a card number, expiry and CVV, and Basket's
+outbox and Ordering's database store them in plain text. That is acceptable only for the test
+cards this project uses. A real shop would never receive card data at all, only a payment
+provider's token. The defect is tracked as
+[Known Bug 4](docs/KNOWN_ISSUES.md#4-raw-card-data-is-stored-and-transmitted-in-clear), with
+[what PCI DSS allows](ai-coding-tools/context/card-data-and-pci-dss.md) written down beside it.
+
 ## Background
 
 This project serves as a study/blueprint for a Spring Boot modular monolith. It also deliberately pushes microservice-readiness to an extreme, both to explore its complexity and to play around with some ideas.
@@ -67,6 +74,12 @@ The outbox, the module-boundary checks and the module-scoped wiring are built by
 the Spring ecosystem, [Spring Modulith](https://spring.io/projects/spring-modulith) provides much
 of that out of the box. [A comparison](docs/SPRING_MODULITH.md) maps what it would replace in
 this codebase, and why its single event registry doesn't fit per-module databases.
+
+**How it is built.** I write the application code and its tests. A coding agent investigates,
+proposes designs, writes the plans, reviews what I wrote and keeps the docs current. When I hand
+it a piece of implementation, I do so explicitly and for that piece only. The working agreement
+is in [rules of engagement](ai-coding-tools/processes/rules-of-engagement.md), and every plan is
+in [`ai-coding-tools/plans/`](ai-coding-tools/plans/).
 
 ## Changes from original .NET course
 
