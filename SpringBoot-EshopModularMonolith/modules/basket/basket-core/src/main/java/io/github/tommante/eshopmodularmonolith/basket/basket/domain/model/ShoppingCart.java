@@ -2,10 +2,11 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.domain.model;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.ChargeDoesNotMatchTotal;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Charge;
 import io.github.tommante.eshopmodularmonolith.shared.domain.AggregateRoot;
 
 import java.math.BigDecimal;
@@ -66,17 +67,35 @@ public class ShoppingCart extends AggregateRoot<String> {
         items.removeIf(item -> item.productId().equals(productId));
     }
 
-    public void checkout(Map<UUID, BigDecimal> currentPrices, Instant checkedOutAt, Address billingAddress, Payment payment, Address shippingAddress) {
+    public BigDecimal totalAt(Map<UUID, BigDecimal> currentPrices){
+        return computeTotal(checkedOutItems(currentPrices));
+    }
+
+    private List<CheckedOutItem> checkedOutItems(Map<UUID, BigDecimal> currentPrices){
         if (items.isEmpty()) {
             throw new EmptyCartCheckout();
         }
-        var checkedOutItems = items.stream()
+        return items.stream()
                 .map(item -> priceAtCheckout(item, currentPrices))
                 .toList();
-        var totalPrice = checkedOutItems.stream()
+    }
+
+    private BigDecimal computeTotal(List<CheckedOutItem> checkedOutItems){
+        return checkedOutItems.stream()
                 .map(line -> line.price().multiply(BigDecimal.valueOf(line.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        var event = new BasketCheckedOut(checkedOutAt, userName, checkedOutItems, totalPrice, billingAddress, payment, shippingAddress == null? billingAddress : shippingAddress);
+    }
+
+    public void checkout(UUID checkoutId, Map<UUID, BigDecimal> currentPrices, Instant checkedOutAt, Address billingAddress, Charge charge, Address shippingAddress) {
+
+        var checkedOutItems = checkedOutItems(currentPrices);
+        var totalPrice = computeTotal(checkedOutItems);
+
+        if (charge.amount().compareTo(totalPrice) != 0) {
+            throw new ChargeDoesNotMatchTotal(charge.amount(), totalPrice);
+        }
+
+        var event = new BasketCheckedOut(checkoutId, checkedOutAt, userName, checkedOutItems, totalPrice, billingAddress, charge, shippingAddress == null? billingAddress : shippingAddress);
         this.addDomainEvent(event);
     }
 

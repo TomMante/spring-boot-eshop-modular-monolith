@@ -4,11 +4,7 @@ import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderAlreadyExists;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.port.OrderRepository;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class FakeOrderRepository implements OrderRepository {
 

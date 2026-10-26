@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment_intents",
+    "formParameters": {
+      "payment_method": {
+        "equalTo": "pm_card_authenticationRequired"
+      }
+    }
+  },
+  "response": {
+    "status": 402,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"error\":{\"type\":\"card_error\",\"code\":\"authentication_required\",\"decline_code\":\"authentication_not_handled\",\"message\":\"This payment required an authentication action to complete, but `error_on_requires_action` was set.\"}}"
+  }
+}

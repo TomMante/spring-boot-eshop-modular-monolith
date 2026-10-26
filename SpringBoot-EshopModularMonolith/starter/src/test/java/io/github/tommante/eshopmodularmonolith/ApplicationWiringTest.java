@@ -1,5 +1,6 @@
 package io.github.tommante.eshopmodularmonolith;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.additemintobasket.AddItemIntoBasketCommand;
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.additemintobasket.AddItemIntoBasketHandler;
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket.CheckoutBasketCommand;
@@ -10,12 +11,13 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.application.feature
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.CardSummary;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductCommand;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductHandler;
 import io.github.tommante.eshopmodularmonolith.catalog.products.application.features.createproduct.CreateProductRequest;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.model.events.ProductCreated;
 import io.github.tommante.eshopmodularmonolith.catalog.products.domain.port.ProductRepository;
+import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxjpa.OutboxEventJpaRepository;
 import io.github.tommante.eshopmodularmonolith.outboxmongo.OutboxEventDocument;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
@@ -24,6 +26,7 @@ import jakarta.validation.Validator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +46,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -59,9 +63,15 @@ class ApplicationWiringTest {
     @Container
     static MongoDBContainer mongoDb = new MongoDBContainer("mongo:8.2.5-noble").withReplicaSet();
 
+    @RegisterExtension
+    static WireMockExtension paymentProvider = WireMockExtension.newInstance()
+            .options(wireMockConfig().dynamicPort().usingFilesUnderDirectory("../docker/sb-eshop/payment-provider"))
+            .build();
+
     @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
+    static void customProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.mongodb.uri", mongoDb::getConnectionString);
+        registry.add("eshop.basket.payment.stripe.api-base", paymentProvider::baseUrl);
     }
 
     @Autowired
@@ -87,6 +97,9 @@ class ApplicationWiringTest {
 
     @Autowired
     BasketRepository basketRepository;
+
+    @Autowired
+    OutboxPayloadSerializer serializer;
 
     @Autowired
     @Qualifier("basketMongoTemplate")
@@ -147,14 +160,18 @@ class ApplicationWiringTest {
         createBasketHandler.handle(new CreateBasketCommand(userName));
         addItemIntoBasketHandler.handle(new AddItemIntoBasketCommand(userName, productId, 2));
         var address = new Address("John", "Doe", "john.doe@example.com", "1 Wiring Street", "Testland", null, "10001");
-        var payment = new Payment("John Doe", "4111111111111111", "12/29", "123");
 
-        checkoutBasketHandler.handle(new CheckoutBasketCommand(userName, address, payment, null));
+        checkoutBasketHandler.handle(new CheckoutBasketCommand(userName, address, "pm_card_visa", null));
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         var checkoutEvents = basketMongoTemplate.find(
                 Query.query(Criteria.where("eventType").is("BasketCheckedOut")), OutboxEventDocument.class);
         assertThat(checkoutEvents).hasSize(1);
+
+        var checkedOut = (BasketCheckedOut) serializer.read(checkoutEvents.getFirst().toStored());
+        assertThat(checkedOut.charge().reference()).startsWith("pi_");
+        assertThat(checkedOut.charge().card()).isEqualTo(new CardSummary("visa", "4242", 8, 2030));
+        assertThat(checkedOut.charge().amount()).isEqualByComparingTo(checkedOut.totalPrice());
     }
 
     @Test

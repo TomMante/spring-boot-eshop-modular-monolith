@@ -24,7 +24,7 @@ public class CheckoutBasketController {
         var cmd = new CheckoutBasketCommand(
                 currentUser.username(),
                 request.billingAddress().toDomain(),
-                request.payment().toDomain(),
+                request.payment().paymentMethodId(),
                 request.shippingAddress() == null? null : request.shippingAddress().toDomain());
         handler.handle(cmd);
         return ResponseEntity.accepted().build();

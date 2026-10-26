@@ -4,11 +4,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Shoppi
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEvent;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class FakeBasketRepository implements BasketRepository {
 

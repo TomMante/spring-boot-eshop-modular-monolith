@@ -1,0 +1,32 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment_intents",
+    "headers": {
+      "Idempotency-Key": {
+        "matches": ".+"
+      }
+    },
+    "formParameters": {
+      "payment_method": {
+        "equalTo": "pm_card_mastercard"
+      },
+      "confirm": {
+        "equalTo": "true"
+      },
+      "error_on_requires_action": {
+        "equalTo": "true"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": [
+      "response-template"
+    ],
+    "body": "{{formData request.body 'form' urlDecode=true}}{\"id\":\"pi_{{randomValue length=14 type='ALPHANUMERIC'}}\",\"object\":\"payment_intent\",\"amount\":{{form.amount}},\"currency\":\"{{form.currency}}\",\"status\":\"succeeded\",\"payment_method\":{\"id\":\"pm_card_mastercard\",\"object\":\"payment_method\",\"type\":\"card\",\"card\":{\"brand\":\"mastercard\",\"last4\":\"4444\",\"exp_month\":8,\"exp_year\":2030}}}"
+  }
+}

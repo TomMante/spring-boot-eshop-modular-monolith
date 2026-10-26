@@ -1,15 +1,7 @@
 package io.github.tommante.eshopmodularmonolith.catalog.products.infrastructure.persistence.jpa;
 
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.JpaAuditMetadata;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;

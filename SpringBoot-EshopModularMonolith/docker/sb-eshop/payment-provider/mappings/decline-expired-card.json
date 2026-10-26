@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment_intents",
+    "formParameters": {
+      "payment_method": {
+        "equalTo": "pm_card_chargeDeclinedExpiredCard"
+      }
+    }
+  },
+  "response": {
+    "status": 402,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"error\":{\"type\":\"card_error\",\"code\":\"expired_card\",\"message\":\"Your card has expired.\"}}"
+  }
+}

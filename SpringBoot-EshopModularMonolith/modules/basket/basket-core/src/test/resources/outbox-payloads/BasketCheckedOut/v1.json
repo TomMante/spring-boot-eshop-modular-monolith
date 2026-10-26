@@ -21,11 +21,15 @@
     "state": "Billing State",
     "zipCode": "10001"
   },
-  "payment": {
-    "cardName": "John Doe",
-    "cardNumber": "4111111111111111",
-    "expiration": "12/29",
-    "cvv": "123"
+  "charge": {
+    "reference": "ch_fixture",
+    "amount": 998.00,
+    "card": {
+      "brand": "visa",
+      "last4": "4242",
+      "expiryMonth": 8,
+      "expiryYear": 2030
+    }
   },
   "shippingAddress": {
     "firstName": "Jane",

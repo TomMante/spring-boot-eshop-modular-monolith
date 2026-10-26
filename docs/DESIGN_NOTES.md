@@ -129,6 +129,101 @@ A related, smaller question is where the policy sits once roles exist. With the 
 - visibility stops meaning "equals the caller" — sharing, delegated access, roles;
 - the back-office branch lands in the adapters and the two implementations start to drift.
 
+## An Event-Sourced Payment Module
+
+Raised on 2026-10-25 while planning [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md), which charges the card synchronously at checkout through a `PaymentGateway` port inside basket, and refunds the charge if basket's transaction then fails.
+
+Payment is the one place in this project where event sourcing fits the domain rather than being imposed on it. It is a ledger: a charge is never undone, a refund is a new entry pointing at it, and the questions people ask are about history — why was this customer charged twice, was the refund sent, what did we know when the order was accepted.
+
+**Why not now.**
+
+- **The provider is already the ledger.** Stripe keeps the charge and refund records with their own ids and timestamps, and they are the record that counts. The shop only keeps a reference on the order. Event-sourcing a mirror of that adds no knowledge.
+- **The lifecycle is two steps:** charge, and refund if our own transaction fails. Event sourcing pays off when an aggregate goes through many transitions whose order and reasons matter.
+- **An audit trail does not need event sourcing.** Current state plus an append-only history gives the trail. Event sourcing earns its cost where the events *are* the state: new views rebuilt from old history, or "what was the state at time T?".
+
+**What would make it worth it.** Each of these adds transitions; together they make a real lifecycle:
+
+- authorize-then-capture: authorized → captured, cancelled, or expired after 7 days;
+- provider webhooks (`charge.refunded`, `charge.dispute.created`, `payment_intent.payment_failed`), which are external events and append naturally to a stream;
+- partial refunds, disputes, chargebacks;
+- a refund that fails after a failed checkout. Today that leaves the customer charged with no order and only an ERROR log. A `Payment` aggregate recording `RefundFailed` and retried until `PaymentRefunded` is the natural fix, though a persisted payment record with plain state would also fix it, and is the cheaper first step.
+
+**Where the boundaries would be.**
+
+- **One aggregate in its own module:** `Payment`, one per checkout (id = `checkoutId`), with a stream of events such as `PaymentRequested`, `PaymentCharged`, `PaymentDeclined`, `RefundRequested`, `PaymentRefunded`, `RefundFailed`. Basket and ordering stay state-based and cannot tell the difference.
+- **Stored events are not integration events.** The stream is internal and fine-grained. Other modules receive coarser integration events through the outbox, as they do now. Publishing the stored events directly would make the module's own history a public contract it could never refactor.
+- **The event store can be the outbox.** Appending to the stream *is* the write, and a dispatcher publishes integration events from it, so there is no dual write. The existing `outbox-core` dispatching, retry and dead-letter handling would carry over.
+- **Versioning becomes permanent.** Stored events are never deleted, so every shape ever written must stay readable through upcasters. The "correct the event in place" exception taken for `BasketCheckedOut` (pre-release, decision 4 of the plan above) would not be available.
+- **Replay must not call out.** `apply(event)` rebuilds state from the stream every time the aggregate loads, possibly years later. Deciding a command may read anything (another module's contract query, the provider, the clock), but the outcome goes into the event as data — `PaymentCharged(amount = 998.00, chargeReference = …)`, never "charged the order's total". The same as "handlers supply, aggregates decide" in [ARCHITECTURE.md](ARCHITECTURE.md), made mandatory. Referencing other aggregates by id is fine.
+- **Nothing in a stream that may have to be deleted.** Card data is already kept out by tokenization. Personal data (billing name, email) is the hard part: an immutable log conflicts with the right to erasure. Keep it out of events and reference a customer id instead, or encrypt it per customer and delete the key (crypto-shredding).
+
+**Decisions it would reopen.**
+
+- **A `payment` module instead of a port inside basket.** The payment record has to outlive the cart, which basket deletes at checkout.
+- **The synchronous charge.** Modules never call each other to change state, so basket could not call a payment module to charge. Checkout would become a saga driven by events (`BasketCheckedOut` → `PaymentRequested` → `PaymentCharged` / `PaymentDeclined` → order placed or checkout failed), and the customer would lose the immediate yes or no from `POST /basket/checkout`. The alternative, allowing this one synchronous call, would be a written exception to the cross-module rule.
+
+**On event sourcing only part of the application.** It is a per-aggregate (or per-context) persistence choice, not an architecture for the whole system, and this project's module isolation makes it cheaper than usual: each module already owns its storage, communicates by outbox events and contract queries, and has no cross-module transactions to lose. An event-sourced module answers queries from projections, which is the CQRS read side the project already separates. It is eventually consistent, as all cross-module data here already is.
+
+**Open question, and why this stays a note:** the payment work as planned is a single synchronous charge with a refund as compensation, and the provider holds the authoritative record. Worth revisiting when webhooks, authorize-then-capture, or retried refunds arrive; as a showcase, an event-sourced payment context is defensible precisely because it can say why here and not in basket, catalog or ordering.
+
+## A Central Audit Module
+
+Raised on 2026-10-26, alongside the event-sourcing question above. Nothing records the history of anything today. A successful checkout leaves an order, and the payment provider keeps its own charge records, but a declined checkout leaves no trace in this system at all. What exists is incidental:
+
+- `JpaAuditMetadata` records who created and last modified a catalog product: the latest change only, not a history. Mongo has no equivalent yet ([BACKLOG.md](BACKLOG.md), `MongoAuditMetadata`).
+- The basket outbox holds every `BasketCheckedOut` with a timestamp, but nothing guarantees those rows are kept, and they were never meant to be read as a record.
+
+A production shop would want the **full history** of checkouts, payments and data changes, in one place: when an auditor or a dispute asks, the cost is gathering evidence from five systems, not writing it.
+
+**Three things get called "audit", with different answers.**
+
+| Kind | Question | Where it comes from |
+|---|---|---|
+| Business history | What happened to this checkout or payment, in what order, and why? | The application, written on purpose |
+| Security audit | Who logged in, who changed what as an admin, from where? | Keycloak's login and admin events; application access records |
+| Technical logs | What did the code do? | Application logs. Not an audit record: sampled, rotated, not written atomically with the change |
+
+**The shape: several producers, one audit module.** Capture has to differ, because the facts arise in different places — inside Keycloak, in each module's handlers and repositories, and in code that sees an outcome that changes no state. Storage and reading should be one place: an `audit` module with its own store and one query and export surface.
+
+- **Modules send, the audit module stores.** Modules share no databases, so audit records cross the boundary the way every other fact does: through each module's outbox.
+- **A generic envelope, not each module's integration events.** If the audit module consumed `BasketCheckoutIntegrationEvent`, `ProductUpdated` and the rest, it would depend on every module's contract and change with each of them. Instead, one shape in `shared.contract`, for example `AuditRecord(occurredAt, module, subjectType, subjectId, action, actor, correlationId, before, after, details)`. Each module translates its own facts into it; the audit module stores records it does not need to understand.
+- **Full history needs every change to emit a record.** Today only checkout and catalog's product changes raise events; adding or removing a basket item raises nothing. Two ways to close that, and in practice both are needed:
+  - *Generic, in each module's infrastructure:* a repository decorator or persistence listener that diffs before and after on every save and writes an `AuditRecord` into the module's outbox in the same transaction. [JaVers](https://javers.org/) can produce the diff and supports both JPA and MongoDB. Covers every change automatically, but records *what* changed, never *why*.
+  - *Explicit, in handlers:* records for business outcomes, above all those that change no state — a declined card, an unreachable provider, a refund that failed. No generic mechanism can see these, because nothing is saved.
+- **Security events come from outside.** Keycloak's events would reach the module through its event-listener extension point or by polling its admin API. Leaving them in Keycloak is also a valid scope decision: two sources for an auditor, not five.
+
+**Storage, and where Elasticsearch fits.** Elasticsearch is strong at the reading side — search, filtering by time, user or subject, aggregations, and Kibana dashboards an auditor can use. As the store of record it is not transactional with the modules (the outbox already covers that) and documents are mutable by default; its *data streams* are append-only, with lifecycle policies for retention. Two shapes:
+
+| Shape | Store of record | Elasticsearch |
+|---|---|---|
+| A. Database first | Append-only collection or table in the audit module; its database user can insert but not update or delete | A search index fed from it, rebuildable at any time |
+| B. Elasticsearch only | Data streams | Store and search in one |
+
+A is the cheaper start. The hard part of an audit trail is capturing every change reliably, not storing it; once capture works, storage sits behind the audit module's own port, and adding or switching to Elasticsearch changes one adapter. Elasticsearch also adds real weight to the compose stack (around a gigabyte of memory, plus Kibana for the UI).
+
+**What makes it an audit log rather than a log.**
+
+- Append-only: the application never updates or deletes entries.
+- Written reliably: in the same transaction as the change, through the outbox, never best-effort afterwards.
+- Says who: the user, or the service for scheduler-driven work such as the outbox dispatcher, plus a correlation id (`checkoutId` for checkouts and payments).
+- Tamper-evident only if it is ever required, by chaining a hash of each entry into the next.
+
+**Personal data is the constraint to settle first.** A central store with full before/after history from every module becomes the most sensitive store in the system.
+
+- *Retention:* financial records usually have a legally required period, which depends on the country; other data should expire (data-stream lifecycle policies, or a TTL index).
+- *Erasure:* an append-only store conflicts with the right to erasure, as with event sourcing above. Keep personal data out of `before` and `after` where possible (ids instead of names and emails), or encrypt it per customer and delete the key.
+- Card data never enters it, which tokenization already guarantees.
+
+**Considered and not chosen as the main mechanism.**
+
+- *Audit columns* (created and modified by and at): only the last change.
+- *Hibernate Envers:* full history, but JPA only, so catalog only.
+- *Change data capture* (Debezium, MongoDB change streams): every row change with no application code, but state only, no intent and no failures, and real infrastructure to run.
+- *Database-level auditing* (`pgAudit`; MongoDB auditing is an Enterprise feature): answers "who ran which query", a DBA concern rather than a business one.
+- *Reconciliation against the payment provider* is not an alternative but a complement: a scheduled check that every provider charge has an order or a refund. It is how a shop catches a charge whose refund failed.
+
+**Open question, and why this stays a note:** nobody has decided to build it, and its cost is mostly in capture — a generic envelope, a change-capturing mechanism in each module, and explicit records for outcomes that change no state — before the audit module itself stores anything. Worth turning into a Backlog entry when checkout and payment history is needed for real (disputes, an external audit), or when the first module needs a full history of its own data, such as catalog price changes.
+
 ## Directions Worth Exploring
 
 Ideas carried over from the README's former "Extending the project" checklist. Each is a direction, not a question worked through yet; one that gets thought through earns its own section above.
@@ -139,7 +234,7 @@ Ideas carried over from the README's former "Extending the project" checklist. E
 - **Contract testing:** verifying the shapes modules exchange, so a change on one side cannot silently break the other.
 - **Extract a module into a separate service:** one module moved out of the monolith, communicating over RabbitMQ.
 - **Kafka as the communication layer:** replacing in-process events with Kafka topics.
-- **Event sourcing with AxonFramework or KurrentDB:** persisting aggregates as event streams rather than current state.
+- **Event sourcing with AxonFramework or KurrentDB:** persisting aggregates as event streams rather than current state. Payment, the likeliest candidate, is worked through in *An Event-Sourced Payment Module* above.
 - **Performance testing:** exercising the application at scale.
 - **Keycloak policy enforcer:** moving authorization decisions into Keycloak.
 - **Roles in Keycloak vs. roles in the application:** where role definitions and checks should live.

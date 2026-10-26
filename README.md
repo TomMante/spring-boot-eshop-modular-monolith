@@ -38,6 +38,7 @@ flowchart LR
 
     basket -- "product price lookup<br/>(sync, catalog-contract)" --> catalog
     basket -- "BasketCheckedOut<br/>(async, outbox)" --> ordering
+    basket -- "charge / refund<br/>(sync, Stripe API)" --> stripe[["Stripe<br/>(WireMock locally)"]]
 ```
 
 - **Separate databases.** No module reads another's tables or collections, and there are no
@@ -54,12 +55,20 @@ flowchart LR
 - **Secured.** Endpoints are an OAuth2 resource server against Keycloak; the compose stack imports
   the realm and two demo users.
 
-**Not production-safe: card data.** Checkout accepts a card number, expiry and CVV, and Basket's
-outbox and Ordering's database store them in plain text. That is acceptable only for the test
-cards this project uses. A real shop would never receive card data at all, only a payment
-provider's token. The defect is tracked as
-[Known Bug 4](docs/KNOWN_ISSUES.md#4-raw-card-data-is-stored-and-transmitted-in-clear), with
-[what PCI DSS allows](ai-coding-tools/context/card-data-and-pci-dss.md) written down beside it.
+- **No card data in the system.** Checkout receives a payment method token from Stripe, never a
+  card number or CVV, and charges it through a `PaymentGateway` port before the basket transaction
+  opens; if that transaction then fails, the charge is refunded. Orders keep only the charge
+  reference, the amount and a card summary. Locally a WireMock container plays Stripe, answering
+  with Stripe's documented successes and declines. See
+  [Payment provider](docs/ARCHITECTURE.md#-payment-provider), and
+  [what PCI DSS allows](ai-coding-tools/context/card-data-and-pci-dss.md).
+
+**Scope choice: payments.** The integration is Stripe's
+[card payments without bank authentication](https://docs.stripe.com/payments/without-card-authentication)
+flow: synchronous, server-side, and documented by Stripe for US and Canadian cards only. Cards
+that need 3-D Secure are declined. A European production shop would confirm in the browser with
+Stripe's Payment Element and handle 3-D Secure and webhooks instead. The Stripe pages the code was
+checked against are listed in [stripe-integration.md](ai-coding-tools/context/stripe-integration.md).
 
 ## Background
 
@@ -90,6 +99,7 @@ I took that base and ported it over to the Spring Boot/Java world and added my o
 4. Split the domain from the infrastructure using ports, so the domain does not depend on the persistence technology. This is put to use: Basket and Ordering run on MongoDB while Catalog stays on JPA/PostgreSQL, behind the same kind of ports.
 5. Used separate repositories for write and read. Commands go through the aggregate and its repository; queries go through their own query port and return contract DTOs straight from the store, bypassing the domain. Coming from an event-sourcing project, I see the value of a separate read database; both sides share one store today, and how a dedicated read model could grow from this split is explored in [Design Notes](docs/DESIGN_NOTES.md).
 6. Leveraged Spring Auditables to add auditing to objects.
+7. **Card payments through a provider token.** Checkout charges a Stripe payment method through a port and a `stripe-java` adapter, outside the basket transaction, with idempotency keys and a refund when the transaction fails. The adapter is tested against Stripe-shaped WireMock stubs that the compose stack also serves.
 
 ## 📖 Documentation Index
 

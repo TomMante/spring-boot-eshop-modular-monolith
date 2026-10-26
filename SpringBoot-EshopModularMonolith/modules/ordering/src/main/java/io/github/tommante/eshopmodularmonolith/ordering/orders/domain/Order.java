@@ -26,8 +26,7 @@ public class Order extends AggregateRoot<UUID> {
     }
 
 
-    private Order(UUID id, UUID checkoutId, List<Item> items, String customer, Instant placedAt,
-                  Address billingAddress, Payment payment, Address shippingAddress) {
+    private Order(UUID id, UUID checkoutId, List<Item> items, String customer, Instant placedAt, Address billingAddress, Payment payment, Address shippingAddress) {
         this.id = id;
         this.checkoutId = checkoutId;
         this.items = items;
@@ -38,8 +37,7 @@ public class Order extends AggregateRoot<UUID> {
         this.payment = payment;
     }
 
-    public static Order placeFromCheckout(UUID checkoutId, String customer, Instant placedAt, Address billingAddress,
-                                          Payment payment, Address shippingAddress, List<Item> items) {
+    public static Order placeFromCheckout(UUID checkoutId, String customer, Instant placedAt, Address billingAddress, Payment payment, Address shippingAddress, List<Item> items) {
         if (billingAddress == null) throw new IllegalArgumentException("Billing address is required");
         if (payment == null) throw new IllegalArgumentException("Payment info is required");
         if (shippingAddress == null) throw new IllegalArgumentException("Shipping address is required");
@@ -50,12 +48,13 @@ public class Order extends AggregateRoot<UUID> {
                 throw new IllegalArgumentException("Order item " + item.id() + " has no price; every item must carry the price paid at checkout");
         }
         if (checkoutId == null) throw new IllegalArgumentException("Order requires a checkout id");
-        return new Order(UUID.randomUUID(), checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
+        var order = new Order(UUID.randomUUID(), checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
+        if (payment.amount() == null || payment.amount().compareTo(order.totalPrice()) != 0)
+            throw new IllegalArgumentException("Payment amount " + payment.amount() + " does not match the order total " + order.totalPrice() + "; an order can only be placed for exactly the amount that was charged");
+        return order;
     }
 
-    public static Order reconstitute(UUID id, UUID checkoutId, String customer, Instant placedAt,
-                                     Address billingAddress, Payment payment, Address shippingAddress,
-                                     List<Item> items) {
+    public static Order reconstitute(UUID id, UUID checkoutId, String customer, Instant placedAt, Address billingAddress, Payment payment, Address shippingAddress, List<Item> items) {
         return new Order(id, checkoutId, items, customer, placedAt, billingAddress, payment, shippingAddress);
     }
 
@@ -89,8 +88,6 @@ public class Order extends AggregateRoot<UUID> {
     }
 
     public BigDecimal totalPrice() {
-        return items.stream()
-                .map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return items.stream().map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity()))).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

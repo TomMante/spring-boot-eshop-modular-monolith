@@ -3,11 +3,8 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.application.featur
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.*;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
 import io.github.tommante.eshopmodularmonolith.security.SecurityTestConfig;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
@@ -30,9 +27,7 @@ import static io.github.tommante.eshopmodularmonolith.security.TestUsersUtils.us
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = CheckoutBasketControllerTest.Config.class)
 @Import(value = {ValidationExceptionHandler.class, CheckoutBasketErrorHandler.class})
 class CheckoutBasketControllerTest {
+
+    public static final String PM_CARD_VISA = "pm_card_visa";
+
     @Configuration
     @EnableAutoConfiguration
     @Import(SecurityTestConfig.class)
@@ -61,12 +59,12 @@ class CheckoutBasketControllerTest {
     private CheckoutBasketHandler handler;
 
 
-    private CheckoutAddress toRequestAddress(Address address){
+    private CheckoutAddress toRequestAddress(Address address) {
         return new CheckoutAddress(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
     }
 
-    private CheckoutPayment toRequestPayment(Payment payment) {
-        return new CheckoutPayment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+    private CheckoutPayment requestPayment() {
+        return new CheckoutPayment(PM_CARD_VISA);
     }
 
     @Test
@@ -74,18 +72,17 @@ class CheckoutBasketControllerTest {
     void givenEndpointIsAvailable_whenCheckoutBasketEndpointIsCalled_thenControllerForwardsToHandler() throws Exception {
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
 
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 toRequestAddress(shippingAddress)
         );
 
         var cmd = new CheckoutBasketCommand(
                 "test_user",
                 billingAddress,
-                payment,
+                PM_CARD_VISA,
                 shippingAddress
         );
 
@@ -100,7 +97,7 @@ class CheckoutBasketControllerTest {
 
     @Test
     @DisplayName("When the payment is missing, then validation error returned")
-    void whenPaymentIsMissing_thenValidationErrorReturned() throws Exception{
+    void whenPaymentIsMissing_thenValidationErrorReturned() throws Exception {
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
 
@@ -120,12 +117,10 @@ class CheckoutBasketControllerTest {
 
     @Test
     @DisplayName("When the billing address is missing, then validation error returned")
-    void whenBillingAddressIsMissing_thenValidationErrorReturned() throws Exception{
-        var payment = PaymentMother.payment();
-
+    void whenBillingAddressIsMissing_thenValidationErrorReturned() throws Exception {
         var request = new CheckoutBasketRequest(
                 null,
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -139,13 +134,12 @@ class CheckoutBasketControllerTest {
 
     @Test
     @DisplayName("When the shipping address is missing, then request goes through as shipping address is optional")
-    void whenShippingAddressIsMissing_thenRequestGoesThrough() throws Exception{
+    void whenShippingAddressIsMissing_thenRequestGoesThrough() throws Exception {
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
 
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -168,10 +162,9 @@ class CheckoutBasketControllerTest {
     @DisplayName("Given a cart item that can no longer be priced, when checkout basket endpoint is called, then Bad Request is returned")
     void givenUnpriceableCartItem_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -189,10 +182,9 @@ class CheckoutBasketControllerTest {
     @DisplayName("Given no basket for the user, when checkout basket endpoint is called, then Not Found is returned")
     void givenNoBasketForUser_whenCheckoutBasketEndpointIsCalled_thenNotFoundIsReturned() throws Exception {
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -210,10 +202,9 @@ class CheckoutBasketControllerTest {
     @DisplayName("Given an empty cart, when checkout basket endpoint is called, then Bad Request is returned")
     void givenEmptyCart_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -228,12 +219,70 @@ class CheckoutBasketControllerTest {
     }
 
     @Test
+    @DisplayName("Given the payment is declined, when checkout basket endpoint is called, then Payment Required is returned")
+    void givenPaymentIsDeclined_whenCheckoutBasketEndpointIsCalled_thenPaymentRequiredIsReturned() throws Exception {
+        var request = new CheckoutBasketRequest(
+                toRequestAddress(AddressMother.address()),
+                requestPayment(),
+                null
+        );
+
+        doThrow(new PaymentDeclined("card_declined", "insufficient_funds")).when(handler).handle(any());
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.code").value("basket.checkout.payment-declined"))
+                .andExpect(jsonPath("$.message").value(containsString("card_declined/insufficient_funds")));
+    }
+
+    @Test
+    @DisplayName("Given the payment method is invalid, when checkout basket endpoint is called, then Bad Request is returned")
+    void givenPaymentMethodIsInvalid_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
+        var request = new CheckoutBasketRequest(
+                toRequestAddress(AddressMother.address()),
+                requestPayment(),
+                null
+        );
+
+        doThrow(new InvalidPaymentMethod()).when(handler).handle(any());
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("basket.checkout.payment-method-invalid"));
+    }
+
+    @Test
+    @DisplayName("Given the payment provider is unavailable, when checkout basket endpoint is called, then Service Unavailable is returned")
+    void givenPaymentProviderIsUnavailable_whenCheckoutBasketEndpointIsCalled_thenServiceUnavailableIsReturned() throws Exception {
+        var request = new CheckoutBasketRequest(
+                toRequestAddress(AddressMother.address()),
+                requestPayment(),
+                null
+        );
+
+        doThrow(new PaymentProviderUnavailable(new RuntimeException("connection refused"))).when(handler).handle(any());
+
+        mockMvc.perform(post("/basket/checkout")
+                        .with(user("test_user"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("basket.checkout.payment-unavailable"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(containsString("connection refused"))));
+    }
+
+    @Test
     @DisplayName("Given an all-blank billing address, when checkout basket endpoint is called, then Bad Request is returned")
     void givenAllBlankBillingAddress_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
-        var payment = PaymentMother.payment();
         var request = new CheckoutBasketRequest(
                 new CheckoutAddress("", "", "", "", "", "", ""),
-                toRequestPayment(payment),
+                requestPayment(),
                 null
         );
 
@@ -257,7 +306,7 @@ class CheckoutBasketControllerTest {
         var billingAddress = AddressMother.address();
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                new CheckoutPayment("", "", "", ""),
+                new CheckoutPayment(""),
                 null
         );
 
@@ -266,22 +315,17 @@ class CheckoutBasketControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors", aMapWithSize(4)))
-                .andExpect(jsonPath("$.fieldErrors['payment.cardName']").value("Cardholder name is required."))
-                .andExpect(jsonPath("$.fieldErrors['payment.cardNumber']").value("Card number is required."))
-                .andExpect(jsonPath("$.fieldErrors['payment.expiration']").value("Card expiration is required."))
-                .andExpect(jsonPath("$.fieldErrors['payment.cvv']").value("Card CVV is required."));
-
+                .andExpect(jsonPath("$.fieldErrors", aMapWithSize(1)))
+                .andExpect(jsonPath("$.fieldErrors['payment.paymentMethodId']").value(containsString("Payment method id is required.")));
     }
 
     @Test
     @DisplayName("Given an all-blank shipping address, when checkout basket endpoint is called, then Bad Request is returned")
     void givenAllBlankShippingAddress_whenCheckoutBasketEndpointIsCalled_thenBadRequestIsReturned() throws Exception {
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
         var request = new CheckoutBasketRequest(
                 toRequestAddress(billingAddress),
-                toRequestPayment(payment),
+                requestPayment(),
                 new CheckoutAddress("", "", "", "", "", "", "")
         );
 
@@ -305,7 +349,7 @@ class CheckoutBasketControllerTest {
         var address = AddressMother.address();
         var request = new CheckoutBasketRequest(
                 new CheckoutAddress(address.firstName(), address.lastName(), " ", address.addressLine(), address.country(), address.state(), address.zipCode()),
-                toRequestPayment(PaymentMother.payment()),
+                requestPayment(),
                 null);
 
         mockMvc.perform(post("/basket/checkout")

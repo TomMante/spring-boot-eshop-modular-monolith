@@ -5,13 +5,7 @@ import io.github.tommante.eshopmodularmonolith.catalog.products.contract.Product
 import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.PageRequest;
 import io.github.tommante.eshopmodularmonolith.shared.domain.pagination.PageResult;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class FakeProductQueryRepository implements ProductQueryRepository {
 

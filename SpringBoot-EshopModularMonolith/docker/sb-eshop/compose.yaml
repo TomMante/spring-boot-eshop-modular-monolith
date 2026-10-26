@@ -54,3 +54,11 @@ services:
     command:
       - "start-dev"
       - "--import-realm"
+  payment-provider:
+    # A Stripe stand-in: WireMock serving the Stripe-shaped stubs in ./payment-provider/mappings.
+    # Keep the tag equal to wiremock.version in the root pom, so the tests run the same WireMock build.
+    image: wiremock/wiremock:3.13.2
+    volumes:
+      - ./payment-provider:/home/wiremock:ro
+    ports:
+      - "12111:8080"
