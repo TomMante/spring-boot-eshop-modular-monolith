@@ -1,13 +1,14 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.PaymentProviderUnavailable;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.BasketRepository;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.ProductService;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.ProductInfo;
+import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.adapters.fake.FakePaymentGateway;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.BasketOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.BasketDatabaseTest;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.MongoBasketRepository;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,11 +40,14 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Clock;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -112,8 +117,20 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         }
 
         @Bean
-        CheckoutBasketHandler checkoutBasketHandler(BasketRepository repository, ProductService productService) {
-            return new CheckoutBasketHandler(repository, productService, Clock.systemUTC());
+        FakePaymentGateway paymentGateway() {
+            return new FakePaymentGateway();
+        }
+
+        @Bean("basketTransactionOperations")
+        TransactionOperations basketTransactionOperations(@Qualifier("basketTransactionManager") PlatformTransactionManager transactionManager) {
+            return new TransactionTemplate(transactionManager);
+        }
+
+        @Bean
+        CheckoutBasketHandler checkoutBasketHandler(BasketRepository repository, ProductService productService,
+                                                    FakePaymentGateway paymentGateway,
+                                                    @Qualifier("basketTransactionOperations") TransactionOperations transactionOperations) {
+            return new CheckoutBasketHandler(repository, productService, paymentGateway, transactionOperations, Clock.systemUTC());
         }
     }
 
@@ -123,6 +140,8 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
     private BasketRepository basketRepository;
     @Autowired
     private OutboxPayloadSerializer serializer;
+    @Autowired
+    private FakePaymentGateway paymentGateway;
     @MockitoBean
     private ProductService productService;
     @MockitoSpyBean
@@ -133,6 +152,7 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
     @BeforeEach
     void setUpFixtures() {
+        paymentGateway.reset();
         userName = "John";
         item = new Item(UUID.randomUUID(), UUID.randomUUID(), 1, new BigDecimal("400.00"), "hat");
         when(productService.fetchProductInfo(item.productId()))
@@ -149,9 +169,8 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
         seedBasket();
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
 
-        handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress));
+        handler.handle(new CheckoutBasketCommand(userName, billingAddress, "pm_card_visa",shippingAddress));
 
         assertThat(basketRepository.findByUsername(userName)).isEmpty();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).hasSize(1);
@@ -161,7 +180,6 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
                 .isInstanceOfSatisfying(BasketCheckedOut.class, event -> {
                     assertThat(event.billingAddress()).isEqualTo(billingAddress);
                     assertThat(event.shippingAddress()).isEqualTo(shippingAddress);
-                    assertThat(event.payment()).isEqualTo(payment);
                 });
     }
 
@@ -173,12 +191,25 @@ class CheckoutBasketHandlerTransactionalTest extends BasketDatabaseTest {
 
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
 
-        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName, billingAddress, payment, shippingAddress)))
+        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName, billingAddress, "pm_card_visa", shippingAddress)))
                 .isInstanceOf(RuntimeException.class);
 
         assertThat(basketRepository.findByUsername(userName)).isPresent();
         assertThat(mongoTemplate.findAll(OutboxEventDocument.class)).isEmpty();
+        assertThat(paymentGateway.refunds()).containsExactlyElementsOf(paymentGateway.charges());
+        assertThat(paymentGateway.charges()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Given the outbox save fails and the refund fails too, when handling, then the original failure reaches the caller and the basket is not removed")
+    void givenOutboxSaveFailsAndRefundFails_thenOriginalFailureReachesCallerAndBasketRemains() {
+        seedBasket();
+        doThrow(new RuntimeException("outbox down")).when(outboxEventStore).save(any());
+        paymentGateway.failRefundsWith(new PaymentProviderUnavailable(new RuntimeException("provider down")));
+
+        assertThatThrownBy(() -> handler.handle(new CheckoutBasketCommand(userName, AddressMother.address(), "pm_card_visa", null)))
+                .hasMessageContaining("outbox down");
+        assertThat(basketRepository.findByUsername(userName)).isPresent();
     }
 }

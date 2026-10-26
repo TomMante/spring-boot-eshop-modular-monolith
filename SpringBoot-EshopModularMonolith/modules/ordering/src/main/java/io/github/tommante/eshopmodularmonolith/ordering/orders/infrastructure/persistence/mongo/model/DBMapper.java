@@ -1,12 +1,10 @@
 package io.github.tommante.eshopmodularmonolith.ordering.orders.infrastructure.persistence.mongo.model;
 
-import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.ItemDTO;
-import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.OrderDTO;
-import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.PaymentDTO;
+import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.*;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Item;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
+import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.CardSummary;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 
 public class DBMapper {
@@ -21,11 +19,21 @@ public class DBMapper {
     }
 
     public static PaymentDB toDb(Payment payment) {
-        return new PaymentDB(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+        var card = payment.card();
+        return new PaymentDB(payment.chargeReference(), payment.amount(),
+                new CardSummaryDB(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 
     public static Payment toDomain(PaymentDB payment) {
-        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+        var card = payment.card();
+        return new Payment(payment.chargeReference(), payment.amount(),
+                new CardSummary(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
+    }
+
+    public static PaymentDTO toDto(PaymentDB payment) {
+        var card = payment.card();
+        return new PaymentDTO(payment.chargeReference(), payment.amount(),
+                new CardSummaryDTO(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 
     public static ItemDB toDb(Item item){
@@ -46,10 +54,6 @@ public class DBMapper {
 
     public static AddressDTO toDto(AddressDB address){
         return new AddressDTO(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
-    }
-
-    public static PaymentDTO toDto(PaymentDB payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
     }
 
     public static ItemDTO toDto(ItemDB item){

@@ -1,0 +1,47 @@
+meta {
+  name: Checkout Basket (Declined)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/basket/checkout
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "billingAddress": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "emailAddress": "john.doe@example.com",
+      "addressLine": "1 Billing Street",
+      "country": "USA",
+      "state": "Billing State",
+      "zipCode": "10001"
+    },
+    "payment": {
+      "paymentMethodId": "pm_card_visa_chargeDeclined"
+    }
+  }
+}
+
+assert {
+  res.status: eq 402
+  res.body.code: eq "basket.checkout.payment-declined"
+}
+
+docs {
+  Checks out with a payment method the provider declines. Expect `402` with code `basket.checkout.payment-declined`; the basket is kept, so the customer can retry with another payment method.
+
+  Other test ids the `payment-provider` service declines, with Stripe's codes:
+
+  - `pm_card_visa_chargeDeclined`: `card_declined` / `generic_decline`
+  - `pm_card_visa_chargeDeclinedInsufficientFunds`: `card_declined` / `insufficient_funds`
+  - `pm_card_chargeDeclinedExpiredCard`: `expired_card`
+  - `pm_card_chargeDeclinedIncorrectCvc`: `incorrect_cvc`
+  - `pm_card_authenticationRequired`: `authentication_required` / `authentication_not_handled` (3-D Secure isn't supported by this integration)
+
+  Any other id answers `400` with code `basket.checkout.payment-method-invalid`. With the `payment-provider` service stopped, checkout answers `503` with code `basket.checkout.payment-unavailable`.
+}

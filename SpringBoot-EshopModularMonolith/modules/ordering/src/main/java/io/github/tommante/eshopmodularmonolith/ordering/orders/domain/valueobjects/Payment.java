@@ -1,9 +1,6 @@
 package io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects;
 
-public record Payment(
-        String cardName,
-        String cardNumber,
-        String expiration,
-        String cvv
-) {
+import java.math.BigDecimal;
+
+public record Payment(String chargeReference, BigDecimal amount, CardSummary card) {
 }

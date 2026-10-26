@@ -1,7 +1,7 @@
 # Card Data and PCI DSS
 
 Researched on 2026-10-21, against PCI DSS v4.0.1. Background for
-[Known Bug 4](../../docs/KNOWN_ISSUES.md#4-raw-card-data-is-stored-and-transmitted-in-clear).
+Known Bug 4 (raw card data stored and transmitted in clear), closed by [tokenized-card-payment](../plans/tokenized-card-payment/tokenized-card-payment.md).
 
 **How far this was checked:** the CVV rule (section 2) was read on the PCI Security
 Standards Council's own FAQ. The other requirement numbers and their wording come from
@@ -39,6 +39,13 @@ What this means for the options:
 - **This project never authorizes a payment.** No step charges the card, so no point
   exists after which the CVV should be gone. Today it stays indefinitely in two places:
   the basket outbox document and `PaymentDB` in the order database.
+
+> **Update, 2026-10-26:** no longer true. Since
+> [tokenized-card-payment](../plans/tokenized-card-payment/tokenized-card-payment.md), checkout
+> receives a Stripe payment method token instead of card details and charges it through the
+> provider; no card number, expiry or CVV reaches the application, its outbox or its databases.
+> The flow is described in [stripe-integration.md](stripe-integration.md). The research text above
+> is left as written.
 
 ## 3. The PAN may be stored, but not as it is
 

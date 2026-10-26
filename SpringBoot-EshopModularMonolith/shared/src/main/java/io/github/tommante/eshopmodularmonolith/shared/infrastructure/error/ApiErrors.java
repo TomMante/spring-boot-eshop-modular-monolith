@@ -35,4 +35,14 @@ public class ApiErrors {
         return ResponseEntity.status(404)
                 .body(new ApiError(code, message, null));
     }
+
+    public static ResponseEntity<ApiError> paymentRequired(String code, String message){
+        return ResponseEntity.status(402)
+                .body(new ApiError(code, message, null));
+    }
+
+    public static ResponseEntity<ApiError> serviceUnavailable(String code, String message){
+        return ResponseEntity.status(503)
+                .body(new ApiError(code, message, null));
+    }
 }

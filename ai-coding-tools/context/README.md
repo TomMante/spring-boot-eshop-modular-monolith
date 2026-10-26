@@ -19,4 +19,5 @@ several documents depend on.
 
 | File | Background for |
 |---|---|
-| [card-data-and-pci-dss.md](card-data-and-pci-dss.md) | What PCI DSS allows a merchant to store about a payment card, and why encrypting the data does not fix Known Bug 4. |
+| [card-data-and-pci-dss.md](card-data-and-pci-dss.md) | What PCI DSS allows a merchant to store about a payment card, and why encrypting the data would not have fixed Known Bug 4 (closed by tokenized-card-payment). |
+| [stripe-integration.md](stripe-integration.md) | Which Stripe flow checkout uses, its US/Canada limitation, the Stripe features it relies on, why WireMock stands in for Stripe, and the Stripe documentation the code was checked against. |

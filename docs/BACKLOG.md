@@ -95,6 +95,19 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Decision needed:** whether a price shown in a preview is binding (held for a while at checkout, which needs a quote with an expiry) or informational only (checkout may still charge a newer price).
 - **Why deferred:** raised on 2026-10-19 in [checkout-price-on-order](../ai-coding-tools/plans/checkout-price-on-order/checkout-price-on-order.md), which placed the price at checkout and on the order; a preview is separate work.
 
+### 20. 3-D Secure (Bank Authentication) at Checkout
+- Checkout uses Stripe's *card payments without bank authentication* flow: the server confirms the PaymentIntent with `error_on_requires_action=true`, and a card that needs 3-D Secure is declined (`authentication_required` / `authentication_not_handled`). Stripe documents that flow for US and Canadian cards only. In a European shop, where banks regularly ask for authentication, many legitimate cards would be declined; this is the largest gap between the project and a production integration.
+- **Shape:** checkout becomes two steps. The server creates the PaymentIntent and returns its `client_secret`; the browser confirms it with Stripe's Payment Element, which runs 3-D Secure; the server learns the outcome from a webhook (`payment_intent.succeeded` / `payment_intent.payment_failed`) and only then records `BasketCheckedOut`. That needs a pending-checkout state, webhook handling with signature verification, and a client, none of which exist today.
+- **Decision needed:** whether the basket is held while a payment is pending, and what a pending checkout looks like to the customer.
+- **Sources:** [stripe-integration.md](../ai-coding-tools/context/stripe-integration.md) (section 2).
+- **Why deferred:** the increment that introduced payments, [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md), was scoped to getting card data out of the system; 3-D Secure needs a client this project doesn't have.
+
+### 21. Saved Cards (Card on File)
+- A returning customer enters their card every time. Saved cards would let them pick one.
+- **Shape:** the provider keeps the card. The shop creates a Stripe Customer for each user, attaches the payment method to it (`setup_future_usage` on the PaymentIntent), and stores only the customer reference, the payment method id and the card summary for display. A later checkout sends the saved payment method id with the customer reference. No card data is stored by the shop either way.
+- **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
+- **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.

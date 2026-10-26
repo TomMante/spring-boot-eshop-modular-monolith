@@ -1,6 +1,12 @@
 eshop:
   catalog:
     seed-demo-data: true
+  basket:
+    payment:
+      currency: eur
+      stripe:
+        api-base: http://localhost:12111
+        api-key: sk_test_wiremock
 
 spring:
   application:

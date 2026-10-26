@@ -1,7 +1,8 @@
 package io.github.tommante.eshopmodularmonolith.ordering.orders.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.CardSummaryDTO;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ChargeDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.application.features.createorder.CreateOrderHandler;
@@ -73,7 +74,7 @@ class BasketCheckoutIntegrationEventListenerTest {
     private BasketCheckoutIntegrationEvent checkoutEvent(UUID eventId, String userName) {
         var item = new CheckedOutItemDTO(UUID.randomUUID(), UUID.randomUUID(), 2, BigDecimal.valueOf(12.50), "Boba");
         return new BasketCheckoutIntegrationEvent(eventId, userName, List.of(item), BigDecimal.valueOf(25.00),
-                toDto(AddressMother.address()), toDto(PaymentMother.payment()), toDto(AddressMother.address("Midgard")));
+                toDto(AddressMother.address()), toDto(PaymentMother.payment(new BigDecimal("25.00"))), toDto(AddressMother.address("Midgard")));
     }
 
     @Test
@@ -84,7 +85,7 @@ class BasketCheckoutIntegrationEventListenerTest {
         var item = new CheckedOutItemDTO(itemId, productId, 2, BigDecimal.valueOf(12.50), "Boba");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
+        var payment = PaymentMother.payment(new BigDecimal("25.00"));
         var event = new BasketCheckoutIntegrationEvent(
                 UUID.randomUUID(),
                 "john",
@@ -141,8 +142,10 @@ class BasketCheckoutIntegrationEventListenerTest {
         return new AddressDTO(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
     }
 
-    private PaymentDTO toDto(Payment payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+    private ChargeDTO toDto(Payment payment) {
+        var card = payment.card();
+        return new ChargeDTO(payment.chargeReference(), payment.amount(),
+                new CardSummaryDTO(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 
 }

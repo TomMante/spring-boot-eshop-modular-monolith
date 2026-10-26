@@ -1,6 +1,9 @@
 package io.github.tommante.eshopmodularmonolith.basket;
 
 import com.mongodb.client.MongoClient;
+import com.stripe.StripeClient;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.PaymentGateway;
+import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.adapters.payment.StripePaymentGateway;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.BasketOutboxEvents;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventSubscriber;
@@ -10,6 +13,7 @@ import io.github.tommante.eshopmodularmonolith.outboxmongo.MongoOutboxEventStore
 import io.github.tommante.eshopmodularmonolith.shared.domain.DomainEventRegistry;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +23,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @EnableMongoRepositories(
@@ -66,6 +73,29 @@ public class BasketModuleConfig {
     @Bean("basketOutboxEventSubscriber")
     public OutboxEventSubscriber outboxEventSubscriber(@Qualifier("basketOutboxEventStore") OutboxEventStore outboxEventStore, OutboxPayloadSerializer serializer) {
         return new OutboxEventSubscriber(outboxEventStore, serializer);
+    }
+
+    @Bean("basketTransactionOperations")
+    public TransactionOperations basketTransactionOperations(@Qualifier("basketTransactionManager") PlatformTransactionManager transactionManager) {
+        return new TransactionTemplate(transactionManager);
+    }
+
+    @Bean("basketStripeClient")
+    public StripeClient basketStripeClient(@Value("${eshop.basket.payment.stripe.api-base}") String apiBase,
+                                           @Value("${eshop.basket.payment.stripe.api-key}") String apiKey) {
+        return StripeClient.builder()
+                .setApiKey(apiKey)
+                .setApiBase(apiBase)
+                .setConnectTimeout(2_000)
+                .setReadTimeout(10_000)
+                .setMaxNetworkRetries(2)
+                .build();
+    }
+
+    @Bean("basketPaymentGateway")
+    public PaymentGateway basketPaymentGateway(@Qualifier("basketStripeClient") StripeClient stripeClient,
+                                               @Value("${eshop.basket.payment.currency}") String currency) {
+        return new StripePaymentGateway(stripeClient, currency);
     }
 
 }

@@ -3,9 +3,9 @@ package io.github.tommante.eshopmodularmonolith.ordering.orders.application.feat
 import io.github.tommante.eshopmodularmonolith.ordering.orders.contract.DTOMapper;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.OrderMother;
 import io.github.tommante.eshopmodularmonolith.security.SecurityTestConfig;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import io.github.tommante.eshopmodularmonolith.shared.contract.identity.CurrentUser;
 import io.github.tommante.eshopmodularmonolith.shared.contract.pagination.PaginatedResults;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

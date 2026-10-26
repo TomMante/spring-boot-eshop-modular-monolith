@@ -3,6 +3,7 @@ package io.github.tommante.eshopmodularmonolith.ordering.orders.contract;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Item;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.Order;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.Address;
+import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.CardSummary;
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.valueobjects.Payment;
 
 public class DTOMapper {
@@ -21,11 +22,15 @@ public class DTOMapper {
     }
 
     public static PaymentDTO toDto(Payment payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+        var card = payment.card();
+        return new PaymentDTO(payment.chargeReference(), payment.amount(),
+                new CardSummaryDTO(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 
     public static Payment toDomain(PaymentDTO payment) {
-        return new Payment(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+        var card = payment.card();
+        return new Payment(payment.chargeReference(), payment.amount(),
+                new CardSummary(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 
     public static ItemDTO toDto(Item item){

@@ -28,7 +28,7 @@ Better solutions:
 SonarCloud reports some code as duplicated that is duplicated on purpose. Do not merge these copies:
 - **`OutboxEventEntity` and `OutboxEventDocument`**: two adapters over two database engines. Showing that is the point of this project.
 - **`Product` and `ProductDB`**: a domain model and its persistence projection. The ports/adapters split requires both.
-- **`PaymentMother`/`AddressMother` in basket and in ordering**: they mirror the `Payment` and `Address` value objects, which each module owns separately on purpose. Sharing the test builders would couple the two modules.
+- **`AddressMother` in basket and in ordering, and basket's `ChargeMother` next to ordering's `PaymentMother`**: they mirror value objects each module owns separately on purpose (`Address`; basket's `Charge` and ordering's `Payment`, each with its own `CardSummary`). Sharing the test builders would couple the two modules.
 
 Test fakes for a shared port are different: there is only one, published from the test-jar of the module that owns the port (e.g. `outboxcore.fake.FakeOutboxEventStore` from `outbox-core`), because two copies of a fake drift apart.
 
@@ -92,6 +92,8 @@ decision belong past it.
 |---|---|---|
 | Total price from items × prices | `ShoppingCart.checkout` | Function of the cart's own items |
 | Fetching current prices | `CheckoutBasketHandler` | Needs `ProductService` — a port |
+| Charging the customer, and refunding when the checkout then fails | `CheckoutBasketHandler` | Needs `PaymentGateway` — a port — and must sit outside the transaction (see [Payment provider](#-payment-provider)) |
+| The charge must equal the checkout total (`ChargeDoesNotMatchTotal`) | `ShoppingCart.checkout` | An invariant of the cart's own lines, whoever calls it |
 | Shipping defaults to billing when absent | `ShoppingCart.checkout` | Pure function of its arguments |
 | Loading the cart / `BasketNotFound` | handler | Repository lookup |
 | Deleting the basket after checkout | handler | A lifecycle decision *about* the aggregate, not *by* it |
@@ -129,7 +131,7 @@ different parties, and they change for different reasons.
 
 | Type | Lives in | Party | Example |
 |---|---|---|---|
-| Module contract | `<module>-contract` | other modules, which compile against it | `BasketCheckoutIntegrationEvent`, its `AddressDTO`/`PaymentDTO` |
+| Module contract | `<module>-contract` | other modules, which compile against it | `BasketCheckoutIntegrationEvent`, its `AddressDTO`/`ChargeDTO` |
 | Request shape | `<module>-core/…/application/features/<feature>/` | an HTTP client, which only ever sees JSON | `CheckoutBasketRequest`, `CheckoutAddress`, `CheckoutPayment` |
 
 **Rule:**
@@ -138,10 +140,29 @@ different parties, and they change for different reasons.
 Why the duplication is not duplicated knowledge:
 - **Different audiences.** No module calls another module's endpoint, so a request type in `-contract` would be visible to exactly the modules that must never use it.
 - **Different change clocks.** Integration events are persisted in an outbox; changing their shape changes data already at rest (see Known Issues). A request can gain or lose a field without touching that.
-- **They already have reasons to diverge.** Checkout must accept card details from the client, while the published event should eventually carry a provider token instead (see Known Issues, raw card data).
+- **They do diverge.** The checkout request carries a payment method id from the provider (`CheckoutPayment.paymentMethodId`), while the published event carries the charge the provider returned (`ChargeDTO`: reference, amount, card summary). Neither shape could stand in for the other.
 - **Annotations would lie on the event.** `@NotBlank` on an event field reads as a guarantee to the consuming module, and nothing on its side enforces it.
 
 The controller maps the request records into domain value objects (`CheckoutAddress.toDomain()`); the domain value object stays the pivot between the request and the published event, so neither knows about the other.
+
+---
+
+## 💳 Payment provider
+
+Checkout charges the customer through a payment provider, Stripe, and **no card data ever reaches the application.** The client gets a payment method id (`pm_…`) from the provider, in a browser from Stripe's hosted card field, and checkout carries only that id. What the application stores and publishes is the provider's answer: a charge reference (`pi_…`), the amount charged, and a card summary (brand, last four digits, expiry) read from the provider's response, never from the client. Background: [card-data-and-pci-dss.md](../ai-coding-tools/context/card-data-and-pci-dss.md).
+
+**The seam.** Basket's domain declares the port, `PaymentGateway` (`charge(ChargeRequest)`, `refund(Charge)`), like `ProductService` for catalog. `StripePaymentGateway` in basket's infrastructure is the adapter, built on the `stripe-java` SDK; a decline, an unusable payment method and an unreachable provider become `PaymentDeclined` (`402`), `InvalidPaymentMethod` (`400`) and `PaymentProviderUnavailable` (`503`), and the basket is kept in all three cases.
+
+**The charge sits outside the transaction.** `CheckoutBasketHandler` prices the cart, charges it, and only then opens the basket transaction (`basketTransactionOperations`) to record `BasketCheckedOut` and delete the basket:
+- a network call inside a Mongo transaction would hold the transaction open for the round trip, and a rollback can't undo a charge anyway;
+- if the transaction fails after the charge, the handler **refunds** the charge and rethrows the original failure. A refund that also fails is logged at ERROR with the checkout id and the charge reference, and the customer is left charged with no order (see [Known Issues](KNOWN_ISSUES.md));
+- `ShoppingCart.checkout` rejects a charge whose amount differs from its own total, so a mismatch is just another failed transaction, and refunded the same way.
+
+**Idempotency and tracing.** The checkout id is the charge's idempotency key, the PaymentIntent's `metadata[checkout_id]`, the outbox event's id and the order's `checkoutId`: one value from the provider to the order. The refund's key is `refund-<charge reference>`. Retries are therefore safe (`maxNetworkRetries(2)`), and a refund is found through the PaymentIntent it points at.
+
+**Which Stripe flow, and its limit.** This is Stripe's [card payments without bank authentication](https://docs.stripe.com/payments/without-card-authentication): the server creates and confirms the PaymentIntent in one call, with `error_on_requires_action=true`, and gets `succeeded` or an error back synchronously. Stripe documents it for businesses accepting cards from the US and Canada only. A card that needs 3-D Secure is declined (`authentication_required`), which in a European shop would be many legitimate cards. That is a deliberate scope choice for this project: a European production integration would confirm in the browser with Stripe's Payment Element, handle 3-D Secure, and learn outcomes through webhooks. The flow, the features used, and every Stripe page the code was checked against are in [stripe-integration.md](../ai-coding-tools/context/stripe-integration.md).
+
+**Locally, Stripe is WireMock.** The `payment-provider` compose service serves Stripe-shaped stubs from `docker/sb-eshop/payment-provider/mappings`: successes for `pm_card_visa` and `pm_card_mastercard`, Stripe's documented errors for its decline test ids, `resource_missing` for anything else. `StripePaymentGatewayTest` and `ApplicationWiringTest` load the same files, so the tests check the stubs the demo runs on. Pointing `eshop.basket.payment.stripe.api-base` and `api-key` at real Stripe test mode needs no code change.
 
 ---
 

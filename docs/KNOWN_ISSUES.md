@@ -10,19 +10,19 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 
 ## 🐛 Known Bugs
 
-### 4. Raw Card Data Is Stored and Transmitted in Clear
-- **Locations:** `CheckoutPayment` (basket's checkout request), `orders.contract.PaymentDTO`, `basket.contract.PaymentDTO`, `orders.domain.valueobjects.Payment`, `basket.domain.valueobjects.Payment`, `PaymentDB`, the basket `outbox` collection
-- **Issue:** The full card number, expiry and CVV travel through the API, the domain, the integration event, and both databases as plain text. CVV must never be stored at all under PCI DSS, and a PAN should be tokenized or reduced to brand plus last four digits. Order storage predates the checkout work; capturing payment at checkout widened the exposure by adding a second copy at rest, as JSON in the basket outbox. What PCI DSS allows, and why encrypting the data would not be enough: [card-data-and-pci-dss.md](../ai-coding-tools/context/card-data-and-pci-dss.md).
-- **Impact:** Acceptable only because this is a study project against test data with no real cardholder information. It would be a blocking compliance defect in any deployed system.
-- **Mitigated so far:** `InMemoryMessageBus` no longer logs message payloads, so the data does not reach application logs.
-- **Action Required:** Out of reach of a refactor — it needs a payment provider integration, so that checkout carries a provider token instead of card details and no module ever sees a PAN. Until then, do not add further copies, and keep payloads out of logs.
-
 ### 13. Deleting an Order Lets Its Checkout Be Placed Again
 - **Locations:** `DeleteOrderHandler` → `MongoOrderRepository.delete`; the `orders_checkoutId_unique` index on `OrderDB.checkoutId`; `BasketCheckoutIntegrationEventListener`
 - **Issue:** A redelivered checkout event is deduplicated by the unique index on `checkoutId`: the second insert collides, and the listener catches `OrderAlreadyExists` and skips it. `DELETE /order/{id}` is a hard delete, so it removes the document and its index entry together. A redelivery of that checkout arriving after the delete no longer collides with anything, and the order is placed again.
 - **Impact:** Narrow window, silent result. Redelivery happens only inside the outbox retry window — `markAsProcessed` failing after a successful publish (retried after the outbox backoff, 5 seconds after the first failure), or two application instances polling the same unprocessed event — so a customer would have to delete the order inside it. When it does happen, the deleted order simply reappears; nothing logs it as a duplicate, because it no longer is one.
 - **Accepted on 2026-09-16** in [order-endpoints-scoped-to-customer](../ai-coding-tools/plans/order-endpoints-scoped-to-customer/order-endpoints-scoped-to-customer.md), which scoped delete to the caller's own orders but kept it a hard delete rather than widening that increment.
 - **Action Required:** Replace the hard delete with a state change — a cancelled or deleted state on `Order` that the read queries exclude — so the document and its index entry survive. That adds state to the aggregate and the first update path to `OrderRepository`. Note that `MongoOrderRepository.save` replaces the stored document wholesale, so the update path needs its own method that sets only the fields the domain owns.
+
+### 14. A Failed Refund Leaves the Customer Charged With No Order
+- **Locations:** `CheckoutBasketHandler.refundAfterFailedCheckout`, `StripePaymentGateway.refund`
+- **Issue:** checkout charges the customer before the basket transaction opens, and refunds the charge if that transaction fails. If the refund also fails (the provider unreachable, a timeout), nothing retries it: the handler logs an ERROR with the checkout id and the charge reference, and rethrows the original failure. The customer has paid, no order exists, and the basket is still there.
+- **Impact:** needs two failures in a row: the basket transaction (Mongo, the outbox write) and then the provider. Rare, but the outcome is money taken for nothing, and the only trace is a log line. The charge can be found in Stripe from the checkout id, through the PaymentIntent's `metadata[checkout_id]`.
+- **Accepted on 2026-10-26** in [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md), which introduced the charge and kept the compensation synchronous and best-effort.
+- **Action Required:** make the refund durable instead of best-effort, e.g. write a pending-refund record that a scheduled job retries until the provider confirms, the way the outbox retries events. The refund call is already idempotent (`refund-<charge reference>`), so retrying it is safe.
 
 ## 🧪 Testing Considerations & Gaps
 

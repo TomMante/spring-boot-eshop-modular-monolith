@@ -3,7 +3,8 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.mes
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.CardSummary;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Charge;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxSchemaRegistry;
 import io.github.tommante.eshopmodularmonolith.outboxcore.StoredOutboxEvent;
@@ -56,7 +57,7 @@ class BasketOutboxPayloadFixturesTest {
                         "Galaxy Smartphone")),
                 new BigDecimal("998.00"),
                 new Address("John", "Doe", "john.doe@example.com", "1 Billing Street", "USA", "Billing State", "10001"),
-                new Payment("John Doe", "4111111111111111", "12/29", "123"),
+                new Charge("ch_fixture", new BigDecimal("998.00"), new CardSummary("visa", "4242", 8, 2030)),
                 new Address("Jane", "Roe", "jane.roe@example.com", "2 Shipping Avenue", "USA", "Shipping State", "90210")));
     }
 

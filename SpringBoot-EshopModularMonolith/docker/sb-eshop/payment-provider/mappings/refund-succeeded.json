@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/refunds",
+    "headers": {
+      "Idempotency-Key": {
+        "matches": ".+"
+      }
+    },
+    "formParameters": {
+      "payment_intent": {
+        "matches": "pi_.+"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": [
+      "response-template"
+    ],
+    "body": "{{formData request.body 'form' urlDecode=true}}{\"id\":\"re_{{randomValue length=14 type='ALPHANUMERIC'}}\",\"object\":\"refund\",\"status\":\"succeeded\",\"payment_intent\":\"{{form.payment_intent}}\"}"
+  }
+}

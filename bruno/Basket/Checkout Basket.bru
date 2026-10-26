@@ -22,10 +22,7 @@ body:json {
       "zipCode": "10001"
     },
     "payment": {
-      "cardName": "John Doe",
-      "cardNumber": "4111111111111111",
-      "expiration": "12/29",
-      "cvv": "123"
+      "paymentMethodId": "pm_card_visa"
     },
     "shippingAddress": {
       "firstName": "Jane",
@@ -37,4 +34,19 @@ body:json {
       "zipCode": "90210"
     }
   }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Checks out the basket and charges it through the payment provider.
+
+  `payment.paymentMethodId` is a token from the provider, never card details. In a browser, Stripe's card field (Elements) creates it; here it is one of Stripe's test payment method ids, answered by the `payment-provider` WireMock service:
+
+  - `pm_card_visa`: succeeds, card summary `visa` / `4242`
+  - `pm_card_mastercard`: succeeds, card summary `mastercard` / `4444`
+
+  For a decline, see *Checkout Basket (Declined)*.
 }

@@ -3,8 +3,8 @@ package io.github.tommante.eshopmodularmonolith.ordering.orders.application.feat
 
 import io.github.tommante.eshopmodularmonolith.ordering.orders.domain.exceptions.OrderNotFound;
 import io.github.tommante.eshopmodularmonolith.security.SecurityTestConfig;
-import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import io.github.tommante.eshopmodularmonolith.shared.contract.identity.CurrentUser;
+import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ValidationExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static io.github.tommante.eshopmodularmonolith.security.TestUsersUtils.user;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

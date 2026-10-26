@@ -1,10 +1,12 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.mapper.DTOMapper;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.CardSummaryDTO;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ChargeDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.ChargeMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging.fake.FakeMessageBus;
@@ -56,8 +58,9 @@ class BasketOutboxDispatcherTest {
         var item = new CheckedOutItem(UUID.randomUUID(), UUID.randomUUID(), 2, new BigDecimal("9.99"), "socks");
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
-        var domainEvent = new BasketCheckedOut(NOW, "john", List.of(item), new BigDecimal("19.98"), billingAddress, payment, shippingAddress);
+        var total = new BigDecimal("19.98");
+        var charge = ChargeMother.charge(total);
+        var domainEvent = new BasketCheckedOut(UUID.randomUUID(), NOW, "john", List.of(item), total, billingAddress, charge,  shippingAddress);
         outboxEventStore.save(serializer.toStored(domainEvent));
 
         assertThat(outboxEventStore.fetchDue(Instant.MAX)).isNotEmpty();
@@ -65,8 +68,10 @@ class BasketOutboxDispatcherTest {
         assertThat(outboxEventStore.fetchDue(Instant.MAX)).isEmpty();
 
         var expectedItem = new CheckedOutItemDTO(item.id(), item.productId(), item.quantity(), item.price(), item.productName());
+        var expectedCharge = new ChargeDTO(charge.reference(), charge.amount(),
+                new CardSummaryDTO(charge.card().brand(), charge.card().last4(), charge.card().expiryMonth(), charge.card().expiryYear()));
         assertThat(messageBus.publishedMessages()).hasSize(1);
         assertThat(messageBus.publishedMessages())
-                .containsExactly(new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), new BigDecimal("19.98"), DTOMapper.toDto(billingAddress), DTOMapper.toDto(payment), DTOMapper.toDto(shippingAddress)));
+                .containsExactly(new BasketCheckoutIntegrationEvent(domainEvent.eventId(), "john", List.of(expectedItem), total, DTOMapper.toDto(billingAddress), expectedCharge, DTOMapper.toDto(shippingAddress)));
     }
 }

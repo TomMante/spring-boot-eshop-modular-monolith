@@ -2,21 +2,23 @@ package io.github.tommante.eshopmodularmonolith.basket.basket.application.featur
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.AddressMother;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.PaymentMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.ShoppingCartMother;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.PaymentDeclined;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.model.Item;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.port.ProductService;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.adapters.CatalogProductACL;
+import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.adapters.fake.FakePaymentGateway;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.adapters.fake.FakeProductQueryService;
 import io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.persistence.mongo.fake.FakeBasketRepository;
 import io.github.tommante.eshopmodularmonolith.catalog.products.contract.ProductDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -38,13 +40,20 @@ class CheckoutBasketHandlerTest {
     private ProductService productService;
     private CheckoutBasketHandler handler;
     private ProductDTO product;
+    private FakePaymentGateway paymentGateway;
 
     @BeforeEach
     void setUp() {
         repository = new FakeBasketRepository();
         productQueryService = new FakeProductQueryService();
         productService = new CatalogProductACL(productQueryService);
-        handler = new CheckoutBasketHandler(repository, productService, Clock.fixed(NOW, ZoneOffset.UTC));
+        paymentGateway = new FakePaymentGateway();
+        handler = new CheckoutBasketHandler(
+                repository,
+                productService,
+                paymentGateway,
+                TransactionOperations.withoutTransaction(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
 
         product = new ProductDTO(
                 UUID.randomUUID(),
@@ -67,8 +76,7 @@ class CheckoutBasketHandlerTest {
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
         var shippingAddress = AddressMother.address("Midgard");
-        var payment = PaymentMother.payment();
-        var cmd = new CheckoutBasketCommand(existingCart.id(), billingAddress, payment, shippingAddress);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), billingAddress, "pm_card_visa", shippingAddress);
         handler.handle(cmd);
 
         // Domain event sent
@@ -84,7 +92,9 @@ class CheckoutBasketHandlerTest {
                             assertThat(event.occurredOn()).isEqualTo(NOW);
                             assertThat(event.billingAddress()).isEqualTo(billingAddress);
                             assertThat(event.shippingAddress()).isEqualTo(shippingAddress);
-                            assertThat(event.payment()).isEqualTo(payment);
+                            var charge = paymentGateway.chargeTakenFor(event.eventId()).orElseThrow();
+                            assertThat(charge.amount()).isEqualByComparingTo(product.price());
+                            assertThat(event.charge()).isEqualTo(charge);
                         }
                 );
         //Cart is removed
@@ -100,8 +110,7 @@ class CheckoutBasketHandlerTest {
         var existingCart = ShoppingCartMother.create().withItems(List.of(cartItem)).build();
         repository.save(existingCart);
         var billingAddress = AddressMother.address();
-        var payment = PaymentMother.payment();
-        var cmd = new CheckoutBasketCommand(existingCart.id(), billingAddress, payment, null);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), billingAddress,"pm_card_visa", null);
         handler.handle(cmd);
 
         // Domain event sent
@@ -117,7 +126,9 @@ class CheckoutBasketHandlerTest {
                             assertThat(event.occurredOn()).isEqualTo(NOW);
                             assertThat(event.billingAddress()).isEqualTo(billingAddress);
                             assertThat(event.shippingAddress()).isEqualTo(billingAddress);
-                            assertThat(event.payment()).isEqualTo(payment);
+                            var charge = paymentGateway.chargeTakenFor(event.eventId()).orElseThrow();
+                            assertThat(charge.amount()).isEqualByComparingTo(product.price());
+                            assertThat(event.charge()).isEqualTo(charge);
                         }
                 );
         //Cart is removed
@@ -130,6 +141,7 @@ class CheckoutBasketHandlerTest {
     void givenNonExistingCart_whenCheckoutCommandIsReceived_thenExceptionIsThrown() {
         var cmd = new CheckoutBasketCommand("non-existing-user", null, null, null);
         assertThatExceptionOfType(BasketNotFound.class).isThrownBy(() -> handler.handle(cmd));
+        assertThat(paymentGateway.charges()).isEmpty();
     }
 
     @Test
@@ -138,9 +150,10 @@ class CheckoutBasketHandlerTest {
         var removedProductId = UUID.randomUUID();
         var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), removedProductId, 1, BigDecimal.valueOf(400), "Removed Product"))).build();
         repository.save(existingCart);
-        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), PaymentMother.payment(), null);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), "pm_card_visa", null);
 
         assertThatExceptionOfType(UnpriceableCartItem.class).isThrownBy(() -> handler.handle(cmd));
+        assertThat(paymentGateway.charges()).isEmpty();
     }
 
     @Test
@@ -148,8 +161,21 @@ class CheckoutBasketHandlerTest {
     void givenEmptyCart_whenCheckoutCommandIsReceived_thenEmptyCartCheckoutIsThrown() {
         var existingCart = ShoppingCartMother.create().build();
         repository.save(existingCart);
-        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), PaymentMother.payment(), null);
+        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), "pm_card_visa", null);
 
         assertThatExceptionOfType(EmptyCartCheckout.class).isThrownBy(() -> handler.handle(cmd));
+    }
+
+    @Test
+    @DisplayName("Given the payment is declined, when checkout command is received, then PaymentDeclined is thrown, no event is recorded and the cart is kept")
+    void givenPaymentIsDeclined_whenCheckoutCommandIsReceived_thenPaymentDeclinedIsThrownNoEventIsRecordedAndCartIsKept() {
+        var existingCart = ShoppingCartMother.create().withItems(List.of(new Item(UUID.randomUUID(), product.id(), 1, BigDecimal.valueOf(400), product.name()))).build();
+        repository.save(existingCart);
+        paymentGateway.failChargesWith(new PaymentDeclined("card_declined", "insufficient_funds"));
+        var cmd = new CheckoutBasketCommand(existingCart.id(), AddressMother.address(), "pm_card_visa", null);
+
+        assertThatExceptionOfType(PaymentDeclined.class).isThrownBy(() -> handler.handle(cmd));
+        assertThat(repository.domainEvents()).isEmpty();
+        assertThat(repository.findByUsername(existingCart.id())).isPresent();
     }
 }

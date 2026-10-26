@@ -1,8 +1,7 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.application.features.checkoutbasket;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.application.exceptions.BasketNotFound;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.*;
 import io.github.tommante.eshopmodularmonolith.shared.contract.error.ApiError;
 import io.github.tommante.eshopmodularmonolith.shared.infrastructure.error.ApiErrors;
 import org.springframework.http.ResponseEntity;
@@ -25,5 +24,20 @@ public class CheckoutBasketErrorHandler {
     @ExceptionHandler(EmptyCartCheckout.class)
     public ResponseEntity<ApiError> handler(EmptyCartCheckout exception) {
         return ApiErrors.badRequest("basket.checkout.empty-cart", exception.getLocalizedMessage());
+    }
+
+    @ExceptionHandler(InvalidPaymentMethod.class)
+    public ResponseEntity<ApiError> handler(InvalidPaymentMethod exception) {
+        return ApiErrors.badRequest("basket.checkout.payment-method-invalid", exception.getLocalizedMessage());
+    }
+
+    @ExceptionHandler(PaymentProviderUnavailable.class)
+    public ResponseEntity<ApiError> handler(PaymentProviderUnavailable exception) {
+        return ApiErrors.serviceUnavailable("basket.checkout.payment-unavailable", exception.getLocalizedMessage());
+    }
+
+    @ExceptionHandler(PaymentDeclined.class)
+    public ResponseEntity<ApiError> handler(PaymentDeclined exception) {
+        return ApiErrors.paymentRequired("basket.checkout.payment-declined", exception.getLocalizedMessage());
     }
 }

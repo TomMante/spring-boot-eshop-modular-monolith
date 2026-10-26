@@ -1,0 +1,14 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment_intents"
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"error\":{\"type\":\"invalid_request_error\",\"code\":\"resource_missing\",\"param\":\"payment_method\",\"message\":\"No such PaymentMethod.\"}}"
+  }
+}

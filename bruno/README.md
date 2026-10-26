@@ -6,7 +6,7 @@ The collection and its two environments are committed, so a fresh clone can auth
 
 ## Prerequisites
 
-1. Start infra: `docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d` (Postgres, MongoDB, Keycloak).
+1. Start infra: `docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d` (Postgres, MongoDB, Keycloak, and `payment-provider`, the WireMock container standing in for Stripe).
 2. Run the app on port `8080`: `./mvnw -pl starter spring-boot:run` from `SpringBoot-EshopModularMonolith/`, or your IDE. No profile is needed — the committed `application.yaml` points at the compose stack.
 3. Open this folder as a collection in Bruno and select the **default - john** environment.
 
@@ -36,7 +36,7 @@ Run **Auth → Get Token (Password Grant)** first. It calls Keycloak's token end
 ## Structure
 
 - **Auth** — token acquisition.
-- **Basket** — create/get/delete basket, add/remove items, checkout. All scoped to the current JWT user.
+- **Basket** — create/get/delete basket, add/remove items, checkout, and a declined checkout. All scoped to the current JWT user.
 - **Catalog** — create/get/update/delete products, paginated product listing.
 - **Ordering** — get/delete orders, paginated order listing. All scoped to the current JWT user. Orders are placed by checking out a basket, not through Ordering.
 
@@ -53,3 +53,14 @@ The catalog is seeded at startup with three products carrying fixed ids, so requ
 **Add Item Into Basket** and **Remove Item From Basket** already point at the Galaxy Smartphone. The seed is controlled by `eshop.catalog.seed-demo-data` in `application.yaml`; with it turned off, create a product via **Catalog → Create Product** and use the id from the response instead.
 
 The remaining requests still take placeholder values you need to fill in yourself: `Get Product By Id`, `Update Product`, `Delete Product`, `Get Order By Id` and `Delete Order` take a UUID path param. Fill those from a prior `Create` response or a `Get` listing.
+
+## Checking out
+
+**Checkout Basket** and **Checkout Basket (Declined)** send `payment.paymentMethodId`, a token from the payment provider, never card details. In a browser, Stripe's card field would create it; here they use Stripe's test ids, which the `payment-provider` container answers like Stripe does:
+
+| Request | `paymentMethodId` | Expected |
+| --- | --- | --- |
+| **Checkout Basket** | `pm_card_visa` (or `pm_card_mastercard`) | `202`; the order shows the card summary |
+| **Checkout Basket (Declined)** | `pm_card_visa_chargeDeclined` | `402`, `basket.checkout.payment-declined`; the basket is kept |
+
+Both requests assert their status, and each one's *Docs* tab lists the other test ids it accepts. Check out with a basket that has at least one item, or the answer is `400` (`basket.checkout.empty-cart`) before any payment is attempted.

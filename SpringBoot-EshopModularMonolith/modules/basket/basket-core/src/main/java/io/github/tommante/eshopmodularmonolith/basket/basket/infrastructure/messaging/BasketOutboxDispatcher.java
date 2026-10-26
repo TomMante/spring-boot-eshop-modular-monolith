@@ -1,13 +1,14 @@
 package io.github.tommante.eshopmodularmonolith.basket.basket.infrastructure.messaging;
 
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.AddressDTO;
-import io.github.tommante.eshopmodularmonolith.basket.basket.contract.PaymentDTO;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.CardSummaryDTO;
+import io.github.tommante.eshopmodularmonolith.basket.basket.contract.ChargeDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.BasketCheckoutIntegrationEvent;
 import io.github.tommante.eshopmodularmonolith.basket.basket.contract.integrationevents.CheckedOutItemDTO;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.BasketCheckedOut;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
-import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Payment;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Charge;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventProcessor;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxEventStore;
 import io.github.tommante.eshopmodularmonolith.outboxcore.OutboxPayloadSerializer;
@@ -48,7 +49,7 @@ public class BasketOutboxDispatcher {
 
     private BasketCheckoutIntegrationEvent toIntegrationEvent(BasketCheckedOut event) {
         var items = event.items().stream().map(BasketOutboxDispatcher::toDto).toList();
-        return new BasketCheckoutIntegrationEvent(event.eventId(), event.userName(), items, event.totalPrice(), toDto(event.billingAddress()), toDto(event.payment()), toDto(event.shippingAddress()));
+        return new BasketCheckoutIntegrationEvent(event.eventId(), event.userName(), items, event.totalPrice(), toDto(event.billingAddress()), toDto(event.charge()), toDto(event.shippingAddress()));
     }
 
     private static CheckedOutItemDTO toDto(CheckedOutItem item) {
@@ -59,7 +60,8 @@ public class BasketOutboxDispatcher {
         return new AddressDTO(address.firstName(), address.lastName(), address.emailAddress(), address.addressLine(), address.country(), address.state(), address.zipCode());
     }
 
-    private static PaymentDTO toDto(Payment payment) {
-        return new PaymentDTO(payment.cardName(), payment.cardNumber(), payment.expiration(), payment.cvv());
+    private static ChargeDTO toDto(Charge charge) {
+        var card = charge.card();
+        return new ChargeDTO(charge.reference(), charge.amount(), new CardSummaryDTO(card.brand(), card.last4(), card.expiryMonth(), card.expiryYear()));
     }
 }

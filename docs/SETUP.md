@@ -20,8 +20,9 @@ From the repository root:
 docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d
 ```
 
-This starts Postgres (`5432`), MongoDB (`27020`, as a single-node replica set) and Keycloak
-(`9090`), and imports the `eshop` realm. Keycloak waits for Postgres to be healthy before
+This starts Postgres (`5432`), MongoDB (`27020`, as a single-node replica set), Keycloak
+(`9090`) and `payment-provider` (`12111`), and imports the `eshop` realm. `payment-provider` is a
+WireMock container standing in for Stripe; see *Payments* below. Keycloak waits for Postgres to be healthy before
 starting, so the command returns when everything is up in the right order.
 
 Keycloak takes a few seconds longer than the databases. It is ready when this returns `200`:
@@ -104,7 +105,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/basket
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{
     "billingAddress":{"firstName":"John","lastName":"Doe","emailAddress":"john.doe@example.com","addressLine":"1 Billing Street","country":"USA","state":"Billing State","zipCode":"10001"},
-    "payment":{"cardName":"John Doe","cardNumber":"4111111111111111","expiration":"12/29","cvv":"123"},
+    "payment":{"paymentMethodId":"pm_card_visa"},
     "shippingAddress":{"firstName":"Jane","lastName":"Roe","emailAddress":"jane.roe@example.com","addressLine":"2 Shipping Avenue","country":"USA","state":"Shipping State","zipCode":"90210"}
   }' http://localhost:8080/basket/checkout
 
@@ -121,6 +122,45 @@ database, and a checkout reaches ordering only as an event.
 Orders belong to the user who checked out. `GET /orders` lists only the caller's own, and another
 user's order id answers `404` on both `GET /order/{id}` and `DELETE /order/{id}` — the same
 `TOKEN_JANE` from step 4 sees an empty list until jane checks out herself.
+
+## Payments
+
+Checkout never receives card details. `payment.paymentMethodId` is a token from the payment
+provider: in a browser, Stripe's card field creates it; here you send one of Stripe's test ids,
+and the `payment-provider` container answers the way Stripe documents:
+
+| `paymentMethodId` | Checkout answers |
+| --- | --- |
+| `pm_card_visa`, `pm_card_mastercard` | `202`; the order shows the card summary (`visa`/`4242`, `mastercard`/`4444`) |
+| `pm_card_visa_chargeDeclined`, `pm_card_visa_chargeDeclinedInsufficientFunds`, `pm_card_chargeDeclinedExpiredCard`, `pm_card_chargeDeclinedIncorrectCvc`, `pm_card_authenticationRequired` | `402`, `basket.checkout.payment-declined`; the basket is kept |
+| anything else | `400`, `basket.checkout.payment-method-invalid` |
+
+With the container stopped (`docker compose … stop payment-provider`), checkout answers `503`,
+`basket.checkout.payment-unavailable`, and the basket is kept.
+
+```bash
+# A declined checkout — 402
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "billingAddress":{"firstName":"John","lastName":"Doe","emailAddress":"john.doe@example.com","addressLine":"1 Billing Street","country":"USA","state":"Billing State","zipCode":"10001"},
+    "payment":{"paymentMethodId":"pm_card_visa_chargeDeclined"}
+  }' http://localhost:8080/basket/checkout
+```
+
+**Against real Stripe test mode.** With a Stripe account, point the application at Stripe instead
+of the container. No code changes, only two environment variables:
+
+```bash
+export ESHOP_BASKET_PAYMENT_STRIPE_API_BASE=https://api.stripe.com
+```
+
+```bash
+export ESHOP_BASKET_PAYMENT_STRIPE_API_KEY=sk_test_...
+```
+
+Use a test-mode secret key only, and never commit it. The test ids above work the same in test
+mode. Which Stripe flow this is, and its US/Canada limitation, are described in
+[ARCHITECTURE.md](ARCHITECTURE.md#-payment-provider).
 
 ## Seed data
 
