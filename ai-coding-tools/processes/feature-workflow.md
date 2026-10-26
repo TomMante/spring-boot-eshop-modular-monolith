@@ -57,13 +57,7 @@ document, use the lighter [quick-fix.md](quick-fix.md) instead.
    increment decided, not a live list. Commit this with the implementation,
    so the two files are never behind the branch.
 9. **Open the PR.** Once the user agrees implementation is done, open a PR
-   from `feature/<plan-name>` into `main`. Copilot review has a cost, so
-   ask before requesting it rather than requesting it by default — both
-   when the PR is first opened and again after any later push to that PR,
-   since a Copilot review doesn't automatically re-run against new
-   commits. When requesting it, use `gh pr edit <number> --add-reviewer
-   @copilot` (requires `gh` ≥2.88.0; `gh pr create --reviewer @copilot`
-   works too, if requesting at creation time). No merge strategy is
+   from `<prefix>/<plan-name>` into `main`. No merge strategy is
    prescribed here — use whichever the repository/GitHub default is at
    merge time. Pushing the branch and opening the PR each require explicit
    confirmation in the moment, per standing rules — this workflow doesn't
