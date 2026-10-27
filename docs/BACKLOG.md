@@ -108,6 +108,24 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
+### 22. Automated End-to-End Tests (Serenity BDD)
+- Nothing tests the running system from the outside. The suite stops at an assembled Spring context (`ApplicationWiringTest`) against Testcontainers; nothing exercises the real image against real Keycloak tokens, the compose stack and the Stripe stand-in, end to end.
+- **Shape (settled with the user, 2026-10-26):**
+  - A separate project in its own top-level folder, next to `bruno/`, not a module of the application's Maven reactor. It knows only a base URL and the Keycloak token endpoint.
+  - Run by compose: an `e2e` profile in `docker/sb-eshop/compose.yaml` starts the stack and the application, then the Serenity runner once the application reports ready.
+  - Run in GitHub Actions as well as locally.
+- **Not a replacement for the Bruno collection.** Bruno is for a person exploring the API by hand; Serenity is the automated regression suite. Both send similar requests, and that overlap is accepted.
+- **Depends on:** the application running from compose, from an image built from source, under an `app` profile, with Keycloak issuing one fixed issuer (`http://localhost:9090/realms/eshop`) to clients inside and outside the compose network. That is the plan [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md).
+- **Watch for in CI:** both workflows check out only `SpringBoot-EshopModularMonolith/` (`sparse-checkout`), so a top-level test folder isn't in the checkout until that changes. Their `paths` filters need the new folder too.
+- **Decisions needed:** which flows the first scenarios cover (the checkout-to-order flow is the obvious one, since it crosses every module, the outbox and the provider); whether the e2e job gates PRs or only runs on `main`.
+
+### 23. The Full Stack on Minikube
+- `Kubernetes/simple-deployment` deploys the application only, and has drifted: its ConfigMap sets only the Postgres datasource (no MongoDB URI, issuer or payment provider), so the application can't start from it, and `imagePullPolicy: Always` on the local `sb-eshop:test` image fails on Minikube unless the image is in a registry.
+- **Goal:** everything the application needs runs in the cluster, with a README that takes a reader from `minikube start` to a placed order. It shows Deployments, Services, ConfigMaps, Secrets, StatefulSets with persistent volumes for Postgres and MongoDB, a Job for the replica-set initiation, and probes.
+- **Shape (settled with the user, 2026-10-26):** plain manifests with kustomize, split into infrastructure and application. GitOps (Argo CD) is out of scope for this repository; it belongs to a separate project.
+- **Depends on:** an image built from source and the settings-per-environment table from [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md). The fixed-issuer approach carries over: Keycloak's public hostname fixed, the application fetching keys at the in-cluster address through `jwk-set-uri`.
+- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the end-to-end suite (item 22) also runs against the cluster.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.

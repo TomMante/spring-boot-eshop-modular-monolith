@@ -7,7 +7,7 @@ The collection and its two environments are committed, so a fresh clone can auth
 ## Prerequisites
 
 1. Start infra: `docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d` (Postgres, MongoDB, Keycloak, and `payment-provider`, the WireMock container standing in for Stripe).
-2. Run the app on port `8080`: `./mvnw -pl starter spring-boot:run` from `SpringBoot-EshopModularMonolith/`, or your IDE. No profile is needed — the committed `application.yaml` points at the compose stack.
+2. Run the app on port `8080`: `./mvnw -pl starter spring-boot:run` from `SpringBoot-EshopModularMonolith/`, or your IDE. No profile is needed — the committed `application.yaml` points at the compose stack. Without a JDK, add `--profile app --build --wait` to step 1's `up -d` instead, and compose runs the application too (see [Run everything in Docker](../docs/SETUP.md#run-everything-in-docker)).
 3. Open this folder as a collection in Bruno and select the **default - john** environment.
 
 ## Credentials

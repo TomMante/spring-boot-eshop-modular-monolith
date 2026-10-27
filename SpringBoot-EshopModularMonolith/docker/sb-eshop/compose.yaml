@@ -47,6 +47,9 @@ services:
       - KC_DB_URL=jdbc:postgresql://eshopdb/EShopDb?currentSchema=identity
       - KC_DB_USERNAME=postgres
       - KC_DB_PASSWORD=postgres
+      # Fixes the issuer in every token to the host-facing URL, also for tokens requested on
+      # keycloak:8080 from inside the network, so the app accepts tokens from both sides.
+      - KC_HOSTNAME=http://localhost:9090
     volumes:
       - ./keycloak-init/eshop-realm.json:/opt/keycloak/data/import/eshop-realm.json
     ports:
@@ -62,3 +65,31 @@ services:
       - ./payment-provider:/home/wiremock:ro
     ports:
       - "12111:8080"
+  app:
+    # Started only with --profile app; without it, run the application on the host instead.
+    profiles: ["app"]
+    build:
+      context: ../..
+    depends_on:
+      eshopdb:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      payment-provider:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://eshopdb:5432/EShopDb
+      - SPRING_MONGODB_URI=mongodb://mongodb:27017/?replicaSet=rs0
+      - ESHOP_BASKET_PAYMENT_STRIPE_APIBASE=http://payment-provider:8080
+      # Keys come from inside the network; the issuer stays the host-facing URL that KC_HOSTNAME fixes.
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI=http://keycloak:8080/realms/eshop/protocol/openid-connect/certs
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s

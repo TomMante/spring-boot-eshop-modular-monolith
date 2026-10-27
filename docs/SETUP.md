@@ -3,12 +3,19 @@
 From a clean clone to an order placed through the application. Every command below was run in
 this order against a fresh checkout with empty database volumes.
 
+There are two ways to run the application against the same compose stack:
+- **On the host** (steps 1–3), the way to work on the code: from your IDE or `./mvnw`.
+- **In Docker** ([Run everything in Docker](#run-everything-in-docker)), to try it without a JDK:
+  compose builds the image from source and runs it next to the stack.
+
+Both listen on `localhost:8080`, so everything from step 4 on is the same for either.
+
 ## Prerequisites
 
-- **JDK 25.** The build targets release 25; an older JDK fails with
+- **Docker and Docker Compose**, running.
+- **JDK 25**, to run on the host only. The build targets release 25; an older JDK fails with
   `invalid target release: 25`, which does not mention Java. Check with `java -version` before
   starting.
-- **Docker and Docker Compose**, running.
 
 Nothing else needs installing — the Maven wrapper pins its own Maven version.
 
@@ -52,6 +59,45 @@ the aggregator with *"Unable to find a suitable main class"*.
 
 No profile is needed. The committed `application.yaml` already points at the compose stack. The
 application listens on `8080` and logs `Started EshopModularMonolithStarter` when it is up.
+
+## Run everything in Docker
+
+Instead of steps 1–3, from the repository root:
+
+```bash
+docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
+```
+
+The `app` profile adds the application to the stack. Compose builds its image from
+`SpringBoot-EshopModularMonolith/Dockerfile`: Maven runs inside the build, so no JDK is needed on
+the host. The first build downloads every dependency and takes a few minutes; later builds reuse
+them. Tests are skipped in the image build, since they need Docker themselves. `--wait` returns
+once the application reports ready. Continue with step 4.
+
+`--build` rebuilds the image from the current sources. Without it, compose reuses the last image
+it built.
+
+Don't run the application on the host at the same time: both use port `8080`.
+
+**What changes in a container.** The committed `application.yaml` points at the stack's
+published ports on `localhost`. Inside the compose network, `localhost` is the application's own
+container, so the `app` service overrides these settings through environment variables:
+
+| Setting | On the host (`application.yaml`) | In the `app` container |
+| --- | --- | --- |
+| `spring.datasource.url` | `jdbc:postgresql://localhost:5432/EShopDb` | `jdbc:postgresql://eshopdb:5432/EShopDb` |
+| `spring.mongodb.uri` | `mongodb://localhost:27020` | `mongodb://mongodb:27017/?replicaSet=rs0` |
+| `eshop.basket.payment.stripe.api-base` | `http://localhost:12111` | `http://payment-provider:8080` |
+| `spring.security.oauth2.resourceserver.jwt.jwk-set-uri` | not set: found through the issuer | `http://keycloak:8080/realms/eshop/protocol/openid-connect/certs` |
+| `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `http://localhost:9090/realms/eshop` | unchanged |
+
+Keycloak runs with `KC_HOSTNAME=http://localhost:9090`, so every token it issues names that URL
+as its issuer, whether it was requested from the host or from inside the network. The application
+checks each token's issuer against `issuer-uri`. Inside the container it can't reach
+`localhost:9090`, so it fetches Keycloak's signing keys from `jwk-set-uri` instead of discovering
+them through the issuer.
+
+A new setting that differs between the two needs a row here and an entry on the `app` service.
 
 ## 4. Get a token
 
@@ -184,6 +230,7 @@ docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml d
 ```
 
 `-v` discards the volumes, so the next `up` gives you empty databases and a freshly imported realm.
+If the application runs in Docker, add `--profile app` so its container goes too.
 
 **Do this after pulling a change to `V1__init.sql`.** The catalog schema is edited in place rather than migrated (this is not a production system), so Flyway refuses to start against a database created from the previous version, with a checksum mismatch on `V1`. The outbox's retry and dead-letter columns (2026-10-17) and its `schema_version` column (2026-10-18) were such changes. A local basket database needs it too: unprocessed outbox documents written before `schemaVersion` existed read as version 0, which the application rejects.
 
