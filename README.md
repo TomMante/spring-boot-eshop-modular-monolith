@@ -16,6 +16,12 @@ cd SpringBoot-EshopModularMonolith && ./mvnw install -DskipTests
 ./mvnw -pl starter spring-boot:run
 ```
 
+**Or without a JDK** (Docker only): compose builds the image from source and runs it with the stack.
+
+```bash
+docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
+```
+
 Every endpoint needs a token. [SETUP.md](docs/SETUP.md) walks from here to a placed order, and
 the [Bruno collection](bruno/README.md) covers every endpoint.
 
@@ -117,7 +123,7 @@ Detailed documentation is located in the `docs/` directory:
 
 | Path | Contents |
 | --- | --- |
-| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, a multi-stage layered Dockerfile running as a non-root user, and the local compose stack in `docker/sb-eshop/`. It sits one level down so the root can hold the material below alongside it. |
+| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, a multi-stage Dockerfile that builds from source into a layered image running as a non-root user, and the local compose stack in `docker/sb-eshop/`, which can also run the application. It sits one level down so the root can hold the material below alongside it. |
 | `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup, and a comparison with Spring Modulith. |
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |

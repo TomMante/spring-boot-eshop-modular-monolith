@@ -3,10 +3,19 @@
 Approved by the user on 2026-10-27.
 
 ## Status
-- [ ] Step 1 — The image builds from source, with no JDK on the host.
-- [ ] Step 2 — Keycloak issues tokens under one fixed issuer, whoever asks.
-- [ ] Step 3 — An `app` compose profile runs the built image against the stack.
-- [ ] Step 4 — Docs.
+- [x] Step 1 — The image builds from source, with no JDK on the host. Started alone, it runs as
+  `apiuser` on Java 25 and fails only on the missing Postgres. Extraction keeps the source jar's
+  name, so the build stage copies `starter.jar` to `application.jar` before extracting, and the
+  entrypoint is unchanged.
+- [x] Step 2 — Keycloak issues tokens under one fixed issuer, whoever asks. A token requested on
+  `keycloak:8080` from a container on the compose network carries
+  `iss=http://localhost:9090/realms/eshop`, and the composed application accepts it.
+- [x] Step 3 — An `app` compose profile runs the built image against the stack. Smoke run on
+  2026-10-27 from `down -v`, in both modes (application in Docker; application on the host via
+  `./mvnw`): token, catalog, basket, a declined checkout (`402`, basket kept), checkout (`202`),
+  and the order listed. `down -v` without `--profile app` leaves the application container
+  running, so SETUP.md says to add the profile.
+- [x] Step 4 — Docs.
 
 ## Context
 
