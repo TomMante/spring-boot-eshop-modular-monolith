@@ -1,6 +1,6 @@
 # End-to-End Tests With Serenity
 
-Draft, under discussion with the user. Implementation: guided (the assistant implements each
+Approved by the user on 2026-10-28. Implementation: guided (the assistant implements each
 batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-workflow.md).
 
 ## Status
