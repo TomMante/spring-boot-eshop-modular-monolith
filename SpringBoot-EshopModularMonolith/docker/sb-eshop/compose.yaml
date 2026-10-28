@@ -32,9 +32,10 @@ services:
       mongodb:
         condition: service_healthy
     restart: "no"
+    # Compose reruns this on every up or run; rs.status() throws only while the replica set is uninitialised.
     entrypoint: >
       mongosh --host mongodb:27017 --eval
-      'rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]})'
+      'try { rs.status() } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]}) }'
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.4
     depends_on:
@@ -50,6 +51,7 @@ services:
       # Fixes the issuer in every token to the host-facing URL, also for tokens requested on
       # keycloak:8080 from inside the network, so the app accepts tokens from both sides.
       - KC_HOSTNAME=http://localhost:9090
+      - KC_HEALTH_ENABLED=true
     volumes:
       - ./keycloak-init/eshop-realm.json:/opt/keycloak/data/import/eshop-realm.json
     ports:
@@ -57,6 +59,13 @@ services:
     command:
       - "start-dev"
       - "--import-realm"
+    healthcheck:
+      # The image has no curl or wget; bash's /dev/tcp asks the management port (9000) directly.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
   payment-provider:
     # A Stripe stand-in: WireMock serving the Stripe-shaped stubs in ./payment-provider/mappings.
     # Keep the tag equal to wiremock.version in the root pom, so the tests run the same WireMock build.
@@ -66,8 +75,8 @@ services:
     ports:
       - "12111:8080"
   app:
-    # Started only with --profile app; without it, run the application on the host instead.
-    profiles: ["app"]
+    # Started only with --profile app or --profile e2e; without either, run the application on the host instead.
+    profiles: ["app", "e2e"]
     build:
       context: ../..
     depends_on:
@@ -93,3 +102,25 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
+  e2e:
+    # Runs the end-to-end suite once, from the e2e folder as it is on disk:
+    # docker compose --profile e2e run --rm --build e2e
+    profiles: ["e2e"]
+    image: eclipse-temurin:25-jdk-alpine-3.23
+    working_dir: /e2e
+    command: ["./mvnw", "-B", "verify"]
+    depends_on:
+      app:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    environment:
+      - E2E_APP_URL=http://app:8080
+      - E2E_KEYCLOAK_URL=http://keycloak:8080
+    volumes:
+      - ../../../e2e:/e2e
+      # Maven, its wrapper download and the suite's dependencies, kept between runs.
+      - e2e-maven-repository:/root/.m2
+
+volumes:
+  e2e-maven-repository:

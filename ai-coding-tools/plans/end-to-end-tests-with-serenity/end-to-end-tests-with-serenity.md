@@ -4,12 +4,114 @@ Approved by the user on 2026-10-28. Implementation: guided (the assistant implem
 batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-workflow.md).
 
 ## Status
-- [ ] Step 1 — Spike: the project skeleton runs two scenarios in parallel on JDK 25 and writes a report.
-- [ ] Step 2 — A fresh customer per scenario; *Requests need a token*.
-- [ ] Step 3 — *Checkout places an order*: paid and declined.
-- [ ] Step 4 — *Orders belong to their customer*.
-- [ ] Step 5 — The `e2e` compose profile runs the suite in a container.
-- [ ] Step 6 — Docs and the live lists.
+- [x] Step 1 — Spike: the project skeleton runs two scenarios in parallel on JDK 25 and writes a report.
+  Results, 2026-10-28, from the host against `--profile app`:
+  - **JDK 25 works.** Serenity 5.4.1 with RestAssured 6.0.0 on Groovy 4.0.29 compiles and runs on
+    Temurin 25.0.4.1, with no class-file version errors. No JDK 21 fallback needed.
+  - **Parallel:** the two scenarios started 2 ms apart and ran about 870 ms each. The whole suite
+    took 1.1 s, so they overlapped.
+  - **`OnStage`** holds its stage in a `private static final ThreadLocal<Stage>` (checked with
+    `javap` on `serenity-screenplay-5.4.1.jar`), so `setTheStage` in a `@Before` hook gives each
+    scenario thread its own cast.
+  - **Report:** `target/site/serenity/index.html` is written, also when scenarios fail.
+  - **Red for the right reason:** with the expectations broken on purpose, the catalog scenario
+    failed listing the actual products, and the anonymous one failed with
+    `Expected status code <200> but was <401>`.
+  - **Deviation:** every endpoint needs a token, catalog included, so `Given <actor> is a customer`
+    signs in as the seeded `john` until step 2 creates customers per scenario. The feature text
+    doesn't change in step 2.
+  - **Needed beyond the plan:** `serenity-cucumber` declares `cucumber-junit-platform-engine` only
+    at test scope, so the e2e pom declares it itself. Failsafe needs
+    `<include>**/CucumberTestSuite.java</include>`, because the class name matches none of its
+    default patterns.
+- [x] Step 2 — A fresh customer per scenario; *Requests need a token*.
+  Results, 2026-10-28, from the host against `--profile app`:
+  - **Customers per scenario** are created and deleted through the admin API as designed; the
+    `john` stand-in from step 1 is gone. After each run, no `e2e-*` user is left in the realm.
+  - **Red for the right reason:** with the expectations inverted one at a time, the eshop-token
+    scenario failed with `Expected status code <401> but was <200>`, and the other-realm one with
+    `Expected status code <200> but was <401>`. Green: 4 tests, 4 passed.
+  - **Two runs at once** (two copies of `e2e/`, so their `target/` folders don't collide) both
+    passed against the same stack.
+  - **Deviation:** the clean-up hook reaches the scenario's actors through a `Cast` kept in a
+    field of `StageSetup`, against the "no step-definition fields" rule. `Stage` has no getter
+    for its cast, and Cucumber creates the class once per scenario, so the field holds that
+    scenario's cast only. It is clean-up bookkeeping, not step state; avoiding it would need a
+    DI container (cucumber-picocontainer) for this alone.
+  - **Added at the user's request:** logback (1.5.25, the version the application's Spring Boot
+    uses) with `logback-test.xml` taking the application's `custom-logging` pattern, minus the
+    PID and trace ids, which need Spring Boot or a request. A failed clean-up logs a warning
+    through it.
+- [x] Step 3 — *Checkout places an order*: paid and declined.
+  Results, 2026-10-28, from the host against `--profile app`:
+  - **The order is compared as one record,** `OrderSummary` (all its lines, the total, the card
+    brand and last four digits), against a list holding only the expected one. That checks
+    "exactly one order" and every line at once. Comparing only the first line was dropped
+    because a duplicated line would have passed; mapping the response onto Jackson DTOs was
+    dropped because it would copy the API's shape into the suite. Order lines carry only a
+    product id, so steps look up the seeded product's id by name in the catalog.
+  - **Red for the right reason:** with the order expected as 3 phones instead of 2, the paid
+    scenario failed after `Eventually`'s full 30 seconds, printing both records, which differ
+    only in the line's quantity. With the decline expected to answer `202`, the declined scenario
+    failed with `Expected status code <202> but was <402>`. Green: 6 tests, 6 passed, in about
+    15 seconds of wall time; the declined scenario's 10-second wait overlaps the others.
+  - **Also changed:** the suite selects features with `@SelectPackages("features")`, as Cucumber's
+    discovery warning asks, instead of `@SelectClasspathResource`.
+- [x] Step 4 — *Orders belong to their customer*.
+  Results, 2026-10-28, from the host against `--profile app`:
+  - **A control scenario was added:** the owner fetches the order by its id and gets it back,
+    checked on `order.id`. Another customer's `404 order.not-found` is the same answer as for an
+    id that doesn't exist, so without the control a broken path or id would pass unnoticed.
+  - **One actor's memory read through another:** in "Bob asks for Alice's order" the step takes
+    both actors and reads the id from Alice's memory. The "has placed an order" step checks the
+    checkout's `202` before waiting, so a failed checkout doesn't surface 30 seconds later as a
+    wrong list size.
+  - **Red for the right reason:** asking for a random id made the control scenario fail with
+    `Expected status code <200> but was <404>`. Letting Alice ask where Bob should made the other
+    one fail with `Expected status code <404> but was <200>`, the failure a leak between
+    customers would give. Green: 8 tests, 8 passed, in about 16 seconds.
+  - **Found by the second red run:** the steps worded "`<actor>`'s request is …" check the
+    thread's last response (`SerenityRest.lastResponse()`), not that actor's. In that run, "Bob's
+    request is refused" checked Alice's response. Every current scenario has the same actor make
+    the request and then check it, so nothing is wrong today. A scenario that interleaves two
+    actors' requests before checking would check the wrong one.
+- [x] Step 5 — The `e2e` compose profile runs the suite in a container.
+  Decided while implementing, 2026-10-28:
+  - **No `e2e/Dockerfile`** (changed with the user). The `e2e` service runs the stock
+    `eclipse-temurin:25-jdk-alpine-3.23` image, the application's build-stage image, with `e2e/`
+    bind-mounted and a named volume (`e2e-maven-repository`) for `~/.m2`. Nothing ships the
+    runner, so a custom image only added a rebuild after every scenario edit and the gaps of
+    `dependency:go-offline`. The report lands in `e2e/target/site/serenity/` without a separate
+    mount. `down -v` also drops the Maven volume, so the next run downloads dependencies again.
+  - **Keycloak gets a healthcheck** (`KC_HEALTH_ENABLED=true`, `/health/ready` on the management
+    port through bash's `/dev/tcp`, since the image has no curl or wget), and `e2e` waits for
+    `keycloak: service_healthy` as well as `app: service_healthy`. `app` waits only for Keycloak
+    to have started, and its readiness doesn't touch Keycloak, so from `down -v` the suite could
+    otherwise ask for a token before the realm is imported.
+  - **`mongo-init` made idempotent** (fixed with the user, 2026-10-29). Its `rs.initiate(...)` ran
+    unconditionally, so a second `run`, or a second `--profile app up`, recreated the exited
+    container, which failed with `MongoServerError: already initialized`. `app` waits on
+    `service_completed_successfully`, so the stack stopped there. The defect dates from
+    `compose-runs-the-application`. The entrypoint now initiates only when `rs.status()` throws.
+
+  Results, 2026-10-28/29, with `docker compose --profile e2e run --rm --build e2e`:
+  - **From `down -v`:** exit 0 in 88 seconds, 8 tests and 8 passed, with the report at
+    `e2e/target/site/serenity/index.html`. The startup log showed `app` healthy before
+    `keycloak`, which is the race the healthcheck guards against. This run downloaded the
+    dependencies into the Maven volume.
+  - **Second run** (the first try hit the `mongo-init` defect above; this is the run after the
+    fix): exit 0 in 19 seconds, 8 tests and 8 passed, nothing downloaded. `mongo-init` ran
+    against the initialised replica set and exited 0.
+  - **Payment provider stopped** (run with `--no-deps`, so `run` doesn't start it again): exit 1.
+    4 tests failed, the two checkout scenarios and both order-visibility scenarios, whose
+    Background places an order, all with `503` instead of `202`/`402`. The run fails the build,
+    not just the report. Starting `payment-provider` again afterwards restored the stack.
+- [x] Step 6 — Docs and the live lists.
+  Done 2026-10-29, as listed below, plus two places that still called Cucumber hypothetical:
+  *Current convention* and *Trade-off and intended evolution* in `TESTING_CONVENTIONS.md`.
+  The parallelism override was checked before documenting it: with
+  `-Dcucumber.execution.parallel.config.fixed.parallelism=1` every scenario ran on one worker
+  (23 seconds against 13), so Failsafe passes the Maven user property to the forked JVM.
 
 ## Context
 

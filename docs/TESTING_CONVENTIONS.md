@@ -71,6 +71,23 @@ Compare `BigDecimal` with `isEqualByComparingTo` rather than `isEqualTo` — `12
 `12.5` are unequal but comparable, and the difference surfaces after a database
 round-trip.
 
+### End-to-end tests are the widest seam
+
+The [end-to-end suite](../e2e/README.md) drives the running system over HTTP with real
+tokens. It is for what no narrower seam can prove: that the modules, the outbox,
+Keycloak and the payment provider work together in the deployed image. Give it a
+scenario per flow that crosses those boundaries, not the cases a handler or domain
+test already enumerates — each scenario costs seconds, and a failure there says less
+about where the fault is.
+
+Two rules carry over:
+
+- **A scenario must be able to fail.** Show it failing for the right reason once,
+  against a wrong expectation or a stopped dependency, before trusting its pass.
+- **A negative result needs a positive control.** A `404` for another customer's
+  order is the same answer as for an id that doesn't exist, so the owner fetching it
+  successfully is a scenario of its own.
+
 ### Worked examples
 
 | Code | Seam | Reasoning |
@@ -129,8 +146,9 @@ template, not Cucumber — unit tests are not `.feature` files.
 `@Nested` is unused for this today. Shared setup, when it exists, lives in
 the test class rather than a Given/When type hierarchy.
 
-Cucumber and `.feature` files are reserved for acceptance tests, if this
-project ever grows that far. Nothing in the current suite uses them.
+Cucumber and `.feature` files are reserved for acceptance tests: the
+[end-to-end suite](../e2e/README.md) uses them. Nothing in the application's
+own suite does.
 
 ### Trade-off and intended evolution
 
@@ -147,8 +165,8 @@ A later pass may keep GWT as structure instead:
 | Then  | Method name (`rejectsLogin`)                   |
 
 Nesting would stay optional. A single test would not be wrapped in Given +
-When types just to complete the grammar. Cucumber would still be reserved
-for acceptance tests, if those appear.
+When types just to complete the grammar. Cucumber would stay reserved for
+the end-to-end suite.
 
 Until that pass, the suite stays on the current name template so naming
 stays consistent.

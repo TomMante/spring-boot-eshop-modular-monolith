@@ -108,16 +108,14 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
-### 22. Automated End-to-End Tests (Serenity BDD)
-- Nothing tests the running system from the outside. The suite stops at an assembled Spring context (`ApplicationWiringTest`) against Testcontainers; nothing exercises the real image against real Keycloak tokens, the compose stack and the Stripe stand-in, end to end.
-- **Shape (settled with the user, 2026-10-26):**
-  - A separate project in its own top-level folder, next to `bruno/`, not a module of the application's Maven reactor. It knows only a base URL and the Keycloak token endpoint.
-  - Run by compose: an `e2e` profile in `docker/sb-eshop/compose.yaml` starts the stack and the application, then the Serenity runner once the application reports ready.
-  - Run in GitHub Actions as well as locally.
-- **Not a replacement for the Bruno collection.** Bruno is for a person exploring the API by hand; Serenity is the automated regression suite. Both send similar requests, and that overlap is accepted.
-- **Depends on:** the application running from compose, from an image built from source, under an `app` profile, with Keycloak issuing one fixed issuer (`http://localhost:9090/realms/eshop`) to clients inside and outside the compose network. That is the plan [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md).
-- **Watch for in CI:** both workflows check out only `SpringBoot-EshopModularMonolith/` (`sparse-checkout`), so a top-level test folder isn't in the checkout until that changes. Their `paths` filters need the new folder too.
-- **Decisions needed:** which flows the first scenarios cover (the checkout-to-order flow is the obvious one, since it crosses every module, the outbox and the provider); whether the e2e job gates PRs or only runs on `main`.
+### 22. Running the End-to-End Suite in GitHub Actions
+- The [end-to-end suite](../e2e/README.md) in `e2e/` runs locally, through compose's `e2e` profile or from the host. No workflow runs it, so a change that breaks a flow across modules, Keycloak or the payment provider is caught only if someone runs it by hand.
+- **What CI needs:**
+  - a workflow of its own on PRs, uploading `e2e/target/site/serenity/` as an artifact;
+  - caching for the application's image build and the suite's `~/.m2`;
+  - a checkout that includes `e2e/`: both existing workflows check out only `SpringBoot-EshopModularMonolith/` (`sparse-checkout`), and their `paths` filters don't list `e2e/` or `docker/`;
+  - `user:` on the `e2e` service, or an equivalent: the container writes the report as root, which on Docker Desktop for Mac is invisible but on Linux leaves root-owned files in the mounted folder.
+- **Decision needed:** whether the job gates PRs or only runs on `main`.
 
 ### 23. The Full Stack on Minikube
 - `Kubernetes/simple-deployment` deploys the application only, and has drifted: its ConfigMap sets only the Postgres datasource (no MongoDB URI, issuer or payment provider), so the application can't start from it, and `imagePullPolicy: Always` on the local `sb-eshop:test` image fails on Minikube unless the image is in a registry.
