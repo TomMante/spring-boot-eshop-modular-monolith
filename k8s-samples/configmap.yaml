@@ -1,0 +1,30 @@
+# Sample only: not applied anywhere and not tested. Every host below is a placeholder.
+# These are the settings that differ per environment; the table in docs/SETUP.md lists them.
+# Credentials are not here: they come from the Secret, as environment variables.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: eshop-modulith-app
+  name: eshop-modulith-config
+data:
+  application.yaml: |
+    eshop:
+      basket:
+        payment:
+          stripe:
+            api-base: https://api.stripe.com
+
+    spring:
+      datasource:
+        url: jdbc:postgresql://postgres.example.internal:5432/EShopDb
+      mongodb:
+        # Basket and ordering use multi-document transactions, which need a replica set.
+        uri: mongodb://mongodb.example.internal:27017/?replicaSet=rs0
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              # The issuer is the public URL that tokens carry; the key set is fetched at the address the pod reaches.
+              issuer-uri: https://auth.example.com/realms/eshop
+              jwk-set-uri: http://keycloak.example.internal:8080/realms/eshop/protocol/openid-connect/certs

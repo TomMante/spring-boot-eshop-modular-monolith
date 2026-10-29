@@ -95,7 +95,7 @@ move, which is what the Known Issue asked for.
 
 ### Step 4 — Point the manifests at the groups
 
-`Kubernetes/simple-deployment/backend/deployment.yaml`, lines 50–63:
+[`Kubernetes/simple-deployment/backend/deployment.yaml`, lines 50–63](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/812015648e96064c198c4564f256ef8128114322/Kubernetes/simple-deployment/backend/deployment.yaml#L50-L63):
 
 - `livenessProbe.httpGet.path` → `/actuator/health/liveness`
 - `readinessProbe.httpGet.path` → `/actuator/health/readiness`

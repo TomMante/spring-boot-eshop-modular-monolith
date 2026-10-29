@@ -97,7 +97,8 @@ checks each token's issuer against `issuer-uri`. Inside the container it can't r
 `localhost:9090`, so it fetches Keycloak's signing keys from `jwk-set-uri` instead of discovering
 them through the issuer.
 
-A new setting that differs between the two needs a row here and an entry on the `app` service.
+A new setting that differs between the two needs a row here, an entry on the `app` service, and
+an entry in the [Kubernetes sample](../k8s-samples/README.md)'s ConfigMap or Secret.
 
 ## 4. Get a token
 

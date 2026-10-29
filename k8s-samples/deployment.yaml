@@ -1,3 +1,5 @@
+# Sample only: not applied anywhere and not tested. The image is a placeholder for one built from
+# SpringBoot-EshopModularMonolith/Dockerfile and pushed to a registry the cluster can pull from.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,44 +23,60 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: eshop-modulith-configmap
+            name: eshop-modulith-config
             items:
               - key: application.yaml
-                path: application.yml
+                path: application.yaml
+        # The root filesystem is read-only; Tomcat needs a writable temp directory.
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: eshop-modulith
-          image: sb-eshop:test
-          imagePullPolicy: Always
+          image: registry.example.com/eshop-modular-monolith:1.0.0
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
+            # The image's apiuser.
             runAsUser: 1002
             runAsGroup: 1002
             readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - "ALL"
+          env:
+            # Not optional: without the mounted file, the application would fall back to the localhost defaults.
+            - name: SPRING_CONFIG_IMPORT
+              value: "/config/application.yaml"
+          envFrom:
+            - secretRef:
+                name: eshop-modulith-secret
           volumeMounts:
             - name: config-volume
               mountPath: /config
               readOnly: true
-          env:
-            - name: SPRING_CONFIG_IMPORT
-              value: "optional:/config/application.yml"
+            - name: tmp
+              mountPath: /tmp
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+          # Holds back the other two probes until the application has started.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
-            initialDelaySeconds: 3
+              port: http
             periodSeconds: 5
             timeoutSeconds: 1
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8080
-            initialDelaySeconds: 3
+              port: http
             periodSeconds: 5
             timeoutSeconds: 1
             failureThreshold: 5

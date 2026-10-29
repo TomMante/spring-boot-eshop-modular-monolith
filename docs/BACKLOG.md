@@ -108,13 +108,6 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
-### 23. The Full Stack on Minikube
-- `Kubernetes/simple-deployment` deploys the application only, and has drifted: its ConfigMap sets only the Postgres datasource (no MongoDB URI, issuer or payment provider), so the application can't start from it, and `imagePullPolicy: Always` on the local `sb-eshop:test` image fails on Minikube unless the image is in a registry.
-- **Goal:** everything the application needs runs in the cluster, with a README that takes a reader from `minikube start` to a placed order. It shows Deployments, Services, ConfigMaps, Secrets, StatefulSets with persistent volumes for Postgres and MongoDB, a Job for the replica-set initiation, and probes.
-- **Shape (settled with the user, 2026-10-26):** plain manifests with kustomize, split into infrastructure and application. GitOps (Argo CD) is out of scope for this repository; it belongs to a separate project.
-- **Depends on:** an image built from source and the settings-per-environment table from [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md). The fixed-issuer approach carries over: Keycloak's public hostname fixed, the application fetching keys at the in-cluster address through `jwk-set-uri`.
-- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the [end-to-end suite](../e2e/README.md) also runs against the cluster.
-
 ### 24. Organise the End-to-End Suite by Capability
 - **Priority: before the suite grows.** With 4 features and 7 scenarios each change below is small. Every feature added in the current shape makes it larger.
 - **Packages by capability, not by Screenplay type.** Today `e2e/` has flat `tasks/`, `questions/` and `stepdefinitions/` packages. Group them as `basket/`, `ordering/`, `catalog/` and `identity/`, each holding its tasks, questions and models. `BasketLine`, `OrderLine` and `OrderSummary` are models and leave `questions/`. `keycloak/` becomes `identity/`, named for its role rather than the vendor.
@@ -133,10 +126,30 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 
 ### 26. End-to-End Suite Settings and Scenario Selection
 - **Priority: low.**
-- **Settings outside `EndToEndEnvironment`.** `Tokens` hard-codes the `eshop` realm, the `eshop-app` client and its secret `local-demo-secret`, while the URLs and admin credentials come from environment variables. Running the suite against another environment, as item 23 may decide, needs all of them configurable.
+- **Settings outside `EndToEndEnvironment`.** `Tokens` hard-codes the `eshop` realm, the `eshop-app` client and its secret `local-demo-secret`, while the URLs and admin credentials come from environment variables. Running the suite against any other environment needs all of them configurable.
 - **One admin token per call.** `CustomerAccounts.create` and `delete` each request a new admin token, so each actor costs Keycloak two extra token requests. A short-lived cached token halves that traffic under parallel runs.
 - **No tags.** Add `@wip`, excluded by default, and a smoke subset, so that selecting scenarios is a setting rather than something bolted on later.
 - **Why deferred:** raised on 2026-10-29 in the same review as item 24. Nothing needs it with one environment and 7 scenarios.
+
+### 27. Observability: Metrics, Traces and Dashboards in the Compose Stack
+- Today the application exposes only `/actuator/health`. Nothing records metrics or traces, so the asynchronous path (checkout → outbox → dispatcher → order) and the payment calls can be followed only through logs.
+- **Goal:** a visitor starts the stack with an extra compose profile and opens Grafana on committed dashboards showing the application's own behaviour, and a tracing UI showing one checkout from HTTP request to created order, across both modules.
+- **Shape:**
+    - Micrometer for metrics, and Micrometer Tracing bridged to OpenTelemetry, exporting over OTLP so the tracing backend is a compose detail rather than a code dependency. **Verify before relying on it:** what Spring Boot 4 provides out of the box here (starters, auto-configuration, property names), since Boot 4 changed its OpenTelemetry support.
+    - Compose services under their own profile (e.g. `observability`), so the default stack and the end-to-end run stay as light as today: Prometheus, Grafana, and a tracing backend.
+    - Grafana datasources and dashboards committed through provisioning, so a fresh clone opens with them ready.
+    - Trace and span ids in the log pattern, so a log line leads to its trace.
+- **Trace context across the outbox, the part that is specific to this project.** HTTP, the database calls and the Stripe call are traced out of the box. The outbox breaks the trace: the dispatcher publishes on a scheduler thread with no context, so ordering's consumer starts an unrelated trace. Store the W3C trace context on the outbox record when the event is written, and restore it when the dispatcher publishes. Keep it in the record's metadata, not in the event payload: the payload is schema-versioned with upcasting and captured fixtures, and the trace context isn't part of the event. Both adapters (JPA and Mongo) and the fake change.
+- **Metrics that say something about this design**, beyond the built-in JVM and HTTP ones, each tagged by module:
+    - outbox: pending events, age of the oldest pending event, dispatch attempts and failures, dead-lettered events (item 16's gauge, which this item includes);
+    - payments: charges, declines by reason, refunds, and failed refunds, which makes Known Issue 14 visible until it is fixed;
+    - the delay from checkout to order created, the eventual-consistency window measured.
+- **Decisions needed:**
+    - parent span or span link across the outbox. A child span gives one connected trace whose duration includes the poll wait; a link models the asynchronous hand-off as it is. Record the choice and why;
+    - tracing backend: Zipkin, Jaeger or Grafana Tempo. Tempo lets Grafana show traces next to metrics;
+    - separate Prometheus, Grafana and tracing containers, or the single `grafana/otel-lgtm` image. Separate services show the wiring; one image is less to maintain;
+    - whether logs go to Loki as well, or stay in the container output.
+- **Why deferred:** decided with the user on 2026-10-29, when running the stack on Kubernetes was dropped from this repository ([kubernetes-sample-scope](../ai-coding-tools/plans/kubernetes-sample-scope/kubernetes-sample-scope.md)) in favour of observability, which shows the modular monolith's asynchronous design rather than its deployment.
 
 ## ⏳ Gated on a trigger
 

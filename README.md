@@ -127,7 +127,7 @@ Detailed documentation is located in the `docs/` directory:
 | `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup, and a comparison with Spring Modulith. |
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `e2e/` | End-to-end tests in Serenity BDD (Cucumber, Screenplay) against the running stack, run by compose's `e2e` profile or from the host. |
-| `Kubernetes/` | Illustrative manifests for running the application on a local Minikube. They cover the application only; PostgreSQL, MongoDB and Keycloak are not included. |
+| `k8s-samples/` | A sample Kubernetes deployment of the application: probes, security context, resources, and its settings from a ConfigMap and a Secret. Not runnable as it is: hosts, image and credentials are placeholders, and the datastores and Keycloak aren't included. |
 | `.github/workflows/` | CI and PR builds; `main` is also analysed on SonarCloud and runs the end-to-end suite. |
 | `ai-coding-tools/` | How this project is built with a coding agent: process docs, one plan per increment recording what was decided and why, background research those decisions rest on, and scripts that run the suite and summarize coverage. |
 
