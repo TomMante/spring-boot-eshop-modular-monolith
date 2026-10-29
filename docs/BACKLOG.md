@@ -108,21 +108,12 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
-### 22. Running the End-to-End Suite in GitHub Actions
-- The [end-to-end suite](../e2e/README.md) in `e2e/` runs locally, through compose's `e2e` profile or from the host. No workflow runs it, so a change that breaks a flow across modules, Keycloak or the payment provider is caught only if someone runs it by hand.
-- **What CI needs:**
-  - a workflow of its own on PRs, uploading `e2e/target/site/serenity/` as an artifact;
-  - caching for the application's image build and the suite's `~/.m2`;
-  - a checkout that includes `e2e/`: both existing workflows check out only `SpringBoot-EshopModularMonolith/` (`sparse-checkout`), and their `paths` filters don't list `e2e/` or `docker/`;
-  - `user:` on the `e2e` service, or an equivalent: the container writes the report as root, which on Docker Desktop for Mac is invisible but on Linux leaves root-owned files in the mounted folder.
-- **Decision needed:** whether the job gates PRs or only runs on `main`.
-
 ### 23. The Full Stack on Minikube
 - `Kubernetes/simple-deployment` deploys the application only, and has drifted: its ConfigMap sets only the Postgres datasource (no MongoDB URI, issuer or payment provider), so the application can't start from it, and `imagePullPolicy: Always` on the local `sb-eshop:test` image fails on Minikube unless the image is in a registry.
 - **Goal:** everything the application needs runs in the cluster, with a README that takes a reader from `minikube start` to a placed order. It shows Deployments, Services, ConfigMaps, Secrets, StatefulSets with persistent volumes for Postgres and MongoDB, a Job for the replica-set initiation, and probes.
 - **Shape (settled with the user, 2026-10-26):** plain manifests with kustomize, split into infrastructure and application. GitOps (Argo CD) is out of scope for this repository; it belongs to a separate project.
 - **Depends on:** an image built from source and the settings-per-environment table from [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md). The fixed-issuer approach carries over: Keycloak's public hostname fixed, the application fetching keys at the in-cluster address through `jwk-set-uri`.
-- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the end-to-end suite (item 22) also runs against the cluster.
+- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the [end-to-end suite](../e2e/README.md) also runs against the cluster.
 
 ## ⏳ Gated on a trigger
 

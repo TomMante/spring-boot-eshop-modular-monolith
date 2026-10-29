@@ -112,6 +112,23 @@ batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-
   The parallelism override was checked before documenting it: with
   `-Dcucumber.execution.parallel.config.fixed.parallelism=1` every scenario ran on one worker
   (23 seconds against 13), so Failsafe passes the Maven user property to the forked JVM.
+- [ ] Step 7 — A GitHub Actions workflow runs the suite after every merge to `main`.
+  Added with the user, 2026-10-29, reversing *CI is out of this increment* below:
+  - **`spring_boot_eshopmodularmonolith_e2e.yml`**, on `push` to `main` (that is, on merge) and
+    `workflow_dispatch`, filtered to the application, `e2e/` and the workflow itself. Not on PRs.
+  - **Full checkout, no JDK:** it runs the same `--profile e2e run --rm --build e2e` command as
+    locally, so CI can't drift from it. The stack's logs are printed on failure, and
+    `e2e/target/site/serenity/` is uploaded as `serenity-report` whatever the outcome.
+  - **No caching:** each run builds the application image and downloads the suite's
+    dependencies. Acceptable for a job that runs only after a merge.
+  - **Root-owned report files don't matter on a hosted runner**, which is discarded after the
+    job; the upload only reads them.
+  - **Backlog 22 removed:** gating PRs is decided (no), the `sparse-checkout` and `paths`
+    points concerned the existing workflows only, and root ownership is moot. Caching is
+    dropped, not kept: nobody has committed to it.
+  - **To verify:** the YAML parses before merging. A workflow can only be dispatched once it's on
+    the default branch, so the first run is the one the merge triggers; its result is recorded
+    at close-out.
 
 ## Context
 
@@ -173,7 +190,8 @@ the compose network. Both were verified by hand. This plan automates that check.
   waits for the outbox dispatcher (a 5-second poll), so its time is mostly waiting, which
   parallel runs overlap.
 - **CI is out of this increment.** The suite runs locally first. Running it in GitHub Actions
-  stays in Backlog 22.
+  stays in Backlog 22. *(Changed with the user, 2026-10-29: step 7 adds a workflow that runs on
+  merges to `main` only.)*
 
 ## Design
 

@@ -34,6 +34,12 @@ or on the host (see [SETUP.md](../docs/SETUP.md)):
 cd e2e && ./mvnw verify
 ```
 
+**In CI**, the [end-to-end workflow](../.github/workflows/spring_boot_eshopmodularmonolith_e2e.yml)
+runs the same compose command after every merge to `main` that touches the application, this
+folder or the workflow, and can be started by hand from the Actions tab. It doesn't run on pull
+requests. The report is uploaded as the `serenity-report` artifact, and a failed run prints the
+stack's logs.
+
 ## Settings
 
 | Variable | Default | In the `e2e` container |
@@ -65,4 +71,5 @@ scenario's price change breaks another's total.
 
 ## The report
 
-`target/site/serenity/index.html`, written by both ways of running the suite.
+`target/site/serenity/index.html`, written by both ways of running the suite. In CI, download
+the `serenity-report` artifact from the run.

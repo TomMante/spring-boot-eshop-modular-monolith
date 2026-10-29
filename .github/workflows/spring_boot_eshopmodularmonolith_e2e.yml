@@ -1,0 +1,38 @@
+name: SpringBoot-EshopModularMonolith - End-to-End Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - SpringBoot-EshopModularMonolith/**
+      - e2e/**
+      - .github/workflows/spring_boot_eshopmodularmonolith_e2e.yml
+
+jobs:
+  end-to-end:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run the suite against the compose stack
+        run: docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
+
+      - name: Show the stack's logs
+        if: failure()
+        run: docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e logs --no-color
+
+      - name: Upload the Serenity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-report
+          path: e2e/target/site/serenity/
+          if-no-files-found: ignore
