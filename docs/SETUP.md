@@ -223,6 +223,17 @@ turning it off does not break schema validation.
 Turning the flag off stops the seed running; it does not delete rows already inserted. For an empty
 catalog, start from fresh volumes (see below).
 
+## End-to-end tests
+
+An automated suite checks the flows above against the running system. Without a JDK, compose
+runs it next to the stack:
+
+```bash
+docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
+```
+
+Running it from the host, its settings, and the report are in [e2e/README.md](../e2e/README.md).
+
 ## Starting over
 
 ```bash
@@ -230,7 +241,9 @@ docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml d
 ```
 
 `-v` discards the volumes, so the next `up` gives you empty databases and a freshly imported realm.
-If the application runs in Docker, add `--profile app` so its container goes too.
+If the application runs in Docker, add `--profile app` so its container goes too. After running
+the end-to-end suite, use `--profile e2e` instead; `-v` then also drops the Maven volume the
+suite's container downloads into, so its next run downloads its dependencies again.
 
 **Do this after pulling a change to `V1__init.sql`.** The catalog schema is edited in place rather than migrated (this is not a production system), so Flyway refuses to start against a database created from the previous version, with a checksum mismatch on `V1`. The outbox's retry and dead-letter columns (2026-10-17) and its `schema_version` column (2026-10-18) were such changes. A local basket database needs it too: unprocessed outbox documents written before `schemaVersion` existed read as version 0, which the application rejects.
 

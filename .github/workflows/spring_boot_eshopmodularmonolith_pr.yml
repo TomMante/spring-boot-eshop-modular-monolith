@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - SpringBoot-EshopModularMonolith/**
-      - .github/workflows/spring_boot_eshopmodularmonolith_ci.yml
+      - .github/workflows/spring_boot_eshopmodularmonolith_pr.yml
 
 jobs:
   continuous-integration:

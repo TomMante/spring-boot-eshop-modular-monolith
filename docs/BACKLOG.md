@@ -108,23 +108,35 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Depends on:** item 20 in practice: a saved card used later usually needs 3-D Secure on first use, and off-session charges have their own authentication rules.
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
-### 22. Automated End-to-End Tests (Serenity BDD)
-- Nothing tests the running system from the outside. The suite stops at an assembled Spring context (`ApplicationWiringTest`) against Testcontainers; nothing exercises the real image against real Keycloak tokens, the compose stack and the Stripe stand-in, end to end.
-- **Shape (settled with the user, 2026-10-26):**
-  - A separate project in its own top-level folder, next to `bruno/`, not a module of the application's Maven reactor. It knows only a base URL and the Keycloak token endpoint.
-  - Run by compose: an `e2e` profile in `docker/sb-eshop/compose.yaml` starts the stack and the application, then the Serenity runner once the application reports ready.
-  - Run in GitHub Actions as well as locally.
-- **Not a replacement for the Bruno collection.** Bruno is for a person exploring the API by hand; Serenity is the automated regression suite. Both send similar requests, and that overlap is accepted.
-- **Depends on:** the application running from compose, from an image built from source, under an `app` profile, with Keycloak issuing one fixed issuer (`http://localhost:9090/realms/eshop`) to clients inside and outside the compose network. That is the plan [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md).
-- **Watch for in CI:** both workflows check out only `SpringBoot-EshopModularMonolith/` (`sparse-checkout`), so a top-level test folder isn't in the checkout until that changes. Their `paths` filters need the new folder too.
-- **Decisions needed:** which flows the first scenarios cover (the checkout-to-order flow is the obvious one, since it crosses every module, the outbox and the provider); whether the e2e job gates PRs or only runs on `main`.
-
 ### 23. The Full Stack on Minikube
 - `Kubernetes/simple-deployment` deploys the application only, and has drifted: its ConfigMap sets only the Postgres datasource (no MongoDB URI, issuer or payment provider), so the application can't start from it, and `imagePullPolicy: Always` on the local `sb-eshop:test` image fails on Minikube unless the image is in a registry.
 - **Goal:** everything the application needs runs in the cluster, with a README that takes a reader from `minikube start` to a placed order. It shows Deployments, Services, ConfigMaps, Secrets, StatefulSets with persistent volumes for Postgres and MongoDB, a Job for the replica-set initiation, and probes.
 - **Shape (settled with the user, 2026-10-26):** plain manifests with kustomize, split into infrastructure and application. GitOps (Argo CD) is out of scope for this repository; it belongs to a separate project.
 - **Depends on:** an image built from source and the settings-per-environment table from [compose-runs-the-application](../ai-coding-tools/plans/compose-runs-the-application/compose-runs-the-application.md). The fixed-issuer approach carries over: Keycloak's public hostname fixed, the application fetching keys at the in-cluster address through `jwk-set-uri`.
-- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the end-to-end suite (item 22) also runs against the cluster.
+- **Decisions needed:** how a host-side client reaches the application and Keycloak (port-forward, `minikube service`, or an Ingress), which also decides what Keycloak's fixed hostname is in the cluster; whether the [end-to-end suite](../e2e/README.md) also runs against the cluster.
+
+### 24. Organise the End-to-End Suite by Capability
+- **Priority: before the suite grows.** With 4 features and 7 scenarios each change below is small. Every feature added in the current shape makes it larger.
+- **Packages by capability, not by Screenplay type.** Today `e2e/` has flat `tasks/`, `questions/` and `stepdefinitions/` packages. Group them as `basket/`, `ordering/`, `catalog/` and `identity/`, each holding its tasks, questions and models. `BasketLine`, `OrderLine` and `OrderSummary` are models and leave `questions/`. `keycloak/` becomes `identity/`, named for its role rather than the vendor.
+- **Feature folders by capability.** Serenity builds the report's requirements tree from the folders under `src/test/resources/features/`, which are flat today. Folders such as `features/ordering/checkout.feature` and `features/identity/authentication.feature` turn the report into documentation grouped by capability.
+- **Step definitions only translate Gherkin into Screenplay calls.** `BasketSteps.noLongerHasABasket` sends `GET /basket` itself, and status codes and error codes (`basket.not-found`, `basket.checkout.payment-declined`) are asserted in step classes, so an API change touches both layers. Move these into questions (e.g. `TheBasket.exists()`). Assert through questions throughout: catalog steps assert on the raw response, basket and order steps through questions. Keep `seeThatResponse` for steps that check the status of the request under test. Depends on the fix in Known Issue 9 for those.
+- **The customer account as an ability.** The account is stored in actor memory under `CustomerSteps.CUSTOMER_ACCOUNT`, a string key that `StageSetup` also reads, and `ORDER_ID` is a second shared key. An ability that holds the account and its token and implements Serenity's `HasTeardown` to delete the user would remove the key, the `@After` loop and the `cast` field in `StageSetup`. **Verify before relying on it:** whether ability teardown runs on its own in this Cucumber setup, or needs `OnStage.drawTheCurtain()` in an `@After` hook.
+- **Placing an order as one task.** `OrderSteps.hasPlacedAnOrder` builds create, add and checkout by hand, then asserts and waits. A composite `PlaceAnOrder` task makes it reusable in other scenarios and shows it as one step in the report.
+- **Why deferred:** raised on 2026-10-29 in a review of the suite added by [end-to-end-tests-with-serenity](../ai-coding-tools/plans/end-to-end-tests-with-serenity/end-to-end-tests-with-serenity.md). The suite works as it is; this is structure for growth.
+
+### 25. Business-Readable End-to-End Scenarios
+- **Priority: low.** Best done feature by feature, whenever one is touched anyway.
+- **Implementation details in the Gherkin.** `checkout.feature` names Stripe test tokens (`"pm_card_visa"`, `"pm_card_visa_chargeDeclined"`), and its description and a step mention the outbox. Name the cards in business terms ("checks out with a card that is declined") and map them in one place, e.g. a `PaymentCard` enum carrying the token, brand and last four digits. "Paid with a visa card ending in 4242" then comes from the same entry, not from what the stub happens to return.
+- **Steps with a fixed number of arguments.** `"{actor} sees the products {string}, {string} and {string}"` fits exactly three products. The order step packs line, total and card into one step with six parameters and has to be copied for an order with two lines. Use data tables for lists of products and order lines, and separate steps for the total and the card. `"{actor} has {int} {string} in the basket"` creates a new basket each time, so it can't describe a basket with two products either.
+- **Expected values that depend on seed data the reader can't see.** The 1100.00 total is right only because a Galaxy Smartphone is seeded at 550.00. A step that checks the price ("Given the Galaxy Smartphone costs 550.00"), without setting it, lets a reader confirm the total from the feature alone.
+- **Why deferred:** raised on 2026-10-29 in the same review as item 24. Wording, not correctness: every scenario checks what it says.
+
+### 26. End-to-End Suite Settings and Scenario Selection
+- **Priority: low.**
+- **Settings outside `EndToEndEnvironment`.** `Tokens` hard-codes the `eshop` realm, the `eshop-app` client and its secret `local-demo-secret`, while the URLs and admin credentials come from environment variables. Running the suite against another environment, as item 23 may decide, needs all of them configurable.
+- **One admin token per call.** `CustomerAccounts.create` and `delete` each request a new admin token, so each actor costs Keycloak two extra token requests. A short-lived cached token halves that traffic under parallel runs.
+- **No tags.** Add `@wip`, excluded by default, and a smoke subset, so that selecting scenarios is a setting rather than something bolted on later.
+- **Why deferred:** raised on 2026-10-29 in the same review as item 24. Nothing needs it with one environment and 7 scenarios.
 
 ## ⏳ Gated on a trigger
 
