@@ -1,6 +1,6 @@
 # E2E Testing Gaps
 
-Draft, 2026-10-29; decisions settled with the user on 2026-10-30. Not yet approved.
+Approved by the user on 2026-10-30, per [feature-workflow.md](../../processes/feature-workflow.md).
 
 ## Status
 - [ ] Step 1 — One way to send a request: token always applied, setup checked, response under test recorded (Testing Gaps 9, 16, 17)
