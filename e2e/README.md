@@ -27,6 +27,11 @@ suite's dependencies into the `e2e-maven-repository` volume; later runs reuse it
 running afterwards: stop it with `down` and `--profile e2e`, and note that `-v` also drops the
 Maven volume (see [Starting over](../docs/SETUP.md#starting-over)).
 
+The container runs as root, so on a Linux host with native Docker Engine, `target/` is left
+owned by root and a later `./mvnw clean` on the host fails. Remove it once with
+`sudo rm -rf e2e/target`. Docker Desktop (on any OS) and rootless Docker map ownership to your
+user, so they aren't affected.
+
 **From the host** (JDK 25), with the application already running, either under `--profile app`
 or on the host (see [SETUP.md](../docs/SETUP.md)):
 
