@@ -55,18 +55,6 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **When done:** update [SETUP.md](SETUP.md)'s start-infrastructure step, and the Prerequisites in [bruno/README.md](../bruno/README.md).
 - **Why deferred:** convenience, not a defect. Raised on 2026-09-16 while working on order visibility, and kept out of that change.
 
-### 15. Make the Grouping Poms Aggregators
-- **Priority: low.** Nothing is broken. The build is correct, but its poms describe a structure that isn't there.
-- **Today:** `modules/pom.xml`, `modules/basket/pom.xml` and `modules/catalog/pom.xml` are standalone `packaging pom` projects. None of them has `<modules>`, and no module uses them as `<parent>`. The root pom is both the parent and the aggregator of every module and lists each one by path (`modules/basket/basket-core`, …). The folder nesting suggests a Maven hierarchy that doesn't exist, and each of the three poms only produces an empty artifact. No other pom references the `modules`, `basket` or `catalog` artifacts (checked 2026-10-06).
-- **Target:** the layout `outbox/` got in [outbox-dead-letter-and-payload-compatibility](../ai-coding-tools/plans/outbox-dead-letter-and-payload-compatibility/outbox-dead-letter-and-payload-compatibility.md) increment 2. Each grouping pom is an **aggregator only**: `modules/pom.xml` lists `basket`, `catalog` and `ordering`; `basket/pom.xml` lists `basket-core` and `basket-contract`; `catalog/pom.xml` lists `catalog-core` and `catalog-contract`. The root lists only top-level areas (`starter`, `shared`, `security`, `sonar`, `modules`, `outbox`).
-- **Keep the parent where it is.** Every leaf module keeps the root as its `<parent>`. Making the grouping poms parents too only pays off when a group shares configuration, and all configuration lives in the root. An extra parent level would add a `relativePath` chain and a second place to look for settings, with nothing in it.
-- **Watch for:**
-    - each module may be listed only once in the reactor, so the root's `<modules>` must shrink in the same change;
-    - `sonar/pom.xml` collects modules through `<dependencies>`, not `<modules>`, and doesn't change;
-    - building one group alone (`./mvnw -f modules/basket/pom.xml verify`) only includes that group's modules in the reactor, so anything they depend on (`shared`, `catalog-contract`, `outbox-mongo`) must already be installed by a root `install`.
-- **Shape:** poms only, behaviour unchanged, checked by a green `./mvnw clean verify`. Fits the [quick-fix](../ai-coding-tools/processes/quick-fix.md) workflow.
-- **Why deferred:** raised on 2026-10-06 while grouping the outbox modules, and kept out of that increment because it's unrelated to the outbox.
-
 ### 16. Dead-Letter Metric
 - **Priority: low.** Dead-lettering is visible today only as an ERROR log line and a stored state (see [ARCHITECTURE.md](ARCHITECTURE.md), *Retry and dead-letter*).
 - **Goal:** a Micrometer gauge such as `eshop.outbox.dead_lettered{module=…}`, so a dashboard or alert can see dead-lettered events without reading logs.

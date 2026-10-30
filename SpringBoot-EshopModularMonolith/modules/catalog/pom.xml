@@ -13,5 +13,9 @@
     <artifactId>catalog</artifactId>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>catalog-core</module>
+        <module>catalog-contract</module>
+    </modules>
 
 </project>

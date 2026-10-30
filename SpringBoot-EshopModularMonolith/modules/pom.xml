@@ -12,4 +12,10 @@
     <artifactId>modules</artifactId>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>basket</module>
+        <module>catalog</module>
+        <module>ordering</module>
+    </modules>
+
 </project>
