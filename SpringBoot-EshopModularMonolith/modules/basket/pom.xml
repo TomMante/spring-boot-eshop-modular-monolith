@@ -13,5 +13,9 @@
     <artifactId>basket</artifactId>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>basket-core</module>
+        <module>basket-contract</module>
+    </modules>
 
 </project>

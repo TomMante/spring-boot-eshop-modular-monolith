@@ -12,13 +12,6 @@
 		<module>starter</module>
 		<module>shared</module>
 		<module>modules</module>
-		<module>modules/basket</module>
-		<module>modules/basket/basket-core</module>
-		<module>modules/basket/basket-contract</module>
-		<module>modules/catalog</module>
-		<module>modules/catalog/catalog-contract</module>
-		<module>modules/catalog/catalog-core</module>
-		<module>modules/ordering</module>
 		<module>sonar</module>
 		<module>security</module>
 		<module>outbox</module>
