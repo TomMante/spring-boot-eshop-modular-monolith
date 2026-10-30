@@ -24,11 +24,6 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Accepted on 2026-10-26** in [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md), which introduced the charge and kept the compensation synchronous and best-effort.
 - **Action Required:** make the refund durable instead of best-effort, e.g. write a pending-refund record that a scheduled job retries until the provider confirms, the way the outbox retries events. The refund call is already idempotent (`refund-<charge reference>`), so retrying it is safe.
 
-### 15. The `e2e` Container Leaves Root-Owned Files in `e2e/target`
-- **Locations:** the `e2e` service in `docker/sb-eshop/compose.yaml`
-- **Issue:** the service runs Maven as the image's default user, root, in the bind-mounted `e2e/` folder, so everything under `e2e/target` (compiled classes, the Serenity report) is written as root. On a Linux host the files keep that owner, and a later `./mvnw clean` on the host, or deleting the folder, needs sudo. Docker Desktop on macOS maps ownership to the host user, which hides it. Not yet reproduced on Linux; found by reading the compose file on 2026-10-29. CI isn't affected, since the runner is discarded after the job.
-- **Action Required:** run the service as the host user (`user:` in compose, from variables the caller exports, since `UID` is a shell variable and not in the environment by default). The Maven volume is mounted at `/root/.m2`, which that user can't write, so it has to move too, e.g. to a path set through `-Dmaven.repo.local` and the wrapper's `MAVEN_USER_HOME`.
-
 ## 🧪 Testing Considerations & Gaps
 
 ### 6. Transactional Semantics of Order Creation Are Unverified
