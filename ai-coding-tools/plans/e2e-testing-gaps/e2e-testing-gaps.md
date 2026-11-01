@@ -1,13 +1,82 @@
 # E2E Testing Gaps
 
-Approved by the user on 2026-10-30, per [feature-workflow.md](../../processes/feature-workflow.md).
+Approved by the user on 2026-10-30. Implementation: guided (the assistant implements each
+batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-workflow.md).
 
 ## Status
-- [ ] Step 1 — One way to send a request: token always applied, setup checked, response under test recorded (Testing Gaps 9, 16, 17)
-- [ ] Step 2 — Product lookup across every page of the catalog (Testing Gap 19)
-- [ ] Step 3 — The declined-checkout "no order" check (Testing Gap 18)
-- [ ] Step 4 — Generically worded response steps (Testing Gap 20)
-- [ ] Step 5 — Docs and live lists
+- [x] Step 1 — One way to send a request: token always applied, setup checked, response under test recorded (Testing Gaps 9, 16, 17)
+  - **Results, 2026-10-30,** from the host against the application running in IntelliJ:
+    - **Whole suite:** green, 8 tests, the same count as before the change.
+    - **Gap 9:** with the baseline's temporary "And Alice asks for Alice's order by its id",
+      "Another customer can't see the order" now passes. Bob's own response is checked.
+    - **Gap 16:** the planned edit (adding 0 of a product) didn't fail, because the API accepts
+      quantity 0 and checkout placed an order with a 0.00 total. That's a defect, recorded under
+      *Deferred*. Replaced, with the user's agreement, by dropping `CreateTheBasket` from
+      `BasketSteps.hasInTheBasket`. Both checkout scenarios then failed in their *Given*, in
+      under 2 s, with `POST /basket/items answered 500: …`. Before the change, such a failure
+      showed up on a later step, after `eventually`'s 30 s. The `500` instead of `404` is a
+      second defect, also under *Deferred*.
+    - **Misuse:** a temporary scenario with "Alice's request is accepted" and no *When* failed
+      with "Can't check that the request is accepted: Alice sent no request under test. …".
+    - **Gap 17:** the Visitor (`401`) and Alice (`200`) scenarios stay green. `seeThatResponse`,
+      `UseABearerToken.authorize` and Serenity's `Get`/`Post` no longer appear outside `api/`.
+    - **Deviation:** all three tasks a *When* uses (`CheckOut`, `ListTheProducts`,
+      `AskForTheOrder`) got the `asTheRequestUnderTest()` flag, including `AskForTheOrder`,
+      which only a *When* uses, so every *When* step reads the same way.
+  - **Baseline, 2026-10-30, before any change:** with "And Alice asks for Alice's order by its
+    id" inserted between Bob's request and "Bob's request is refused as not found", "Another
+    customer can't see the order" failed with `Expected status code <404> but was <200>` (the
+    step checked Alice's response), and the other scenarios passed. Run from the host against
+    the application running in IntelliJ: the `app` container couldn't bind port 8080 while that
+    process held it. The temporary line was then removed.
+- [x] Step 2 — Product lookup across every page of the catalog (Testing Gap 19)
+  - **Results, 2026-11-01,** from the host against the application in Docker (`--profile app`,
+    a fresh stack, since the IntelliJ run was gone):
+    - **Baseline on the old lookup,** with `ListTheProducts`'s `pageSize` set to `1`: both
+      checkout scenarios failed with "No product named 'Galaxy Smartphone' in the catalog", and
+      `catalog.feature` listed only `[Aurora Laptop]`. "Another customer can't see the order"
+      also failed, with `POST /basket/checkout answered 500`, for an unrelated reason (a fresh
+      database, recorded under *Deferred*). Step 1's 2xx check reported it on its own step.
+    - **New lookup with `PAGE_SIZE = 1`:** green, 8 tests. The Serenity report shows
+      `pageIndex` 0, 1 and 2 requested once, in one scenario: one read per run. `catalog.feature`
+      passed too, which was not what the plan's batch description predicted. It goes through
+      `ListTheProducts`, which this step leaves at page 0 / size 10.
+    - **Restored to `PAGE_SIZE = 10`:** green, 8 tests.
+    - **Deviation:** the map is a static field, against end-to-end-tests-with-serenity's "no
+      static fields" rule. That rule keeps scenarios from sharing mutable state. This field is
+      written once, under `synchronized`, holds the read-only seeded catalog, and is the same
+      for every scenario. The lookup calls `Api.get` directly rather than `ListTheProducts`,
+      which stays the *When* "lists the products".
+- [x] Step 3 — The declined-checkout "no order" check (Testing Gap 18)
+  - **Results, 2026-11-01,** against the application in Docker:
+    - The scenario, renamed "A declined checkout keeps the basket and places no order", now
+      checks out again with `pm_card_visa` after the decline and waits for exactly one order:
+      1 Galaxy Smartphone, 550.00. It reuses the existing steps, so no new step code.
+      `hasNoOrders` and `PUBLISHING_WINDOW` are gone.
+    - **Whole suite:** green, 8 tests, in 5.7 s instead of about 12.5 s.
+    - **Failing for the right reason:** with 2 phones and 1100.00 expected, the scenario failed
+      after `eventually`'s 30 s, printing the single paid order (quantity 1, 550.00).
+    - The feature description ("A declined one changes nothing") still fits and is unchanged.
+- [x] Step 4 — Generically worded response steps (Testing Gap 20)
+  - **Results, 2026-11-01,** against the application in Docker:
+    - "{actor}'s request is accepted" checks for any 2xx. "{actor}'s request is refused as not
+      found" became "{actor} is told the order doesn't exist" (`isToldTheOrderDoesNotExist`),
+      still checking `404` with `order.not-found`.
+    - **Whole suite:** green, 8 tests.
+    - **Failing for the right reason:** with "Visitor's request is accepted" in place of the
+      unauthenticated refusal, the scenario failed with `Expected status code (a value equal to
+      or greater than <200> and a value less than <300>) but … <401> was greater than <300>`.
+      Hamcrest's `allOf` makes the mismatch half of the message clumsy, but it names the range
+      and the status. **Deviation:** the plan named a request answering `404`. The existing
+      Visitor scenario's `401` shows the same thing without a new scenario.
+- [x] Step 5 — Docs and live lists
+  - `e2e/README.md` has a *Writing a scenario* section. `docs/KNOWN_ISSUES.md` no longer has
+    Testing Gaps 9 and 16–20. Backlog 24 and 25 now describe the suite as it is. `README.md`
+    needed no change.
+  - **Close-out of *Deferred*:** the gap 18 blind spot became Testing Gap 24. The zero-or-less
+    quantity became Known Bug 21, the add/remove 500 became Known Bug 22 (widened to
+    `CatalogProductNotFound`, found while writing it up), and the fresh-database
+    `WriteConflict` became Known Bug 23. Nothing was dropped.
 
 ## Context
 
@@ -220,5 +289,29 @@ here. Every step ends with the whole suite green: `cd e2e && ./mvnw verify` agai
 - The gap 18 blind spot: a decline event whose first publish failed is retried after the
   outbox backoff, which can be later than the paid order. Seeing it needs the outbox itself,
   through a public surface such as Backlog 27's pending-events metric.
+
+- **Found in step 1: the basket accepts a quantity of 0 or less.** `AddItemIntoBasketRequest`
+  has no constraint on `quantity`, and neither `ShoppingCart.addItem` nor `Item` checks it.
+  Adding 0 of a product answered 2xx, and checking out placed an order with that line at
+  quantity 0 and a 0.00 total. A negative quantity would go through the same path, and merging
+  it with an existing line lowers that line's quantity. Not reproduced with a negative number
+  yet. A defect: route to Known Issues.
+- **Found in step 1: adding to a missing basket answers 500, not 404.** `AddItemIntoBasketHandler`
+  throws `BasketNotFound`, but the only handlers for it are the `@RestControllerAdvice` classes
+  scoped to the `getbasket` and `checkoutbasket` packages. `additemintobasket` has none, and
+  neither has `removeitemfrombasket`, which throws the same exception. A defect: route to Known
+  Issues.
+
+- **Found in step 2: the first concurrent checkouts on a fresh database can fail with 500.**
+  On a stack started on 2026-11-01 (Mongo container created at 14:36:01), a setup checkout at
+  14:36:38 answered 500. The app log shows `TransactionSystemException` caused by MongoDB error
+  112 `WriteConflict`, "Collection namespace 'eshop-basket-db.outbox' is already in use", labelled
+  `TransientTransactionError`. Nothing creates the `outbox` collection up front, so the first
+  checkouts create it implicitly inside their transactions. When two run at once, one of them
+  conflicts, and nothing retries a transient transaction error. The customer was charged first,
+  so this also takes the refund path of Known Bug 14. The end-to-end suite meets it on every
+  fresh stack, which is what CI runs, so it can make the suite flaky there. A defect: route to
+  Known Issues. Possible remedies: create the collection (and its indexes) at startup, or retry
+  on `TransientTransactionError`.
 
 Anything else this increment surfaces and doesn't fix is listed here and routed at close-out.

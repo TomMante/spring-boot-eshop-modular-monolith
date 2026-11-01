@@ -74,6 +74,21 @@ Override it for one run:
 scenario that writes catalog data creates its own product and reads only that one; otherwise one
 scenario's price change breaks another's total.
 
+## Writing a scenario
+
+- **Send every request through `Api`** (`Api.get`, `Api.post` in `api/`), never Serenity's `Get`
+  or `Post` directly. `Api` adds the actor's token whenever the actor has one, so a request goes
+  out without a token only because the actor holds none, like Visitor.
+- **Only a *When* sends the request under test,** with `.asTheRequestUnderTest()`. Its response
+  is remembered by the actor who sent it, and response steps check it with
+  `seeThatTheResponseUnderTest`. A question asked in between, or another actor's request, doesn't
+  change which response a step checks.
+- **Every other request must succeed.** Setup tasks and questions fail on their own step with
+  the status and body when they get anything other than 2xx, rather than on a later step.
+- **Look products up by name only among the seeded ones.** `TheCatalog` reads the seeded
+  catalog once per run. A product a scenario creates is known by the id its create request
+  returned.
+
 ## The report
 
 `target/site/serenity/index.html`, written by both ways of running the suite. In CI, download
