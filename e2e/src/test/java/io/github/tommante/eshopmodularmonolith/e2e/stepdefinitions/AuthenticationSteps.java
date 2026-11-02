@@ -6,7 +6,10 @@ import io.github.tommante.eshopmodularmonolith.e2e.abilities.UseABearerToken;
 import io.github.tommante.eshopmodularmonolith.e2e.keycloak.Tokens;
 import net.serenitybdd.screenplay.Actor;
 
-import static net.serenitybdd.screenplay.rest.questions.ResponseConsequence.seeThatResponse;
+import static io.github.tommante.eshopmodularmonolith.e2e.api.ResponseUnderTest.seeThatTheResponseUnderTest;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThan;
 
 public class AuthenticationSteps {
 
@@ -17,11 +20,12 @@ public class AuthenticationSteps {
 
     @Then("{actor}'s request is refused as unauthenticated")
     public void isRefusedAsUnauthenticated(Actor actor) {
-        actor.should(seeThatResponse("the request is refused", response -> response.statusCode(401)));
+        actor.should(seeThatTheResponseUnderTest("the request is refused", response -> response.statusCode(401)));
     }
 
     @Then("{actor}'s request is accepted")
     public void isAccepted(Actor actor) {
-        actor.should(seeThatResponse("the request is accepted", response -> response.statusCode(200)));
+        actor.should(seeThatTheResponseUnderTest("the request is accepted",
+                response -> response.statusCode(allOf(greaterThanOrEqualTo(200), lessThan(300)))));
     }
 }

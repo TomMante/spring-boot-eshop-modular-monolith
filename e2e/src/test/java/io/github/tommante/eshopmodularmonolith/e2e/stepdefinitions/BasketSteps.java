@@ -2,18 +2,17 @@ package io.github.tommante.eshopmodularmonolith.e2e.stepdefinitions;
 
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.github.tommante.eshopmodularmonolith.e2e.abilities.UseABearerToken;
+import io.github.tommante.eshopmodularmonolith.e2e.api.Api;
 import io.github.tommante.eshopmodularmonolith.e2e.questions.BasketLine;
 import io.github.tommante.eshopmodularmonolith.e2e.questions.TheBasket;
 import io.github.tommante.eshopmodularmonolith.e2e.tasks.AddToTheBasket;
 import io.github.tommante.eshopmodularmonolith.e2e.tasks.CreateTheBasket;
 import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.rest.interactions.Get;
 
 import java.util.List;
 
 import static net.serenitybdd.screenplay.GivenWhenThen.seeThat;
-import static net.serenitybdd.screenplay.rest.questions.ResponseConsequence.seeThatResponse;
+import static io.github.tommante.eshopmodularmonolith.e2e.api.ResponseUnderTest.seeThatTheResponseUnderTest;
 import static org.hamcrest.Matchers.equalTo;
 
 public class BasketSteps {
@@ -30,8 +29,8 @@ public class BasketSteps {
 
     @Then("{actor} no longer has a basket")
     public void noLongerHasABasket(Actor actor) {
-        actor.attemptsTo(Get.resource("/basket").with(request -> UseABearerToken.authorize(actor, request)));
-        actor.should(seeThatResponse("there is no basket",
+        actor.attemptsTo(Api.get("/basket").asTheRequestUnderTest());
+        actor.should(seeThatTheResponseUnderTest("there is no basket",
                 response -> response.statusCode(404).body("code", equalTo("basket.not-found"))));
     }
 }

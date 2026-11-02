@@ -12,5 +12,5 @@ Feature: Orders belong to their customer
   Scenario: Another customer can't see the order
     Given Bob is a customer
     When Bob asks for Alice's order by its id
-    Then Bob's request is refused as not found
+    Then Bob is told the order doesn't exist
     And Bob's order list is empty

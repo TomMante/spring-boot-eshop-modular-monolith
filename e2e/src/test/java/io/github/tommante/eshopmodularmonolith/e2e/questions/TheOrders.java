@@ -1,13 +1,12 @@
 package io.github.tommante.eshopmodularmonolith.e2e.questions;
 
-import io.github.tommante.eshopmodularmonolith.e2e.abilities.UseABearerToken;
+import io.github.tommante.eshopmodularmonolith.e2e.api.Api;
 import io.restassured.path.json.JsonPath;
 import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import net.serenitybdd.rest.SerenityRest;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Question;
-import net.serenitybdd.screenplay.rest.interactions.Get;
 
 import java.util.List;
 import java.util.Map;
@@ -37,8 +36,7 @@ public final class TheOrders {
     }
 
     private static void listTheOrders(Actor actor) {
-        actor.attemptsTo(Get.resource("/orders").with(request ->
-                UseABearerToken.authorize(actor, request).queryParam("pageIndex", 0).queryParam("pageSize", 10)));
+        actor.attemptsTo(Api.get("/orders", request -> request.queryParam("pageIndex", 0).queryParam("pageSize", 10)));
     }
 
     private static OrderSummary summaryOf(JsonPath orders, String order) {
