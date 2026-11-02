@@ -1,5 +1,7 @@
 # End-to-End Tests With Serenity
 
+Implemented in [PR #34](https://github.com/TomMante/SpringBoot-EshopModularMonolith/pull/34).
+
 Approved by the user on 2026-10-28. Implementation: guided (the assistant implements each
 batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-workflow.md).
 

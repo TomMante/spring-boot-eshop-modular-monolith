@@ -1,5 +1,7 @@
 # Kubernetes Sample Scope
 
+Implemented in commit [`b614a3c`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/commit/b614a3cd7bde4fa71c6d11041a9b691e61cc86b0), pushed to `main` without a PR.
+
 Draft, 2026-10-29. The decision below was settled with the user on 2026-10-29. The user handed
 step 1 to the assistant explicitly, and chose `k8s-samples/` at the repository root.
 

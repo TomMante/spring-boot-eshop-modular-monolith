@@ -23,8 +23,8 @@ To run the whole stack, use compose: [Run everything in Docker](../docs/SETUP.md
   `eshop` realm, all reachable from the pod.
 - Real values in the ConfigMap, and credentials provided by the cluster's secret management
   rather than by [secret.yaml](secret.yaml).
-- Keycloak's public hostname fixed, so every token carries the issuer in `ISSUERURI` whichever
-  address it was requested on. Compose does this with `KC_HOSTNAME`; the settings table in
+- Keycloak's public hostname fixed, so every token carries the issuer set in the ConfigMap's
+  `issuer-uri`, whichever address it was requested on. Compose does this with `KC_HOSTNAME`; the settings table in
   [SETUP.md](../docs/SETUP.md#run-everything-in-docker) explains why.
 
 The settings are the same ones compose's `app` service overrides. A new setting that differs per

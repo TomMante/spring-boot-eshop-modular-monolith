@@ -1,5 +1,7 @@
 # Compose Runs the Application
 
+Implemented in [PR #33](https://github.com/TomMante/SpringBoot-EshopModularMonolith/pull/33).
+
 Approved by the user on 2026-10-27.
 
 ## Status
