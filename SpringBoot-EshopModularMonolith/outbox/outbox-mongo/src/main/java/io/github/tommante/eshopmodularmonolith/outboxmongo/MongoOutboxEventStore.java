@@ -23,7 +23,7 @@ public class MongoOutboxEventStore implements OutboxEventStore {
 
     @Override
     public void save(StoredOutboxEvent event) {
-        mongoTemplate.save(new OutboxEventDocument(event));
+        mongoTemplate.save(OutboxEventDocument.pending(event));
     }
 
     @Override
