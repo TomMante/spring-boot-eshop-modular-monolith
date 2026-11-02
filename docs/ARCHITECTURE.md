@@ -25,8 +25,8 @@ Better solutions:
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
 ### Duplication the architecture requires
-SonarCloud reports some code as duplicated that is duplicated on purpose. Do not merge these copies:
-- **`OutboxEventEntity` and `OutboxEventDocument`**: two adapters over two database engines. Showing that is the point of this project.
+Some code is duplicated on purpose, and SonarCloud flags some of it. Do not merge these copies:
+- **`OutboxEventEntity` and `OutboxEventDocument`**: the same persisted shape on two database engines, each written the way its engine expects: a mutable JPA entity, and an immutable record for MongoDB, whose state changes run as database updates. Showing that is the point of this project.
 - **`Product` and `ProductDB`**: a domain model and its persistence projection. The ports/adapters split requires both.
 - **`AddressMother` in basket and in ordering, and basket's `ChargeMother` next to ordering's `PaymentMother`**: they mirror value objects each module owns separately on purpose (`Address`; basket's `Charge` and ordering's `Payment`, each with its own `CardSummary`). Sharing the test builders would couple the two modules.
 
