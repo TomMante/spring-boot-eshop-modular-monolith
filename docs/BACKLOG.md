@@ -97,7 +97,7 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Why deferred:** raised on 2026-10-21 while designing [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md); not needed to remove card data from the system.
 
 ### 24. Organise the End-to-End Suite by Capability
-- **Priority: before the suite grows.** With 4 features and 7 scenarios each change below is small. Every feature added in the current shape makes it larger.
+- **Priority: before the suite grows.** With 4 features and 8 scenarios each change below is small. Every feature added in the current shape makes it larger.
 - **Packages by capability, not by Screenplay type.** Today `e2e/` has flat `tasks/`, `questions/` and `stepdefinitions/` packages. Group them as `basket/`, `ordering/`, `catalog/` and `identity/`, each holding its tasks, questions and models. `BasketLine`, `OrderLine` and `OrderSummary` are models and leave `questions/`. `keycloak/` becomes `identity/`, named for its role rather than the vendor.
 - **Feature folders by capability.** Serenity builds the report's requirements tree from the folders under `src/test/resources/features/`, which are flat today. Folders such as `features/ordering/checkout.feature` and `features/identity/authentication.feature` turn the report into documentation grouped by capability.
 - **Step definitions only translate Gherkin into Screenplay calls.** `BasketSteps.noLongerHasABasket` sends `GET /basket` itself, and status codes and error codes (`basket.not-found`, `basket.checkout.payment-declined`) are asserted in step classes, so an API change touches both layers. Move these into questions (e.g. `TheBasket.exists()`). Assert through questions throughout: catalog steps assert on the raw response, basket and order steps through questions. Keep `seeThatTheResponseUnderTest` (in `e2e/api/`) for steps that check the status of the request under test.
@@ -117,7 +117,7 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
 - **Settings outside `EndToEndEnvironment`.** `Tokens` hard-codes the `eshop` realm, the `eshop-app` client and its secret `local-demo-secret`, while the URLs and admin credentials come from environment variables. Running the suite against any other environment needs all of them configurable.
 - **One admin token per call.** `CustomerAccounts.create` and `delete` each request a new admin token, so each actor costs Keycloak two extra token requests. A short-lived cached token halves that traffic under parallel runs.
 - **No tags.** Add `@wip`, excluded by default, and a smoke subset, so that selecting scenarios is a setting rather than something bolted on later.
-- **Why deferred:** raised on 2026-10-29 in the same review as item 24. Nothing needs it with one environment and 7 scenarios.
+- **Why deferred:** raised on 2026-10-29 in the same review as item 24. Nothing needs it with one environment and 8 scenarios.
 
 ### 27. Observability: Metrics, Traces and Dashboards in the Compose Stack
 - Today the application exposes only `/actuator/health`. Nothing records metrics or traces, so the asynchronous path (checkout → outbox → dispatcher → order) and the payment calls can be followed only through logs.
