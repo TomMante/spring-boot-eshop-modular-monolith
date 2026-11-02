@@ -1,5 +1,7 @@
 # E2E Testing Gaps
 
+Implemented in [PR #37](https://github.com/TomMante/SpringBoot-EshopModularMonolith/pull/37).
+
 Approved by the user on 2026-10-30. Implementation: guided (the assistant implements each
 batch after the user's "ok"), per [feature-workflow.md](../../processes/feature-workflow.md).
 
@@ -86,12 +88,12 @@ wrong reason once it grows. They are Testing Gaps 9 and 16–20 in `docs/KNOWN_I
 
 | Gap | Problem |
 |---|---|
-| 9 | Response steps read `SerenityRest.lastResponse()`, the thread's last response, not the named actor's. A question asked in between (e.g. `TheCatalog`) moves it too. |
-| 16 | Setup tasks (`CreateTheBasket`, `AddToTheBasket`, `CheckOut` in a *Given*) never check their status, so a failed setup surfaces later on an unrelated step. |
-| 17 | Each request opts in to the token by calling `UseABearerToken.authorize`. A task that forgets sends no token, silently. |
-| 18 | `OrderSteps.hasNoOrders` sleeps a fixed 10 s (`PUBLISHING_WINDOW`), tied to the outbox's poll interval by a constant in the suite. |
-| 19 | `TheCatalog.idOfTheProductNamed` reads only page 0 (size 10) of `GET /products`. |
-| 20 | "{actor}'s request is refused as not found" asserts `order.not-found`, and "{actor}'s request is accepted" asserts `200`, so neither is as reusable as its wording says. |
+| 9 | Response steps read `SerenityRest.lastResponse()` through [`seeThatResponse`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/stepdefinitions/OrderSteps.java#L76), the thread's last response, not the named actor's. A question asked in between (e.g. [`TheCatalog`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/questions/TheCatalog.java#L15)) moves it too. |
+| 16 | Setup tasks ([`CreateTheBasket`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/tasks/CreateTheBasket.java#L19), [`AddToTheBasket`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/tasks/AddToTheBasket.java#L32), [`CheckOut`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/tasks/CheckOut.java#L37) in a *Given*) never check their status, so a failed setup surfaces later on an unrelated step. |
+| 17 | Each request opts in to the token by calling [`UseABearerToken.authorize`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/abilities/UseABearerToken.java#L13). A task that forgets sends no token, silently. |
+| 18 | [`OrderSteps.hasNoOrders`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/stepdefinitions/OrderSteps.java#L62) sleeps a fixed 10 s ([`PUBLISHING_WINDOW`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/stepdefinitions/OrderSteps.java#L33)), tied to the outbox's poll interval by a constant in the suite. |
+| 19 | [`TheCatalog.idOfTheProductNamed`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/questions/TheCatalog.java#L12) reads only page 0 (size 10, set in [`ListTheProducts`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/tasks/ListTheProducts.java#L20)) of `GET /products`. |
+| 20 | ["{actor}'s request is refused as not found"](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/stepdefinitions/OrderSteps.java#L75) asserts `order.not-found`, and ["{actor}'s request is accepted"](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/e2e/src/test/java/io/github/tommante/eshopmodularmonolith/e2e/stepdefinitions/AuthenticationSteps.java#L24) asserts `200`, so neither is as reusable as its wording says. |
 
 9, 16 and 17 have one cause: every task and question builds its request by hand (`Get`/`Post`,
 then `authorize`, then someone reads the last response). They get one fix. 18, 19 and 20 are
@@ -120,23 +122,30 @@ Nothing under `SpringBoot-EshopModularMonolith/src` changes in this plan.
   user, 2026-10-30). After the decline, the same customer checks out with a valid card, and the
   scenario waits for exactly one order, the paid one. The user's reasoning: the strength of an
   end-to-end test is the cross-module check. Checking only the basket would be too narrow; what
-  must hold is that no event left basket's outbox and no order exists in ordering.
-  - **How this shows the outbox:** the suite only talks HTTP, and nothing in the API exposes the
-    outbox, so the outbox part is inferred, not read. Basket's outbox is Mongo, and
-    `MongoOutboxEventStore` hands out due events sorted by `occurredOn`. Any event the decline
-    had written is therefore older than the paid checkout's, and becomes an order no later than
-    the paid one. So "exactly one order, the paid one" means the decline produced none.
-  - **Known blind spot:** a decline event whose first publish *failed* would be retried after
-    the outbox backoff, possibly after the paid order arrived. The check would miss it. Recorded
-    rather than closed, since closing it needs to see the outbox itself.
+  must hold is that no event left basket's outbox and no order exists in ordering. The suite
+  only talks HTTP, and nothing in the API exposes the outbox, so the user chose to infer the
+  outbox part from the orders rather than read it.
   - **Considered and not chosen:**
-    - *Dropping the line*, leaning on `CheckoutBasketHandlerTest`'s "no event is recorded":
+    - *Dropping the line*, leaning on
+      [`CheckoutBasketHandlerTest`'s "no event is recorded"](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/test/java/io/github/tommante/eshopmodularmonolith/basket/basket/application/features/checkoutbasket/CheckoutBasketHandlerTest.java#L171):
       too narrow for an end-to-end test, per the user.
     - *Reading basket's outbox collection from the runner*: breaks the black box and ties the
       suite to a storage schema. end-to-end-tests-with-serenity rejected the same thing for
       clean-up.
+    - *Waiting for an outbox metric* (Backlog 27): nothing exposes one yet.
   - **Cost:** a *When* after a *Then*, which is two behaviours in one scenario. That is accepted
     here, because the second checkout is how the first one's outcome is observed.
+
+- **Why the Gap 18 inference holds** (a property of the code, found while preparing the options;
+  not a decision). Basket's outbox is Mongo, and
+  [`MongoOutboxEventStore` hands out due events sorted by `occurredOn`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/outbox/outbox-mongo/src/main/java/io/github/tommante/eshopmodularmonolith/outboxmongo/MongoOutboxEventStore.java#L36). Any event the
+  decline had written is therefore older than the paid checkout's, and becomes an order no later
+  than the paid one. So "exactly one order, the paid one" means the decline produced none.
+  - **It depends on that ordering.** If the dispatcher stopped handing out events oldest first,
+    the scenario would stay green but prove less. Nothing in the suite guards it.
+  - **Known blind spot:** a decline event whose first publish *failed* would be retried after
+    the outbox backoff, possibly after the paid order arrived. The check would miss it. Recorded
+    rather than closed, since closing it needs to see the outbox itself.
 
 - **Gap 20: mixed** (settled with the user, 2026-10-30). "{actor}'s request is accepted"
   becomes generic in fact: it checks for any 2xx, since it reads naturally after any request.
@@ -290,15 +299,17 @@ here. Every step ends with the whole suite green: `cd e2e && ./mvnw verify` agai
   outbox backoff, which can be later than the paid order. Seeing it needs the outbox itself,
   through a public surface such as Backlog 27's pending-events metric.
 
-- **Found in step 1: the basket accepts a quantity of 0 or less.** `AddItemIntoBasketRequest`
-  has no constraint on `quantity`, and neither `ShoppingCart.addItem` nor `Item` checks it.
+- **Found in step 1: the basket accepts a quantity of 0 or less.**
+  [`AddItemIntoBasketRequest`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/main/java/io/github/tommante/eshopmodularmonolith/basket/basket/application/features/additemintobasket/AddItemIntoBasketRequest.java#L9) has no constraint on `quantity`, and neither `ShoppingCart.addItem` nor `Item` checks it.
   Adding 0 of a product answered 2xx, and checking out placed an order with that line at
   quantity 0 and a 0.00 total. A negative quantity would go through the same path, and merging
   it with an existing line lowers that line's quantity. Not reproduced with a negative number
   yet. A defect: route to Known Issues.
-- **Found in step 1: adding to a missing basket answers 500, not 404.** `AddItemIntoBasketHandler`
-  throws `BasketNotFound`, but the only handlers for it are the `@RestControllerAdvice` classes
-  scoped to the `getbasket` and `checkoutbasket` packages. `additemintobasket` has none, and
+- **Found in step 1: adding to a missing basket answers 500, not 404.**
+  [`AddItemIntoBasketHandler` throws `BasketNotFound`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/main/java/io/github/tommante/eshopmodularmonolith/basket/basket/application/features/additemintobasket/AddItemIntoBasketHandler.java#L20),
+  but the only handlers for it are the `@RestControllerAdvice` classes scoped to the
+  [`getbasket`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/main/java/io/github/tommante/eshopmodularmonolith/basket/basket/application/features/getbasket/GetBasketErrorHandler.java#L11) and
+  [`checkoutbasket`](https://github.com/TomMante/SpringBoot-EshopModularMonolith/blob/e84ce37436103b75215c015507813a5540c511b1/SpringBoot-EshopModularMonolith/modules/basket/basket-core/src/main/java/io/github/tommante/eshopmodularmonolith/basket/basket/application/features/checkoutbasket/CheckoutBasketErrorHandler.java#L12) packages. `additemintobasket` has none, and
   neither has `removeitemfrombasket`, which throws the same exception. A defect: route to Known
   Issues.
 

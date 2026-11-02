@@ -74,6 +74,91 @@ Override it for one run:
 scenario that writes catalog data creates its own product and reads only that one; otherwise one
 scenario's price change breaks another's total.
 
+## Code layout
+
+Arrows point from the caller to what it uses. `*` marks a task with a setup variant and an
+`.asTheRequestUnderTest()` variant.
+
+```mermaid
+flowchart TD
+    subgraph Gherkin["src/test/resources/features"]
+        F["*.feature<br/>(authentication, catalog,<br/>checkout, order_visibility)"]
+    end
+
+    subgraph Boot["Runner & stage"]
+        Suite["CucumberTestSuite<br/>runs the features in parallel"]
+        Stage["StageSetup<br/>@Before: a stage per scenario<br/>@After: delete its customers<br/>{actor} → Actor + CallAnApi"]
+        Env["EndToEndEnvironment<br/>URLs and admin credentials"]
+    end
+
+    subgraph Steps["stepdefinitions"]
+        CS["CustomerSteps"]
+        AS["AuthenticationSteps"]
+        BS["BasketSteps"]
+        CaS["CatalogSteps"]
+        CoS["CheckoutSteps"]
+        OS["OrderSteps"]
+    end
+
+    subgraph Tasks["tasks: what an actor does"]
+        T1["CreateTheBasket"]
+        T2["AddToTheBasket"]
+        T3["CheckOut*"]
+        T4["ListTheProducts*"]
+        T5["AskForTheOrder*"]
+    end
+
+    subgraph Questions["questions: what an actor asks"]
+        Q1["TheBasket"]
+        Q2["TheCatalog<br/>name → id, read once per run"]
+        Q3["TheOrders"]
+        M["BasketLine, OrderLine,<br/>OrderSummary"]
+    end
+
+    subgraph Api["api: the only way to the application"]
+        A["Api.get / Api.post"]
+        S["Send<br/>adds the actor's token<br/>setup: must answer 2xx<br/>under test: response remembered"]
+        R["ResponseUnderTest<br/>checks the named actor's<br/>remembered response"]
+    end
+
+    subgraph Identity["abilities and keycloak"]
+        Tok["UseABearerToken"]
+        KC["CustomerAccounts, Tokens"]
+    end
+
+    App[("Application API")]
+    Keycloak[("Keycloak")]
+
+    F --> Suite --> Steps
+    Suite -.-> Stage
+    Stage --> Env
+    Stage -->|clean-up| KC
+    CS --> KC
+    CS -->|gives| Tok
+    AS -->|other-realm token| Tok
+    Steps -->|attemptsTo| Tasks
+    Steps -->|seeThat| Questions
+    Steps -->|Then on a response| R
+    T2 --> Q2
+    OS --> Q2
+    Tasks --> A
+    Questions --> A
+    Q1 & Q3 --> M
+    A --> S
+    S -->|reads| Tok
+    S -->|HTTP| App
+    S -.->|remember| R
+    KC -->|HTTP| Keycloak
+    Env -.-> KC
+```
+
+- **Identity:** "is a customer" creates a Keycloak user through the admin API and gives the actor
+  its token as the `UseABearerToken` ability. An actor without one, like Visitor, sends requests
+  without a token. `StageSetup` deletes the scenario's users afterwards.
+- **Requests:** every task and question sends through `Send` (see *Writing a scenario* below).
+- **Checks:** *Then* steps use questions for state, and `ResponseUnderTest` for the answer to the
+  *When*'s request.
+
 ## Writing a scenario
 
 - **Send every request through `Api`** (`Api.get`, `Api.post` in `api/`), never Serenity's `Get`
