@@ -24,16 +24,16 @@ The two sections are kept apart because *broken* and *unverified* call for diffe
 - **Accepted on 2026-10-26** in [tokenized-card-payment](../ai-coding-tools/plans/tokenized-card-payment/tokenized-card-payment.md), which introduced the charge and kept the compensation synchronous and best-effort.
 - **Action Required:** make the refund durable instead of best-effort, e.g. write a pending-refund record that a scheduled job retries until the provider confirms, the way the outbox retries events. The refund call is already idempotent (`refund-<charge reference>`), so retrying it is safe.
 
-### 21. The Basket Accepts a Quantity of Zero or Less
-- **Locations:** `AddItemIntoBasketRequest.quantity`, `ShoppingCart.addItem`, `Item.increaseQuantity`
-- **Issue:** nothing validates the quantity of a basket line. Found on 2026-10-30 by the end-to-end suite: `POST /basket/items` with quantity 0 answered 2xx, and checkout placed an order whose only line has quantity 0 and whose total is 0.00. A negative quantity takes the same path (not reproduced yet): as a new line it gives a negative line total, and merged into an existing line it lowers that line's quantity, possibly to zero or below.
-- **Impact:** one ordinary request with a bad value produces a silently wrong order.
-- **Action Required:** reject a quantity below 1 at the request (`@Positive`, with a message key like the existing `basket.basketItem.productId.notNull`), and make it an invariant of `ShoppingCart`/`Item`, so that no line can hold less than 1 whatever the caller. Decide what a merge that would end below 1 means; rejecting it is the simplest answer.
+### 22. Removing a Basket Item Without a Basket Answers 500
+- **Locations:** `RemoveItemFromBasketHandler`; the basket's `@RestControllerAdvice` classes (`AddItemIntoBasketErrorHandler`, `GetBasketErrorHandler`, `CheckoutBasketErrorHandler`), each scoped by `basePackages` to its own feature package
+- **Issue:** `BasketNotFound`, thrown by remove when the caller has no basket, has no handler in the `removeitemfrombasket` package. It reaches the servlet, and the caller gets a bare 500 with no error code instead of a 404. Inferred from the code; the same gap on the add-item path was seen on 2026-10-30 and fixed on 2026-11-03 by `AddItemIntoBasketErrorHandler`.
+- **Action Required:** an error handler for `removeitemfrombasket` mapping `BasketNotFound` to `404 basket.not-found`, like `AddItemIntoBasketErrorHandler`.
 
-### 22. Basket Add/Remove Errors Answer 500
-- **Locations:** `AddItemIntoBasketHandler`, `RemoveItemFromBasketHandler`; the basket's `@RestControllerAdvice` classes, `GetBasketErrorHandler` and `CheckoutBasketErrorHandler`, each scoped by `basePackages` to its own feature package
-- **Issue:** `BasketNotFound` (thrown by add and remove when the caller has no basket) and `CatalogProductNotFound` (thrown by add for an unknown product id) have no handler in the `additemintobasket` and `removeitemfrombasket` packages. They reach the servlet, and the caller gets a bare 500 with no error code instead of a 404 saying what is missing. Seen on 2026-10-30 for add-item without a basket; the remove path and the unknown-product path are inferred from the code.
-- **Action Required:** error handlers for `additemintobasket` and `removeitemfrombasket`, mapping `BasketNotFound` to `404 basket.not-found` and `CatalogProductNotFound` to a 404 with its own code, like the other features' handlers.
+### 25. A Huge Basket Quantity Overflows Into a Negative One
+- **Locations:** `Item.increaseQuantity`
+- **Issue:** merging an added quantity into an existing line adds two `int`s with plain `+`. Two large positive quantities (e.g. 2,000,000,000 twice) wrap around to a negative sum. Since 2026-11-03, `Item`'s constructor rejects a quantity below 1, so the overflow now throws `InvalidItemQuantity` and answers `400 basket.add-item.invalid-quantity`, whose message ("must be at least 1, but was -294967296") does not tell the caller what went wrong. Inferred from the code, not reproduced.
+- **Impact:** no wrong data is stored anymore, only a misleading error for an absurd request.
+- **Action Required:** decide on an upper bound for a line's quantity (a `@Max` on the request and a matching invariant), or use `Math.addExact` and map the `ArithmeticException` to a 400 that says the quantity is too large.
 
 ### 23. Concurrent First Checkouts on a Fresh Database Fail With 500
 - **Locations:** `MongoOutboxEventStore` and the `outbox` collection in `eshop-basket-db`; `CheckoutBasketHandler`'s basket transaction

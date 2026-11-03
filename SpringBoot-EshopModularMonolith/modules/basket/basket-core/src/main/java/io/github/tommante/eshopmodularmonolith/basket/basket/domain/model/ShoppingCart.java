@@ -4,6 +4,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.Baske
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.ChargeDoesNotMatchTotal;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.InvalidItemQuantity;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Address;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.valueobjects.Charge;
@@ -53,6 +54,9 @@ public class ShoppingCart extends AggregateRoot<String> {
     }
 
     public void addItem(UUID productId, int quantity, BigDecimal price, String productName){
+        if (quantity < 1) {
+            throw new InvalidItemQuantity(quantity);
+        }
         for (int i = 0 ; i < items.size(); i++) {
             var existingItem = items.get(i);
             if (existingItem.productId().equals(productId)) {

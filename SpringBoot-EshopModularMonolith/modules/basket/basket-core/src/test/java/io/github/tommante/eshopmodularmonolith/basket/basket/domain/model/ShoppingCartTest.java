@@ -6,6 +6,7 @@ import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.Baske
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.events.CheckedOutItem;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.ChargeDoesNotMatchTotal;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.EmptyCartCheckout;
+import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.InvalidItemQuantity;
 import io.github.tommante.eshopmodularmonolith.basket.basket.domain.exceptions.UnpriceableCartItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -211,6 +212,47 @@ class ShoppingCartTest {
         assertThat(cart.items()).hasSize(2);
         assertThat(cart.items().get(0).quantity()).isEqualTo(5);
         assertThat(cart.items().get(1).quantity()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("Given an empty cart, when addItem is called with a quantity of zero, then InvalidItemQuantity is thrown and no line is added")
+    void givenEmptyCart_whenAddItemWithQuantityZero_thenInvalidItemQuantityIsThrownAndNoLineIsAdded() {
+        var cart = ShoppingCart.create("testUser");
+
+        assertThatExceptionOfType(InvalidItemQuantity.class)
+                .isThrownBy(() -> cart.addItem(PRODUCT_1, 0, new BigDecimal("10.00"), "Product 1"));
+
+        assertThat(cart.items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Given an empty cart, when addItem is called with a negative quantity, then InvalidItemQuantity is thrown and no line is added")
+    void givenEmptyCart_whenAddItemWithNegativeQuantity_thenInvalidItemQuantityIsThrownAndNoLineIsAdded() {
+        var cart = ShoppingCart.create("testUser");
+
+        assertThatExceptionOfType(InvalidItemQuantity.class)
+                .isThrownBy(() -> cart.addItem(PRODUCT_1, -2, new BigDecimal("10.00"), "Product 1"));
+
+        assertThat(cart.items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Given a cart with an existing product, when addItem is called for it with a quantity of zero, then InvalidItemQuantity is thrown and the line keeps its quantity")
+    void givenCartWithExistingProduct_whenAddItemWithQuantityZero_thenInvalidItemQuantityIsThrownAndLineKeepsItsQuantity() {
+        var cart = ShoppingCart.create("testUser");
+        cart.addItem(PRODUCT_1, 2, new BigDecimal("10.00"), "Product 1");
+
+        assertThatExceptionOfType(InvalidItemQuantity.class)
+                .isThrownBy(() -> cart.addItem(PRODUCT_1, 0, new BigDecimal("10.00"), "Product 1"));
+
+        assertThat(cart.items()).singleElement().extracting(Item::quantity).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Given a quantity of zero, when an item is built, then InvalidItemQuantity is thrown")
+    void givenQuantityZero_whenItemIsBuilt_thenInvalidItemQuantityIsThrown() {
+        assertThatExceptionOfType(InvalidItemQuantity.class)
+                .isThrownBy(() -> new Item(UUID.randomUUID(), PRODUCT_1, 0, new BigDecimal("10.00"), "Product 1"));
     }
 
     @Test
