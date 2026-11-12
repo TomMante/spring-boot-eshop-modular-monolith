@@ -271,7 +271,7 @@ already exists, and Keycloak stores its data in Postgres' `identity` schema. No 
 declared in `compose.yaml`, so the way to re-import is:
 
 ```bash
-docker compose down && docker compose up -d
+docker compose -f backend/docker/sb-eshop/compose.yaml down && docker compose -f backend/docker/sb-eshop/compose.yaml up -d
 ```
 
 That drops the databases along with the realm — catalog re-seeds itself on the next application
