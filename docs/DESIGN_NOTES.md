@@ -223,6 +223,19 @@ A is the cheaper start. The hard part of an audit trail is capturing every chang
 
 **Open question, and why this stays a note:** nobody has decided to build it, and its cost is mostly in capture — a generic envelope, a change-capturing mechanism in each module, and explicit records for outcomes that change no state — before the audit module itself stores anything. Worth turning into a Backlog entry when checkout and payment history is needed for real (disputes, an external audit), or when the first module needs a full history of its own data, such as catalog price changes.
 
+## Who Holds the Token: Client, Gateway or BFF
+
+As built, the client gets a token from Keycloak and sends it on every request; the application is an OAuth2 resource server that only validates it. The demo client `eshop-app` (in `SpringBoot-EshopModularMonolith/docker/sb-eshop/keycloak-init/eshop-realm.json`) has `directAccessGrantsEnabled: true`, so SETUP.md, the Bruno collection and the end-to-end tests obtain tokens with the password grant. That keeps a local run to one `curl`, but it is a demo choice: OAuth 2.0 Security Best Current Practice says the password grant must not be used, and a real client would use the authorization code flow with PKCE.
+
+For a browser client, current advice goes one step further: keep tokens out of the browser altogether.
+
+- **API gateway** (Spring Cloud Gateway, or the ingress of the platform it runs on): a single entry point that validates or relays tokens, and adds rate limiting, routing and CORS in one place.
+- **Backend-for-frontend (BFF):** a server-side component, often the gateway itself with `TokenRelay`, runs the authorization code flow, keeps the tokens in its session, and gives the browser only an HTTP-only session cookie. A script injected into the page has no token to steal.
+
+**Either way the application stays a resource server.** A gateway or BFF sits in front of it and forwards a bearer token, so nothing in the modules changes. That is why this is a deployment question, not a design one, and why it stays a note.
+
+**Open question:** with no UI in this repository, a gateway would have nothing to protect but the API it already fronts. Worth revisiting if a browser client is ever added, or when the [Kubernetes sample](../k8s-samples/README.md) or a separate deployment repository needs a single entry point. Retire the password grant at the same time, since a real client would no longer need it.
+
 ## Directions Worth Exploring
 
 Ideas carried over from the README's former "Extending the project" checklist. Each is a direction, not a question worked through yet; one that gets thought through earns its own section above.

@@ -24,6 +24,15 @@ Better solutions:
 2. Create a new AOP interceptor that deals with it: this would allow to have both the event and outbox to be published in the same place.
 3. Explicit per-module wiring of the outbox to avoid cross-module bean conflicts. A future enhancement could be a `@EnableMongoOutbox` (or similar) custom annotation backed by an `ImportBeanDefinitionRegistrar` to automatically register module-prefixed outbox beans, avoiding conflicts by construction. Until several modules of the same type need an outbox, explicit per-module wiring is preferred for clarity.
 
+### One controller per use case, no dispatcher
+Each use case is a vertical slice: its folder under `application/features/` holds the request, the controller, the command, the handler and, where needed, an error handler (e.g. `additemintobasket/`). Controllers call their handler directly. There is no command/query bus in between, unlike the MediatR-style mediator common in .NET implementations of the same design.
+
+A mediator mainly earns its place through its pipeline: decorators that add logging, tracing, transactions or retries around every handler. In Spring those concerns already have a standard home: `@Transactional` or a `TransactionTemplate`, Micrometer observations (not set up yet, see [Backlog](BACKLOG.md) item 27), Spring Retry, and AOP aspects for anything custom. A hand-built dispatcher would duplicate that in a style Java readers are less used to, and hide which handler an endpoint runs behind a lookup.
+
+A uniform pipeline would also be wrong here in one important place. `CheckoutBasketHandler` charges the card *before* it opens the basket transaction through `TransactionOperations`, and refunds if that transaction fails (see [Payment provider](#-payment-provider)). A transaction decorator wrapped around every handler would put the call to Stripe inside the database transaction, which is exactly what that design avoids. Cross-cutting behaviour that differs per use case is clearer written in the handler that needs it.
+
+The cost is more controllers (one per endpoint) and no single place to attach a concern to every use case at once. If one is ever needed, an aspect on handler classes gives that hook without adding a dispatcher.
+
 ### Duplication the architecture requires
 Some code is duplicated on purpose, and SonarCloud flags some of it. Do not merge these copies:
 - **`OutboxEventEntity` and `OutboxEventDocument`**: the same persisted shape on two database engines, each written the way its engine expects: a mutable JPA entity, and an immutable record for MongoDB, whose state changes run as database updates. Showing that is the point of this project.
@@ -139,7 +148,7 @@ different parties, and they change for different reasons.
 
 Why the duplication is not duplicated knowledge:
 - **Different audiences.** No module calls another module's endpoint, so a request type in `-contract` would be visible to exactly the modules that must never use it.
-- **Different change clocks.** Integration events are persisted in an outbox; changing their shape changes data already at rest (see Known Issues). A request can gain or lose a field without touching that.
+- **Different change clocks.** Other modules compile against an integration event, and it mirrors a domain event that sits in the outbox as data at rest (see Known Issues). A request can gain or lose a field without touching either.
 - **They do diverge.** The checkout request carries a payment method id from the provider (`CheckoutPayment.paymentMethodId`), while the published event carries the charge the provider returned (`ChargeDTO`: reference, amount, card summary). Neither shape could stand in for the other.
 - **Annotations would lie on the event.** `@NotBlank` on an event field reads as a guarantee to the consuming module, and nothing on its side enforces it.
 

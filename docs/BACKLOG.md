@@ -139,6 +139,29 @@ Entries are self-contained on purpose. Plan documents are frozen history and may
     - whether logs go to Loki as well, or stay in the container output.
 - **Why deferred:** decided with the user on 2026-10-29, when running the stack on Kubernetes was dropped from this repository ([kubernetes-sample-scope](../ai-coding-tools/plans/kubernetes-sample-scope/kubernetes-sample-scope.md)) in favour of observability, which shows the modular monolith's asynchronous design rather than its deployment.
 
+### 28. Project Layout Names: the Inner Folder, `starter`, and a `config` Package
+Three renames, done as one change and before the repository goes public. Doing it later breaks existing clones, bookmarks and links into the tree.
+- **`starter` says the wrong thing.** In Spring, a "starter" is a dependency you add (`spring-boot-starter-*`), so the name reads as a library rather than the module that assembles and launches the application. Rename the module, its artifact and the main class `EshopModularMonolithStarter` to match.
+- **Configuration classes sit in the root package.** `OpenApiConfig`, `MongoConfiguration`, `ClockConfiguration` and `AuditingConfiguration` are next to the main class. Move them into a `config` subpackage, and use one suffix for all four (`…Config` or `…Configuration`, not both). Component scanning still finds them below the main class's package. Check `ApplicationWiringTest` and `ArchitectureTest` for package names.
+- **The inner `SpringBoot-EshopModularMonolith/` folder repeats the repository's name**, in mixed case, so every path reads `SpringBoot-EshopModularMonolith/SpringBoot-EshopModularMonolith/…`. Rename it to a lowercase name that says what it holds. Upper-case documentation files (`README.md`, `ARCHITECTURE.md`) are the usual convention and stay.
+- **What the renames touch** (measured on 2026-11-04 with `git grep`, plan documents excluded since they're frozen):
+    - module: the parent `pom.xml` and every module pom that names it, `sonar/pom.xml` (the coverage aggregator), the `Dockerfile` (`-pl starter`, `starter/target/starter.jar`), README, SETUP, ARCHITECTURE, COVERAGE, DESIGN_NOTES, BACKLOG, `bruno/README.md`, and `ai-coding-tools/processes/getting-started.md`;
+    - folder: the three workflows under `.github/workflows/` (paths, `-f` arguments, compose file), README, SETUP, DESIGN_NOTES, `e2e/README.md`, `bruno/README.md`, `k8s-samples/` (README and the comment in `deployment.yaml`), `ai-coding-tools/processes/getting-started.md`, `ai-coding-tools/scripts/README.md`, and `REPORT_DIR` in `ai-coding-tools/scripts/coverage-summary.py`.
+- **Decisions needed:** the module's new name (`application`, `app` or `bootstrap`), and the folder's (e.g. `backend`).
+- **Why deferred:** raised on 2026-11-03 in an outside review of the repository's organisation. Each rename is mechanical, but together they touch the build, CI and most docs, so they belong in one change of their own.
+
+### 29. One Naming Rule for Contract Types
+- **Today `contract` packages mix two conventions.** Read and payload shapes carry a `DTO` suffix (`ProductDTO`, `ShoppingCartDTO`, `ItemDTO`, `OrderDTO`, `PaymentDTO`, `AddressDTO`, `CardSummaryDTO`, `ChargeDTO`, `CheckedOutItemDTO`). Integration events are named two ways: catalog's `ProductCreatedMessage` and basket's `BasketCheckoutIntegrationEvent`. A module's `contract` is its public API, and an outside review on 2026-11-03 read the suffix as dated. The inconsistency between the two events is the stronger reason to change.
+- **Goal:** one rule, written in ARCHITECTURE's *Request shapes vs. module contracts*, applied to every contract type.
+- **Constraints on the rule:**
+    - These are not HTTP-only shapes. `ProductQueryService` returns `ProductDTO` to basket in-process, so a `…Response` suffix would describe one of its two uses.
+    - A bare name clashes with the domain model where one exists. Catalog has both `Product` and `ProductDTO`, and a file that needs both would have to use a fully qualified name.
+    - Options: a role suffix (`ProductView`, `OrderSummary`), or the bare name where no domain type of that name exists. For events, one suffix (`…IntegrationEvent`).
+- **What it does not touch:** stored data. The outbox persists domain events (`BasketCheckedOut`, `ProductCreated`) under the `eventType()` string each declares, and builds the integration event only when it dispatches, so renaming contract types changes no payload at rest. **Check before relying on it:** that no read-side Mongo query or test fixture depends on a contract class's name.
+- **What it does touch:** every module's contract package and its consumers; the OpenAPI schema names in Swagger UI, which are the class names; and the docs that say "contract DTOs" (README, ARCHITECTURE, the getting-started guide).
+- **Decision needed:** the rule itself.
+- **Why deferred:** a naming choice with no defect behind it, and broad enough to deserve its own change.
+
 ## ⏳ Gated on a trigger
 
 Nothing to do until the stated condition holds. Deliberate, not neglected.
