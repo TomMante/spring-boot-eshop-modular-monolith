@@ -30,7 +30,7 @@ each module          sonar module              scanner
    depends on, and merges them into one
    `sonar/target/site/jacoco-aggregate/jacoco.xml`.
 
-   This merge is the point of the exercise: a test in `starter` that exercises
+   This merge is the point of the exercise: a test in `app` that exercises
    `catalog-core` code counts toward `catalog-core`, because attribution comes
    from combined execution data rather than from one report per module.
 

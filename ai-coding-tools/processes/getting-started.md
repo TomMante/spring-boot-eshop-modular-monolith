@@ -14,12 +14,12 @@ Before making architectural decisions, refactoring, or writing tests, consult th
 Use the [open-points](../skills/open-points/SKILL.md) skill to turn those two files into a prioritized checklist on demand, rather than re-deriving priority by hand each time.
 
 ## 🛠️ Build & Test Commands
-The main Java application is in the `SpringBoot-EshopModularMonolith` directory,
+The main Java application is in the `backend` directory,
 which is also where the Maven wrapper lives. Run commands from there — the wrapper
 pins the Maven version, so use `./mvnw`, not whatever `mvn` is on the PATH.
 
 ```bash
-cd SpringBoot-EshopModularMonolith
+cd backend
 ```
 
 - **Build:** `./mvnw clean install`
@@ -44,8 +44,8 @@ is not visible to the user:
   those lines, followed by the total.
 - For `worst` and `class`, show their output when the user asked for it.
 
-From the repository root, add `-f SpringBoot-EshopModularMonolith/pom.xml` and call the
-wrapper by path: `SpringBoot-EshopModularMonolith/mvnw clean verify -f SpringBoot-EshopModularMonolith/pom.xml`.
+From the repository root, add `-f backend/pom.xml` and call the
+wrapper by path: `backend/mvnw clean verify -f backend/pom.xml`.
 
 **When regenerating the wrapper** (`./mvnw wrapper:wrapper -Dtype=only-script -Dmaven=<version>`),
 check `.mvn/wrapper/maven-wrapper.properties` afterwards: the plugin writes whatever mirror
@@ -58,7 +58,7 @@ point at `https://repo.maven.apache.org/maven2/`.
 - **CQRS Separation:**
     - **Write:** Rich DDD aggregates.
     - **Read:** Return Contract DTOs directly from the DB. Bypasses the domain entirely.
-- **Dependency Rules (`shared` module):** Domain and Contract are independent of each other and of Infrastructure. Enforced by `ArchitectureTest` in `starter`.
+- **Dependency Rules (`shared` module):** Domain and Contract are independent of each other and of Infrastructure. Enforced by `ArchitectureTest` in `app`.
     - `shared.domain`: Pure, framework-agnostic. No infra/contract dependencies.
     - `shared.contract`: Public shapes (DTOs). No domain/infra dependencies.
     - `shared.infrastructure`: Spring/JPA concerns. Never depended on by domain/contract.

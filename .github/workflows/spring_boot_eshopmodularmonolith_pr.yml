@@ -1,11 +1,11 @@
-name: SpringBoot-EshopModularMonolith - PR Compile and Test
+name: spring-boot-eshop-modular-monolith - PR Compile and Test
 
 on:
   workflow_dispatch:
   pull_request:
     branches: [ "main" ]
     paths:
-      - SpringBoot-EshopModularMonolith/**
+      - backend/**
       - .github/workflows/spring_boot_eshopmodularmonolith_pr.yml
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          sparse-checkout: 'SpringBoot-EshopModularMonolith'
+          sparse-checkout: 'backend'
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
@@ -42,5 +42,5 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build and analyze
-        working-directory: SpringBoot-EshopModularMonolith
+        working-directory: backend
         run: ./mvnw -B verify

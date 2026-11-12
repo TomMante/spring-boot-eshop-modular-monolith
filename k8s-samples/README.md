@@ -17,7 +17,7 @@ To run the whole stack, use compose: [Run everything in Docker](../docs/SETUP.md
 
 ## Before it could run
 
-- An image built from [the Dockerfile](../SpringBoot-EshopModularMonolith/Dockerfile) and pushed
+- An image built from [the Dockerfile](../backend/Dockerfile) and pushed
   to a registry the cluster pulls from.
 - PostgreSQL with the `EShopDb` database, MongoDB running as a replica set, and Keycloak with the
   `eshop` realm, all reachable from the pod.

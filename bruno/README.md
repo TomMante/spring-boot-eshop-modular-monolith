@@ -6,8 +6,8 @@ The collection and its two environments are committed, so a fresh clone can auth
 
 ## Prerequisites
 
-1. Start infra: `docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d` (Postgres, MongoDB, Keycloak, and `payment-provider`, the WireMock container standing in for Stripe).
-2. Run the app on port `8080`: `./mvnw -pl starter spring-boot:run` from `SpringBoot-EshopModularMonolith/`, or your IDE. No profile is needed — the committed `application.yaml` points at the compose stack. Without a JDK, add `--profile app --build --wait` to step 1's `up -d` instead, and compose runs the application too (see [Run everything in Docker](../docs/SETUP.md#run-everything-in-docker)).
+1. Start infra: `docker compose -f backend/docker/sb-eshop/compose.yaml up -d` (Postgres, MongoDB, Keycloak, and `payment-provider`, the WireMock container standing in for Stripe).
+2. Run the app on port `8080`: `./mvnw -pl app spring-boot:run` from `backend/`, or your IDE. No profile is needed — the committed `application.yaml` points at the compose stack. Without a JDK, add `--profile app --build --wait` to step 1's `up -d` instead, and compose runs the application too (see [Run everything in Docker](../docs/SETUP.md#run-everything-in-docker)).
 3. Open this folder as a collection in Bruno and select the **default - john** environment.
 
 ## Credentials
@@ -31,7 +31,7 @@ To point the collection somewhere else, create an additional environment in Brun
 
 Run **Auth → Get Token (Password Grant)** first. It calls Keycloak's token endpoint with the `password` grant using `username`/`password`, authenticated as the confidential `eshop-app` client (`client_id`/`client_secret`). A post-response script stores the result in the `access_token` environment variable. Every other request inherits a Bearer auth header from the collection root, so nothing else needs to be configured. Re-run this request whenever the token expires (access tokens on this realm live 300s).
 
-`CurrentUser` on the Basket and Ordering endpoints is resolved from the JWT's `preferred_username` claim ([CurrentUserArgumentResolver.java](../SpringBoot-EshopModularMonolith/security/src/main/java/io/github/tommante/eshopmodularmonolith/security/CurrentUserArgumentResolver.java)), so authenticating as `john` means basket requests act as that user and order requests see only his orders — another user's order answers `404`.
+`CurrentUser` on the Basket and Ordering endpoints is resolved from the JWT's `preferred_username` claim ([CurrentUserArgumentResolver.java](../backend/security/src/main/java/io/github/tommante/eshopmodularmonolith/security/CurrentUserArgumentResolver.java)), so authenticating as `john` means basket requests act as that user and order requests see only his orders — another user's order answers `404`.
 
 ## Structure
 

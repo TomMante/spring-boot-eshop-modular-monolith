@@ -17,7 +17,7 @@ base URLs.
 **In Docker** (no JDK needed), from the repository root:
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
+docker compose -f backend/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
 ```
 
 Compose builds and starts the application and its stack, waits until the application and

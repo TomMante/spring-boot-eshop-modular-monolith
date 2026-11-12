@@ -1,5 +1,5 @@
-[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=TomMante_SpringBoot-EshopModularMonolith&metric=alert_status&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_SpringBoot-EshopModularMonolith)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TomMante_SpringBoot-EshopModularMonolith&metric=coverage&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_SpringBoot-EshopModularMonolith)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=TomMante_spring-boot-eshop-modular-monolith&metric=alert_status&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_spring-boot-eshop-modular-monolith)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TomMante_spring-boot-eshop-modular-monolith&metric=coverage&token=f2ed3a05ab760065662b7d00d52fab4ebdc4e4d0)](https://sonarcloud.io/summary/new_code?id=TomMante_spring-boot-eshop-modular-monolith)
 
 # EShop Modular Monolith
 
@@ -11,15 +11,15 @@ test on every build.
 **Run it locally** (JDK 25 and Docker):
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d
-cd SpringBoot-EshopModularMonolith && ./mvnw install -DskipTests
-./mvnw -pl starter spring-boot:run
+docker compose -f backend/docker/sb-eshop/compose.yaml up -d
+cd backend && ./mvnw install -DskipTests
+./mvnw -pl app spring-boot:run
 ```
 
 **Or without a JDK** (Docker only): compose builds the image from source and runs it with the stack.
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
+docker compose -f backend/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
 ```
 
 Every endpoint needs a token. [SETUP.md](docs/SETUP.md) walks from here to a placed order, and
@@ -32,7 +32,7 @@ flowchart LR
     client([Client]) -- "bearer token" --> api
     keycloak[Keycloak] -. "issues token" .-> client
 
-    subgraph api["One deployable (starter)"]
+    subgraph api["One deployable (app)"]
         catalog[Catalog]
         basket[Basket]
         ordering[Ordering]
@@ -123,7 +123,7 @@ Detailed documentation is located in the `docs/` directory:
 
 | Path | Contents |
 | --- | --- |
-| `SpringBoot-EshopModularMonolith/` | The application: Maven multi-module build, a multi-stage Dockerfile that builds from source into a layered image running as a non-root user, and the local compose stack in `docker/sb-eshop/`, which can also run the application. It sits one level down so the root can hold the material below alongside it. |
+| `backend/` | The application: Maven multi-module build, a multi-stage Dockerfile that builds from source into a layered image running as a non-root user, and the local compose stack in `docker/sb-eshop/`, which can also run the application. It sits one level down so the root can hold the material below alongside it. |
 | `docs/` | Architecture, testing conventions, known issues, backlog, design notes, setup, and a comparison with Spring Modulith. |
 | `bruno/` | A [Bruno](https://www.usebruno.com/) collection covering every endpoint, including the token request. |
 | `e2e/` | End-to-end tests in Serenity BDD (Cucumber, Screenplay) against the running stack, run by compose's `e2e` profile or from the host. |

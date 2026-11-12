@@ -1,5 +1,5 @@
 # Sample only: not applied anywhere and not tested. The image is a placeholder for one built from
-# SpringBoot-EshopModularMonolith/Dockerfile and pushed to a registry the cluster can pull from.
+# backend/Dockerfile and pushed to a registry the cluster can pull from.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
