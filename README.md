@@ -28,23 +28,23 @@ the [Bruno collection](bruno/README.md) covers every endpoint.
 ## How it fits together
 
 ```mermaid
-flowchart LR
-    client([Client]) -- "bearer token" --> api
-    keycloak[Keycloak] -. "issues token" .-> client
+flowchart TB
+    keycloak[Keycloak] -. "issues token" .-> client([Client])
+    client -- "bearer token" --> api
 
     subgraph api["One deployable (app)"]
-        catalog[Catalog]
         basket[Basket]
+        catalog[Catalog]
         ordering[Ordering]
     end
-
-    catalog --- catalogDb[("PostgreSQL")]
-    basket --- basketDb[("MongoDB<br/>eshop-basket-db")]
-    ordering --- orderDb[("MongoDB<br/>eshop-order-db")]
 
     basket -- "product price lookup<br/>(sync, catalog-contract)" --> catalog
     basket -- "BasketCheckedOut<br/>(async, outbox)" --> ordering
     basket -- "charge / refund<br/>(sync, Stripe API)" --> stripe[["Stripe<br/>(WireMock locally)"]]
+
+    basket --- basketDb[("MongoDB<br/>eshop-basket-db")]
+    catalog --- catalogDb[("PostgreSQL")]
+    ordering --- orderDb[("MongoDB<br/>eshop-order-db")]
 ```
 
 - **Separate databases.** No module reads another's tables or collections, and there are no
