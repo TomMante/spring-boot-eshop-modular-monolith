@@ -225,7 +225,7 @@ A is the cheaper start. The hard part of an audit trail is capturing every chang
 
 ## Who Holds the Token: Client, Gateway or BFF
 
-As built, the client gets a token from Keycloak and sends it on every request; the application is an OAuth2 resource server that only validates it. The demo client `eshop-app` (in `SpringBoot-EshopModularMonolith/docker/sb-eshop/keycloak-init/eshop-realm.json`) has `directAccessGrantsEnabled: true`, so SETUP.md, the Bruno collection and the end-to-end tests obtain tokens with the password grant. That keeps a local run to one `curl`, but it is a demo choice: OAuth 2.0 Security Best Current Practice says the password grant must not be used, and a real client would use the authorization code flow with PKCE.
+As built, the client gets a token from Keycloak and sends it on every request; the application is an OAuth2 resource server that only validates it. The demo client `eshop-app` (in `backend/docker/sb-eshop/keycloak-init/eshop-realm.json`) has `directAccessGrantsEnabled: true`, so SETUP.md, the Bruno collection and the end-to-end tests obtain tokens with the password grant. That keeps a local run to one `curl`, but it is a demo choice: OAuth 2.0 Security Best Current Practice says the password grant must not be used, and a real client would use the authorization code flow with PKCE.
 
 For a browser client, current advice goes one step further: keep tokens out of the browser altogether.
 

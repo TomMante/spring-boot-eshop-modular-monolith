@@ -13,7 +13,7 @@ readonly EXIT_COVERAGE_INCOMPLETE=5
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPOSITORY_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-readonly APPLICATION_DIR="$REPOSITORY_ROOT/SpringBoot-EshopModularMonolith"
+readonly APPLICATION_DIR="$REPOSITORY_ROOT/backend"
 readonly REPORT_DIR="$APPLICATION_DIR/sonar/target/site/jacoco-aggregate"
 # Outside target/: `clean` would delete the log while Maven is still writing it.
 readonly BUILD_LOG="${TMPDIR:-/tmp}/eshop-coverage-build.log"

@@ -1,11 +1,11 @@
-name: SpringBoot-EshopModularMonolith - End-to-End Tests
+name: spring-boot-eshop-modular-monolith - End-to-End Tests
 
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
     paths:
-      - SpringBoot-EshopModularMonolith/**
+      - backend/**
       - e2e/**
       - .github/workflows/spring_boot_eshopmodularmonolith_e2e.yml
 
@@ -23,11 +23,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run the suite against the compose stack
-        run: docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
+        run: docker compose -f backend/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
 
       - name: Show the stack's logs
         if: failure()
-        run: docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e logs --no-color
+        run: docker compose -f backend/docker/sb-eshop/compose.yaml --profile e2e logs --no-color
 
       - name: Upload the Serenity report
         if: always()

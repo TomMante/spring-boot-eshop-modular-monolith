@@ -67,13 +67,13 @@ The read path follows the same ports-and-adapters split as persistence. Basket's
 Each module owns the texts for its own validation messages (`@NotNull(message = "{basket.checkout.payment.notNull}")`), but the assembled application has exactly one `MessageSource`. Spring does not merge bundles that share a name: with several `messages.properties` on the classpath, only the first is read and every other module's keys come back to the caller as the raw `{…}` placeholder.
 
 **Rule:**
-> Every module ships its own uniquely named bundle, and `starter` lists them all.
+> Every module ships its own uniquely named bundle, and `app` lists them all.
 
 When a module adds validation messages:
 
 1. Name the bundle after the module, at its resource root: `<module>-messages.properties` (e.g. `basket-messages.properties`). Never `messages.properties`.
-2. Add it to `spring.messages.basename` in `starter/src/main/resources/application.yaml`, as a **comma-separated string** — `basename: basket-messages, catalog-messages`. Do not write it as a YAML list: Boot's check that decides whether to create the `MessageSource` at all reads the property as one string, doesn't see a list, falls back to `messages`, finds nothing and creates no `MessageSource` — so no module's messages resolve, silently.
-3. Give the module's own tests the bundle name in `src/test/resources/application.yaml` (`spring.messages.basename: <module>-messages`). Slice tests such as `@WebMvcTest` don't see `starter`'s configuration, and without it they fall back to `messages` too.
+2. Add it to `spring.messages.basename` in `app/src/main/resources/application.yaml`, as a **comma-separated string** — `basename: basket-messages, catalog-messages`. Do not write it as a YAML list: Boot's check that decides whether to create the `MessageSource` at all reads the property as one string, doesn't see a list, falls back to `messages`, finds nothing and creates no `MessageSource` — so no module's messages resolve, silently.
+3. Give the module's own tests the bundle name in `src/test/resources/application.yaml` (`spring.messages.basename: <module>-messages`). Slice tests such as `@WebMvcTest` don't see `app`'s configuration, and without it they fall back to `messages` too.
 4. Add one of the module's requests to `ApplicationWiringTest`'s message-resolution test. Only the assembled context can see a missing or colliding bundle; module tests, each with just its own file on the classpath, pass either way.
 
 ---
@@ -153,6 +153,18 @@ Why the duplication is not duplicated knowledge:
 - **Annotations would lie on the event.** `@NotBlank` on an event field reads as a guarantee to the consuming module, and nothing on its side enforces it.
 
 The controller maps the request records into domain value objects (`CheckoutAddress.toDomain()`); the domain value object stays the pivot between the request and the published event, so neither knows about the other.
+
+### Inside a `contract` package
+
+Every module's `contract` package has the same layout. A subpackage exists once it has a type; none is created empty.
+
+| Package | Holds | Named |
+|---|---|---|
+| `contract` | query interfaces another module calls, e.g. `ProductQueryService` | by role |
+| `contract.dto` | the data shapes those interfaces return and events carry, e.g. `ProductDTO`, `AddressDTO`, `CheckedOutItemDTO` | `…DTO` |
+| `contract.integrationevents` | events published to other modules, e.g. `BasketCheckoutIntegrationEvent`, `ProductCreatedIntegrationEvent` | `…IntegrationEvent` |
+
+**Why `DTO`:** these are transfer objects in the literal sense. Each one crosses a module boundary, either as a query result (`ProductDTO`, which basket reads through `ProductQueryService`) or inside an event (basket's `AddressDTO` in `BasketCheckoutIntegrationEvent`). A role suffix such as `…View` was considered and rejected: it implies a shape made for display, and a read model, which [Read Model Strategy](DESIGN_NOTES.md#read-model-strategy) says these are not. The suffix also tells them apart from the domain types of the same name (`ProductDTO`/`Product`, `AddressDTO`/`Address`), which meet in the same file wherever a module maps one into the other.
 
 ---
 
@@ -325,7 +337,7 @@ A row that fails (unreadable, publish throws, or marking it processed throws) is
 With the defaults the delays are 5 s, 10 s, 20 s, 40 s, 80 s, 160 s and 300 s, so a row is dead-lettered on its 8th failure, about 10 minutes after the first. That is long enough to ride out a consumer's database being briefly down, and short enough that a payload that can never be read stops retrying. The defaults live once, in `@DefaultValue` on the record; invalid values (`max-attempts` below 1, a non-positive delay, an initial delay longer than the cap) fail at startup with a message naming the property.
 
 - **Each retry logs a WARN** with the attempt number and the next attempt time. **Dead-lettering logs an ERROR**, and the row keeps its last error in storage. A dead-lettered row is never fetched again until it is requeued by hand (below).
-- **Time comes from the application's single `Clock`**, declared in `starter` and injected into both dispatchers and into the handlers that create aggregates or raise events (`CreateOrderHandler`, `CheckoutBasketHandler`, `CreateProductHandler`). A row's first due time is its event's `occurredOn`, so it comes from the same clock. The adapters never call `Instant.now()`; every timestamp they write is one the processor passes in. Tests fix the clock instead of sleeping.
+- **Time comes from the application's single `Clock`**, declared in `app` and injected into both dispatchers and into the handlers that create aggregates or raise events (`CreateOrderHandler`, `CheckoutBasketHandler`, `CreateProductHandler`). A row's first due time is its event's `occurredOn`, so it comes from the same clock. The adapters never call `Instant.now()`; every timestamp they write is one the processor passes in. Tests fix the clock instead of sleeping.
 - **Both adapters update only the fields they name, and count in the database.** Mongo uses `updateFirst` with `$inc`/`$set`; JPA uses `@Modifying` update queries (`set e.failedAttempts = e.failedAttempts + 1, …`), each `@Transactional` because nothing around them opens a transaction. Neither reads the row first, so a concurrent write to another field is not overwritten and no increment is lost. With one scheduler per module that is cheap insurance rather than a present need. An update that matches no row fails with `IllegalStateException("Unknown outbox event: …")` in both.
 - **A failure while recording the failure is not caught.** If the store itself is down, the exception ends that dispatch run; the row is unchanged and the next poll tries again.
 
@@ -366,7 +378,7 @@ schemaRegistry.registerVersion("BasketCheckedOut", 2, new BasketCheckedOutV1ToV2
 
 **Reading.** The serializer parses the payload into a tree, applies the upcasters from the stored version up to the current one in order, then maps the tree onto the registered class. A stored version below 1 or above the current one is rejected. The case that matters is a rollback: a row written by a newer deployment fails on every attempt, so it is dead-lettered after about 10 minutes like any other failure, and is replayed by hand (above) once a version that knows it is deployed again.
 
-**Decimal amounts stay exact.** By default Jackson holds decimals in a tree as `double`, which would turn `550.00` into `550.0` and drop digits a `double` can't hold. So the serializer parses with `DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS`, which keeps that guarantee inside `outbox-core` whatever mapper it is given, and `starter`'s `application.yaml` enables the same feature for the application's mapper (`spring.jackson.deserialization.use-big-decimal-for-floats`). Typed `BigDecimal` fields were already exact; the setting covers untyped reads. Clients that parse JSON numbers as `double` are a separate, open question ([Backlog 18](BACKLOG.md)).
+**Decimal amounts stay exact.** By default Jackson holds decimals in a tree as `double`, which would turn `550.00` into `550.0` and drop digits a `double` can't hold. So the serializer parses with `DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS`, which keeps that guarantee inside `outbox-core` whatever mapper it is given, and `app`'s `application.yaml` enables the same feature for the application's mapper (`spring.jackson.deserialization.use-big-decimal-for-floats`). Typed `BigDecimal` fields were already exact; the setting covers untyped reads. Clients that parse JSON numbers as `double` are a separate, open question ([Backlog 18](BACKLOG.md)).
 
 **Fixtures.** Each module keeps one captured payload per event version under `src/test/resources/outbox-payloads/<EventType>/v<N>.json`, taken once from a payload the running application wrote. A fixture test per module (`BasketOutboxPayloadFixturesTest`, `CatalogOutboxPayloadFixturesTest`) reads each fixture through a real serializer built with the module's `registerIn`, and asserts that the result **equals** the record built from the captured values. Equality, not a type check, because the likeliest breaking change is silent: a field added to the record without an upcaster reads as `null` from an old payload, and Jackson doesn't fail.
 
@@ -403,7 +415,7 @@ This separation enforces:
 
 ## 🛡️ Enforced by `ArchitectureTest`
 
-The dependency rules above are checked on every build by `starter/src/test/…/ArchitectureTest.java` (ArchUnit, production classes only). It lives in `starter` because that is the only module whose classpath holds every module.
+The dependency rules above are checked on every build by `app/src/test/…/ArchitectureTest.java` (ArchUnit, production classes only). It lives in `app` because that is the only module whose classpath holds every module.
 
 | Rule | Why Maven alone doesn't enforce it |
 |---|---|

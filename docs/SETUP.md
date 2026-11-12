@@ -24,7 +24,7 @@ Nothing else needs installing — the Maven wrapper pins its own Maven version.
 From the repository root:
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml up -d
+docker compose -f backend/docker/sb-eshop/compose.yaml up -d
 ```
 
 This starts Postgres (`5432`), MongoDB (`27020`, as a single-node replica set), Keycloak
@@ -41,7 +41,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:9090/realms/eshop/.wel
 ## 2. Build
 
 ```bash
-cd SpringBoot-EshopModularMonolith
+cd backend
 ./mvnw clean install
 ```
 
@@ -51,25 +51,25 @@ want to run the application.
 ## 3. Run the application
 
 ```bash
-./mvnw -pl starter spring-boot:run
+./mvnw -pl app spring-boot:run
 ```
 
-`-pl starter` matters: without it Maven runs the goal for every module in the reactor and fails on
+`-pl app` matters: without it Maven runs the goal for every module in the reactor and fails on
 the aggregator with *"Unable to find a suitable main class"*.
 
 No profile is needed. The committed `application.yaml` already points at the compose stack. The
-application listens on `8080` and logs `Started EshopModularMonolithStarter` when it is up.
+application listens on `8080` and logs `Started EshopModularMonolithApplication` when it is up.
 
 ## Run everything in Docker
 
 Instead of steps 1–3, from the repository root:
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
+docker compose -f backend/docker/sb-eshop/compose.yaml --profile app up -d --build --wait
 ```
 
 The `app` profile adds the application to the stack. Compose builds its image from
-`SpringBoot-EshopModularMonolith/Dockerfile`: Maven runs inside the build, so no JDK is needed on
+`backend/Dockerfile`: Maven runs inside the build, so no JDK is needed on
 the host. The first build downloads every dependency and takes a few minutes; later builds reuse
 them. Tests are skipped in the image build, since they need Docker themselves. `--wait` returns
 once the application reports ready. Continue with step 4.
@@ -230,7 +230,7 @@ An automated suite checks the flows above against the running system. Without a 
 runs it next to the stack:
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
+docker compose -f backend/docker/sb-eshop/compose.yaml --profile e2e run --rm --build e2e
 ```
 
 Running it from the host, its settings, and the report are in [e2e/README.md](../e2e/README.md).
@@ -238,7 +238,7 @@ Running it from the host, its settings, and the report are in [e2e/README.md](..
 ## Starting over
 
 ```bash
-docker compose -f SpringBoot-EshopModularMonolith/docker/sb-eshop/compose.yaml down -v
+docker compose -f backend/docker/sb-eshop/compose.yaml down -v
 ```
 
 `-v` discards the volumes, so the next `up` gives you empty databases and a freshly imported realm.

@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-REPORT_DIR = REPOSITORY_ROOT / "SpringBoot-EshopModularMonolith/sonar/target/site/jacoco-aggregate"
+REPORT_DIR = REPOSITORY_ROOT / "backend/sonar/target/site/jacoco-aggregate"
 MAIN_SOURCE_MARKER = "/src/main/java/"
 
 EXIT_OK = 0

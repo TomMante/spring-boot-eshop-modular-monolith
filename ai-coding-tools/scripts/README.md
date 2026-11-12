@@ -45,7 +45,7 @@ has two limits:
 
 `coverage-summary.py` is read-only and stays inside the repository:
 - **Reads** only `jacoco.csv` and `jacoco.xml` from the fixed report folder
-  `SpringBoot-EshopModularMonolith/sonar/target/site/jacoco-aggregate/`. There is
+  `backend/sonar/target/site/jacoco-aggregate/`. There is
   no option to point it elsewhere.
 - **Checks the modification time** (and nothing else) of the changed source files
   that `git diff` lists, to warn when the report is older than an edit.
